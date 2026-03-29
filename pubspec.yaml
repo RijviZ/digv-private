@@ -1,0 +1,54 @@
+name: digv
+description: "DigV - On demand home services app."
+
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+
+  #State Management
+  flutter_riverpod: ^3.3.1
+
+  #router
+  go_router: ^17.1.0
+
+  #svg
+  flutter_svg: ^2.2.4
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+     - assets/images/icon.svg
+     - assets/images/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/inter-regular.ttf
+        - asset: assets/fonts/inter-italic.ttf
+          style: italic
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/inter-regular.ttf
+        - asset: assets/fonts/inter-italic.ttf
+          style: italic

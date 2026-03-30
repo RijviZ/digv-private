@@ -1,4 +1,6 @@
+import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/core/widgets/app_filter_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -87,58 +89,21 @@ class _SelectTechnicianScreenState extends State<SelectTechnicianScreen> {
       ),
       body: Column(
         children: [
-          SizedBox(
-            height: 40,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _types.length,
-              itemBuilder: (context, index) {
-                final subType = _types[index];
-                final isSelected = subType == _selectedService;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedService = subType;
-                    });
-                  },
-                  child: Container(
-                    margin: EdgeInsets.only(right: 12),
-                    padding: EdgeInsetsGeometry.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(2),
-                      border: Border.all(
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                    child: Text(
-                      _types[index],
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.onPrimary
-                            : Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+          AppFilterBar(items: ['Split', 'Window', 'Central', 'Cassette', 'In Progress'], selectedItem: _selectedFilter, onSelected: (item) {
+            setState(() {
+              _selectedFilter = item;
+            });
+          }),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             clipBehavior: Clip.antiAlias,
             decoration: ShapeDecoration(
-              color: const Color(0xFFEFF6FF) /* system-info-bg */,
+              color: AppColors.unread,
               shape: RoundedRectangleBorder(
                 side: BorderSide(
                   width: 1,
-                  color: const Color(0xFFBFDBFE) /* system-info-border */,
+                  color: AppColors.inputBorderSecondary,
                 ),
                 borderRadius: BorderRadius.circular(6),
               ),
@@ -172,21 +137,6 @@ class _SelectTechnicianScreenState extends State<SelectTechnicianScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFilterChip(String label) {
-    final isSelected = label == _selectedFilter;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedFilter = label;
-        });
-      },
-      child: Container(
-        padding: EdgeInsetsGeometry.symmetric(horizontal: 16, vertical: 8),
-
-      )
     );
   }
 }

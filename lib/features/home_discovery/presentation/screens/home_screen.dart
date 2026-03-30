@@ -1,6 +1,5 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
-import 'package:digv/core/widgets/app_filter_bar.dart';
 import 'package:digv/features/home_discovery/presentation/domain/nav_item.dart';
 import 'package:digv/features/home_discovery/presentation/domain/quick_service_item.dart';
 import 'package:digv/features/home_discovery/presentation/domain/service_card.dart';
@@ -188,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildHeader(BuildContext context) {
     return Container(
       color: Theme.of(context).colorScheme.surface,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       child: Row(
         children: [
           Container(
@@ -353,37 +352,70 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
         SizedBox(height: 16),
-        AppFilterBar(
-          items: subTypes,
-          selectedItem: subTypes[_selectedSubTypeIndex],
-          onSelected: (item) {
-            setState(() {
-              _selectedSubTypeIndex = subTypes.indexOf(item);
-            });
-          },
+        SizedBox(
+          height: 40,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: subTypes.length,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemBuilder: (context, index) {
+              final subType = subTypes[index];
+              final isSelected = index == _selectedSubTypeIndex;
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedSubTypeIndex = index;
+                  });
+                },
+                child: Container(
+                  margin: EdgeInsets.only(right: 12),
+                  padding: EdgeInsetsGeometry.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(2),
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                  ),
+                  child: Text(
+                    subTypes[index],
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
         const SizedBox(height: 24),
-        _buildServiceCards(),
+        Padding(
+          padding: EdgeInsetsGeometry.symmetric(horizontal: 16),
+          child: Column(
+            children: _serviceCards[_selectedCategoryIndex]
+                .map(
+                  (card) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildServiceCard(card),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
       ],
-    );
-  }
-
-  Widget _buildServiceCards() {
-    final cards = _serviceCards[_selectedCategoryIndex];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: cards.map((card) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _buildServiceCard(card),
-        )).toList(),
-      ),
     );
   }
 
   Widget _buildServiceCard(ServiceCard card) {
     return GestureDetector(
-      onTap: () => context.push('/service-details'),
+      onTap: () {
+        context.push('/service_details');
+      },
       child: Container(
         width: double.infinity,
         height: 180,
@@ -401,9 +433,9 @@ class _HomeScreenState extends State<HomeScreen>
                   fit: BoxFit.cover,
                 ),
                 gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black.withOpacity(0.2), Colors.black],
+                  begin: Alignment(0.50, -0.00),
+                  end: Alignment(0.50, 1.00),
+                  colors: [Colors.black.withValues(alpha: 0.20), Colors.black],
                 ),
               ),
             ),
@@ -411,18 +443,24 @@ class _HomeScreenState extends State<HomeScreen>
               top: 16,
               left: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                height: 36,
+                padding: EdgeInsetsGeometry.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: const Color(0xFF838383),
-                  border: Border.all(color: Colors.white.withOpacity(0.35)),
+                  color: Color(0xFF838383),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
                 ),
                 child: Text(
                   'from ${card.price}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    height: 1.50,
                   ),
                 ),
               ),
@@ -433,16 +471,17 @@ class _HomeScreenState extends State<HomeScreen>
               child: Container(
                 width: 36,
                 height: 36,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
+                padding: EdgeInsets.all(9),
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  color: Theme.of(context).colorScheme.surface,
                 ),
-                child: Center(
-                  child: SvgPicture.asset(
-                    'assets/images/arrow-up-right.svg',
-                    width: 18,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                child: SvgPicture.asset(
+                  'assets/images/arrow-up-right.svg',
+                  height: 18,
+                  width: 18,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ),
@@ -455,22 +494,32 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   Text(
                     card.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      height: 1.40,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       SvgPicture.asset('assets/images/star.svg'),
-                      const SizedBox(width: 4),
-                      Text(card.rating,
-                          style: const TextStyle(color: Colors.white)),
-                      const SizedBox(width: 8),
-                      Text('· ${card.bookings} · ${card.duration}',
-                          style: const TextStyle(color: Colors.white70)),
+                      SizedBox(width: 6),
+                      Text(
+                        card.rating,
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        '· ${card.bookings} · ${card.duration}',
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -487,7 +536,7 @@ class _HomeScreenState extends State<HomeScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 32, 16, 0),
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
           child: Text('Service for you', style: AppTextStyles.h3),
         ),
         Padding(
@@ -540,10 +589,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildPromoBanner(String title, String subTitle) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsetsGeometry.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        image: const DecorationImage(
+        image: DecorationImage(
           image: AssetImage('assets/images/service-for-you.png'),
           fit: BoxFit.cover,
         ),
@@ -569,20 +618,24 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ],
             ),
-            ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(999),
+            Row(
+              children: [
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    padding: EdgeInsetsGeometry.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                  ),
+                  child: Text('Book Now', style: AppTextStyles.bodyLarge),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-              ),
-              child: const Text('Book Now', style: TextStyle(fontWeight: FontWeight.w600)),
+              ],
             ),
           ],
         ),
@@ -595,45 +648,99 @@ class _HomeScreenState extends State<HomeScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
-          child: Text('Quick Services', style: AppTextStyles.h3),
+          padding: const EdgeInsets.fromLTRB(16, 32, 16, 0),
+          child: Text('Service for you', style: AppTextStyles.h3),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Text(
+            'Verified technicians, guaranteed quality',
+            style: AppTextStyles.labelMedium.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+          ),
         ),
         SizedBox(
-          height: 110,
+          height: 127,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: _quickServices.length,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemBuilder: (context, index) {
-              final service = _quickServices[index];
-              return Container(
-                width: 160,
-                margin: const EdgeInsets.only(right: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Theme.of(context).dividerColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      service.label,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+              final item = _quickServices[index];
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Container(
+                  width: 160,
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/quick.jpg'),
+                      fit: BoxFit.cover,
                     ),
-                    Text(
-                      'from ${service.price}',
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: Theme.of(context).colorScheme.secondary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment(0.50, -0.00),
+                            end: Alignment(0.50, 1.00),
+                            colors: [
+                              Colors.black.withValues(alpha: 0.20),
+                              Colors.black,
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        top: 16,
+                        right: 16,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          padding: EdgeInsets.all(9),
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            color: Theme.of(context).colorScheme.surface,
+                          ),
+                          child: SvgPicture.asset(
+                            'assets/images/arrow-up-right.svg',
+                            height: 18,
+                            width: 18,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 16,
+                        bottom: 16,
+                        right: 4,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.label,
+                              style: AppTextStyles.h3.copyWith(
+                                color: Colors.white,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'from ${item.price}',
+                              style: AppTextStyles.labelMedium.copyWith(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -644,39 +751,56 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildBottomNavigationBar(BuildContext context) {
-    final List<NavItem> navItems = [
-      NavItem(label: 'Home', icon: 'assets/images/House.svg'),
-      NavItem(label: 'Bookings', icon: 'assets/images/CalendarBlank.svg'),
-      NavItem(label: 'Search', icon: 'assets/images/MagnifyingGlass.svg'),
-      NavItem(label: 'Account', icon: 'assets/images/UserCircle.svg'),
+    const items = [
+      NavItem(icon: 'assets/images/home', label: 'Home'),
+      NavItem(icon: 'assets/images/order', label: 'Order'),
+      NavItem(icon: 'assets/images/more', label: 'More'),
     ];
-
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
       ),
-      child: BottomNavigationBar(
-        currentIndex: _selectedNavIndex,
-        onTap: (index) => setState(() => _selectedNavIndex = index),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: Colors.grey,
-        selectedLabelStyle: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w600),
-        unselectedLabelStyle: AppTextStyles.labelMedium,
-        items: navItems.map((item) => BottomNavigationBarItem(
-          icon: SvgPicture.asset(
-            item.icon,
-            colorFilter: ColorFilter.mode(
-              _selectedNavIndex == navItems.indexOf(item)
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.grey,
-              BlendMode.srcIn,
-            ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(items.length, (index) {
+              final item = items[index];
+              final isSelected = index == _selectedNavIndex;
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedNavIndex = index;
+                  });
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SvgPicture.asset(
+                      isSelected
+                          ? '${item.icon}-selected.svg'
+                          : '${item.icon}.svg',
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.secondary,
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      item.label,
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ),
-          label: item.label,
-        )).toList(),
+        ),
       ),
     );
   }

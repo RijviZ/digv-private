@@ -38,7 +38,7 @@ class AppFilterBar extends StatelessWidget {
                 color: isSelected
                     ? Theme.of(context).colorScheme.primary
                     : Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(2),
                 border: Border.all(
                   color: isSelected 
                       ? Theme.of(context).colorScheme.primary 

@@ -187,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildHeader(BuildContext context) {
     return Container(
       color: Theme.of(context).colorScheme.surface,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
         children: [
           Container(
@@ -196,6 +196,7 @@ class _HomeScreenState extends State<HomeScreen>
             clipBehavior: Clip.antiAlias,
             decoration: ShapeDecoration(
               image: DecorationImage(
+              
                 image: NetworkImage(
                   "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
                 ),
@@ -298,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 32, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),
           child: Text('Explore Services', style: AppTextStyles.h3),
         ),
         SizedBox(
@@ -723,7 +724,7 @@ class _HomeScreenState extends State<HomeScreen>
                           children: [
                             Text(
                               item.label,
-                              style: AppTextStyles.h3.copyWith(
+                              style: AppTextStyles.h6.copyWith(
                                 color: Colors.white,
                               ),
                               maxLines: 2,

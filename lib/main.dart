@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:digv/core/router/app_router.dart';
 import 'package:digv/I10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +7,17 @@ import 'package:digv/features/profile_settings/presentation/providers/theme_prov
 import 'package:digv/features/profile_settings/presentation/providers/locale_provider.dart';
 import 'package:digv/core/theme/app_theme.dart';
 
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
 void main() {
+  HttpOverrides.global = MyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const ProviderScope(child: DigV()));
 }

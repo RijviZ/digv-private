@@ -1,9 +1,12 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:digv/core/widgets/app_top_bar.dart';
+import '../../../../core/widgets/app_primary_button.dart';
+import '../../../../core/widgets/app_filter_bar.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
   const ServiceDetailsScreen({super.key});
@@ -28,27 +31,16 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: Text(
-          'Service Details',
-          style: AppTextStyles.titleLight.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 0,
-        centerTitle: true,
-        surfaceTintColor: Theme.of(context).colorScheme.surface,
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: SvgPicture.asset('assets/images/CaretLeft.svg'),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsetsGeometry.symmetric(horizontal: 16, vertical: 8),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const AppTopBar(title: 'Service Details'),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
             Container(
               width: double.infinity,
               height: 240,
@@ -130,47 +122,15 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
               ),
             ),
             SizedBox(height: 8),
-            SizedBox(
-              height: 40,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _types.length,
-                itemBuilder: (context, index) {
-                  final subType = _types[index];
-                  final isSelected = subType == _selectedService;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedService = subType;
-                      });
-                    },
-                    child: Container(
-                      margin: EdgeInsets.only(right: 12),
-                      padding: EdgeInsetsGeometry.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(2),
-                        border: Border.all(
-                          color: Theme.of(context).dividerColor,
-                        ),
-                      ),
-                      child: Text(
-                        _types[index],
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.onPrimary
-                              : Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+            AppFilterBar(
+              items: _types,
+              selectedItem: _selectedService,
+              padding: EdgeInsets.all(0),
+              onSelected: (item) {
+                setState(() {
+                  _selectedService = item;
+                });
+              },
             ),
             SizedBox(height: 20),
             Text(
@@ -182,36 +142,25 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             ),
             SizedBox(height: 8),
             _buildQuantitySelector(),
-            SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
       bottomNavigationBar: SafeArea(
         child: Container(
-          padding: EdgeInsetsGeometry.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
           ),
-          child: ElevatedButton(
-            onPressed: () {
-              context.push('/select-technician');
+          child: AppPrimaryButton(
+            text: 'Continue to select technician',
+            onTap: () {
+              context.push('/select_technician');
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(999),
-              ),
-              elevation: 0,
-              foregroundColor: Theme.of(context).colorScheme.surface,
-              padding: EdgeInsetsGeometry.symmetric(vertical: 16),
-            ),
-            child: Text(
-              'Continue to select technician',
-              style: AppTextStyles.bodyLarge.copyWith(
-                color: Theme.of(context).colorScheme.onPrimary,
-              ),
-            ),
           ),
         ),
       ),

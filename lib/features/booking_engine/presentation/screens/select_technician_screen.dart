@@ -4,139 +4,185 @@ import 'package:digv/core/widgets/app_filter_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:digv/features/booking_engine/domain/technician.dart';
 
+import 'package:digv/core/widgets/app_top_bar.dart';
+import '../../../../core/widgets/app_primary_button.dart';
+import '../../../../core/widgets/technician_card.dart';
+ 
 class SelectTechnicianScreen extends StatefulWidget {
   const SelectTechnicianScreen({super.key});
-
+ 
   @override
   State<SelectTechnicianScreen> createState() => _SelectTechnicianScreenState();
 }
-
+ 
 class _SelectTechnicianScreenState extends State<SelectTechnicianScreen> {
-  String _selectedFilter = 'All';
+  int _selectedFilter = 0;
+  final List<String> _filters = ['All', 'Top rated', 'Nearest'];
+ 
+static const List<Technician> technicians = [
+  Technician(
+    name: 'Arjun Kumar',
+    specialty: 'AC & Electrical',
+    rating: 4.9,
+    reviews: 312,
+    jobs: 892,
+    experience: 5,
+    pricePerVisit: 500,
+    distanceKm: 2.1,
+    distanceLabel: 'Near',
+    isTopRated: true,
+  ),
+  Technician(
+    name: 'Maya Singh',
+    specialty: 'Plumbing Services',
+    rating: 4.8,
+    reviews: 415,
+    jobs: 250,
+    experience: 3,
+    pricePerVisit: 300,
+    distanceKm: 1.5,
+    distanceLabel: 'Nearby', isTopRated: false,
+  ),
+  Technician(
+    name: 'Ravi Sharma',
+    specialty: 'Home Renovation',
+    rating: 5.0,
+    reviews: 510,
+    jobs: 150,
+    experience: 2,
+    pricePerVisit: 400,
+    distanceKm: 3.0,
+    distanceLabel: 'Close by', isTopRated: false,
+  ),
+];
 
-  final List<String> _filterTypes = [
-    'All',
-    'Top Rated',
-    'Nearest',
-  ];
-
-  final List<Map<String, dynamic>> _technicians = [
-    {
-      'name': 'Arjun Kumar',
-      'category': 'AC & Electrical',
-      'rating': 4.9,
-      'reviews': 312,
-      'jobs': 892,
-      'exp': '5 yrs',
-      'price': 500,
-      'distance': '2.1 km',
-      'proximity': 'Near',
-      'isTopRated': true,
-      'image': 'https://images.unsplash.com/photo-1599566150163-29194dcaad36',
-    },
-    {
-      'name': 'Maya Singh',
-      'category': 'Plumbing Services',
-      'rating': 4.8,
-      'reviews': 415,
-      'jobs': 250,
-      'exp': '3 yrs',
-      'price': 300,
-      'distance': '1.5 km',
-      'proximity': 'Nearby',
-      'isTopRated': false,
-      'image': 'https://images.unsplash.com/photo-1599566150163-29194dcaad36',
-    },
-    {
-      'name': 'Ravi Sharma',
-      'category': 'Home Renovation',
-      'rating': 5.0,
-      'reviews': 510,
-      'jobs': 150,
-      'exp': '2 yrs',
-      'price': 400,
-      'distance': '3.0 km',
-      'proximity': 'Close By',
-      'isTopRated': false,
-      'image': 'https://images.unsplash.com/photo-1599566150163-29194dcaad36',
-    },
-  ];
-
+  List<Technician> get _filteredTechnicians {
+    switch (_selectedFilter) {
+      case 1:
+        return technicians.where((t) => t.isTopRated).toList();
+      case 2:
+        return [...technicians]..sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
+      default:
+        return technicians;
+    }
+  }
+ 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: Text(
-          'Select Technician',
-          style: AppTextStyles.titleLight.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-          ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const AppTopBar(title: 'Select Technician'),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    AppFilterBar(
+                      items: _filters,
+                      selectedItem: _filters.elementAt(_selectedFilter),
+                      onSelected: (index) {
+                        setState(() => _selectedFilter = _filters.indexOf(index));
+                      },
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildVerifiedBanner(),
+                    const SizedBox(height: 20),
+                    ..._filteredTechnicians
+                        .map((t) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: TechnicianCard(technician: t),
+                            ))
+                        ,
+                    _buildVerifiedFooter(),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 0,
-        centerTitle: true,
-        surfaceTintColor: Theme.of(context).colorScheme.surface,
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: SizedBox(
-            width: 20,
-            height: 20,
-            child: SvgPicture.asset('assets/images/CaretLeft.svg'),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
+          ),
+          child: AppPrimaryButton(
+            text: 'Continue to select time',
+            onTap: () {
+              context.push('/select_date_and_time');
+            },
           ),
         ),
       ),
-      body: Column(
+    );
+  }
+
+  Widget _buildVerifiedBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.unread,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.inputBorderSecondary, width: 1),
+      ),
+      child: Row(
         children: [
-          AppFilterBar(items: ['Split', 'Window', 'Central', 'Cassette', 'In Progress'], selectedItem: _selectedFilter, onSelected: (item) {
-            setState(() {
-              _selectedFilter = item;
-            });
-          }),
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            clipBehavior: Clip.antiAlias,
-            decoration: ShapeDecoration(
-              color: AppColors.unread,
-              shape: RoundedRectangleBorder(
-                side: BorderSide(
-                  width: 1,
-                  color: AppColors.inputBorderSecondary,
-                ),
-                borderRadius: BorderRadius.circular(6),
-              ),
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.blue,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              spacing: 8,
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: ShapeDecoration(
-                    color: const Color(0xFF1D4ED8) /* system-info-text */,
-                    shape: OvalBorder(),
-                  ),
-                ),
-                Text(
-                  '3 verified technicians available near you',
-                  style: TextStyle(
-                    color: const Color(0xFF1D4ED8) /* system-info-text */,
-                    fontSize: 11,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w400,
-                    height: 1.60,
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            '3 verified technicians available near you',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.blue,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
       ),
     );
   }
+ 
+  Widget _buildVerifiedFooter() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.inputBorder, width: 1),
+      ),
+      child: Row(
+        children: [
+          SvgPicture.asset('assets/images/shield.svg'),
+          const SizedBox(width: 8),
+           Expanded(
+            child: Text(
+              'All technicians are background verified and trained',
+              style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+ 
 }

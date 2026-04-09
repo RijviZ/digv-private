@@ -26,6 +26,14 @@ class AppTextStyles {
     letterSpacing: -0.5,
   );
 
+  static const TextStyle h4 = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 20,
+    fontWeight: FontWeight.w900,
+    letterSpacing: 0,
+    height: 1.5
+  );
+
   static const TextStyle title = TextStyle(
     fontFamily: fontFamily,
     fontSize: 18,
@@ -52,6 +60,13 @@ class AppTextStyles {
     fontWeight: FontWeight.w400,
   );
 
+  static const TextStyle bodyMediumBold = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    height: 1.5
+  );
+
   static const TextStyle labelLarge = TextStyle(
     fontFamily: fontFamily,
     fontSize: 16,
@@ -62,6 +77,7 @@ class AppTextStyles {
     fontFamily: fontFamily,
     fontSize: 12,
     fontWeight: FontWeight.w400,
+    height: 1.50,
   );
 
   static const TextStyle captionMedium = TextStyle(
@@ -71,10 +87,24 @@ class AppTextStyles {
     fontWeight: FontWeight.w400,
   );
 
+  static const TextStyle captionLarge = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 15,
+    height: 22.5/15,
+    fontWeight: FontWeight.w400,
+  );
+
   static const TextStyle caption = TextStyle(
     fontFamily: fontFamily,
     fontSize: 11,
     fontWeight: FontWeight.w400,
+    height: 1.50,
+  );
+
+  static const TextStyle captionSmall = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 10,
+    fontWeight: FontWeight.w600,
     height: 1.50,
   );
   

@@ -1,4 +1,3 @@
-import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/home_discovery/presentation/domain/nav_item.dart';
 import 'package:digv/features/home_discovery/presentation/domain/quick_service_item.dart';
@@ -50,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   final List<List<ServiceCard>> _serviceCards = [
     [
-      ServiceCard(
+      const ServiceCard(
         title: 'Regular Service',
         price: '₹199',
         rating: '4.8',
@@ -59,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen>
         imageColor: Color(0xFF3A3A3A),
         image: 'assets/images/Container.png',
       ),
-      ServiceCard(
+      const ServiceCard(
         title: 'Deep Cleaning',
         price: '₹299',
         rating: '4.9',
@@ -69,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen>
         image: 'assets/images/Container.png',
       ),
 
-      ServiceCard(
+      const ServiceCard(
         title: 'Installation',
         price: '₹399',
         rating: '5.0',
@@ -80,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     ],
     [
-      ServiceCard(
+      const ServiceCard(
         title: 'Wiring Repair',
         price: '₹149',
         rating: '4.7',
@@ -89,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen>
         imageColor: Color(0xFF3A3A3A),
         image: 'assets/images/Container.png',
       ),
-      ServiceCard(
+      const ServiceCard(
         title: 'Fan Installation',
         price: '₹199',
         rating: '4.8',
@@ -100,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     ],
     [
-      ServiceCard(
+      const ServiceCard(
         title: 'Tap Fixing',
         price: '₹129',
         rating: '4.6',
@@ -109,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen>
         imageColor: Color(0xFF3A3A3A),
         image: 'assets/images/Container.png',
       ),
-      ServiceCard(
+      const ServiceCard(
         title: 'Pipe Repair',
         price: '₹199',
         rating: '4.8',
@@ -120,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     ],
     [
-      ServiceCard(
+      const ServiceCard(
         title: 'Home Cleaning',
         price: '₹249',
         rating: '4.9',
@@ -133,10 +132,10 @@ class _HomeScreenState extends State<HomeScreen>
   ];
 
   final List<QuickServiceItem> _quickServices = [
-    QuickServiceItem(label: 'AC Regular Service', price: '₹199'),
-    QuickServiceItem(label: 'Electrical Wiring', price: '₹199'),
-    QuickServiceItem(label: 'Plumbing Materials', price: '1500'),
-    QuickServiceItem(label: 'Roofing Materials', price: '₹3200'),
+    const QuickServiceItem(label: 'AC Regular Service', price: '₹199'),
+    const QuickServiceItem(label: 'Electrical Wiring', price: '₹199'),
+    const QuickServiceItem(label: 'Plumbing Materials', price: '1500'),
+    const QuickServiceItem(label: 'Roofing Materials', price: '₹3200'),
   ];
 
   @override
@@ -195,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen>
             height: 40,
             clipBehavior: Clip.antiAlias,
             decoration: ShapeDecoration(
-              image: DecorationImage(
+              image: const DecorationImage(
               
                 image: NetworkImage(
                   "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
@@ -234,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen>
                     height: 16,
                     child: SvgPicture.asset('assets/images/location.svg'),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'JI. Ngagelrejo No.34',
@@ -246,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   SizedBox(
                     width: 16,
                     height: 16,
@@ -280,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen>
                       width: 20,
                       height: 20,
                       clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(),
+                      decoration: const BoxDecoration(),
                       child: SvgPicture.asset('assets/images/BellSimple.svg'),
                     ),
                   ),
@@ -298,8 +297,8 @@ class _HomeScreenState extends State<HomeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 22, 16, 12),
           child: Text('Explore Services', style: AppTextStyles.h3),
         ),
         SizedBox(
@@ -319,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen>
                   });
                 },
                 child: Container(
-                  padding: EdgeInsetsGeometry.symmetric(
+                  padding: const EdgeInsetsGeometry.symmetric(
                     horizontal: 20,
                     vertical: 10,
                   ),
@@ -352,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen>
             },
           ),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         SizedBox(
           height: 40,
           child: ListView.builder(
@@ -360,7 +359,6 @@ class _HomeScreenState extends State<HomeScreen>
             itemCount: subTypes.length,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemBuilder: (context, index) {
-              final subType = subTypes[index];
               final isSelected = index == _selectedSubTypeIndex;
               return GestureDetector(
                 onTap: () {
@@ -369,8 +367,8 @@ class _HomeScreenState extends State<HomeScreen>
                   });
                 },
                 child: Container(
-                  margin: EdgeInsets.only(right: 12),
-                  padding: EdgeInsetsGeometry.symmetric(
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsetsGeometry.symmetric(
                     horizontal: 16,
                     vertical: 8,
                   ),
@@ -396,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         const SizedBox(height: 24),
         Padding(
-          padding: EdgeInsetsGeometry.symmetric(horizontal: 16),
+          padding: const EdgeInsetsGeometry.symmetric(horizontal: 16),
           child: Column(
             children: _serviceCards[_selectedCategoryIndex]
                 .map(
@@ -434,8 +432,8 @@ class _HomeScreenState extends State<HomeScreen>
                   fit: BoxFit.cover,
                 ),
                 gradient: LinearGradient(
-                  begin: Alignment(0.50, -0.00),
-                  end: Alignment(0.50, 1.00),
+                  begin: const Alignment(0.50, -0.00),
+                  end: const Alignment(0.50, 1.00),
                   colors: [Colors.black.withValues(alpha: 0.20), Colors.black],
                 ),
               ),
@@ -445,18 +443,18 @@ class _HomeScreenState extends State<HomeScreen>
               left: 16,
               child: Container(
                 height: 36,
-                padding: EdgeInsetsGeometry.symmetric(
+                padding: const EdgeInsetsGeometry.symmetric(
                   horizontal: 12,
                   vertical: 9,
                 ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: Color(0xFF838383),
+                  color: const Color(0xFF838383),
                   border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
                 ),
                 child: Text(
                   'from ${card.price}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
                     fontFamily: 'Poppins',
@@ -472,7 +470,7 @@ class _HomeScreenState extends State<HomeScreen>
               child: Container(
                 width: 36,
                 height: 36,
-                padding: EdgeInsets.all(9),
+                padding: const EdgeInsets.all(9),
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
@@ -495,7 +493,7 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   Text(
                     card.title,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
                       fontFamily: 'Inter',
@@ -507,14 +505,14 @@ class _HomeScreenState extends State<HomeScreen>
                   Row(
                     children: [
                       SvgPicture.asset('assets/images/star.svg'),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Text(
                         card.rating,
                         style: AppTextStyles.labelMedium.copyWith(
                           color: Colors.white,
                         ),
                       ),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Text(
                         '· ${card.bookings} · ${card.duration}',
                         style: AppTextStyles.labelMedium.copyWith(
@@ -536,8 +534,8 @@ class _HomeScreenState extends State<HomeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 20, 16, 0),
           child: Text('Service for you', style: AppTextStyles.h3),
         ),
         Padding(
@@ -590,10 +588,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildPromoBanner(String title, String subTitle) {
     return Container(
-      margin: EdgeInsetsGeometry.symmetric(horizontal: 16),
+      margin: const EdgeInsetsGeometry.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        image: DecorationImage(
+        image: const DecorationImage(
           image: AssetImage('assets/images/service-for-you.png'),
           fit: BoxFit.cover,
         ),
@@ -629,12 +627,12 @@ class _HomeScreenState extends State<HomeScreen>
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    padding: EdgeInsetsGeometry.symmetric(
+                    padding: const EdgeInsetsGeometry.symmetric(
                       horizontal: 16,
                       vertical: 10,
                     ),
                   ),
-                  child: Text('Book Now', style: AppTextStyles.bodyLarge),
+                  child: const Text('Book Now', style: AppTextStyles.bodyLarge),
                 ),
               ],
             ),
@@ -648,8 +646,8 @@ class _HomeScreenState extends State<HomeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 32, 16, 0),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 32, 16, 0),
           child: Text('Service for you', style: AppTextStyles.h3),
         ),
         Padding(
@@ -674,7 +672,7 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Container(
                   width: 160,
                   decoration: BoxDecoration(
-                    image: DecorationImage(
+                    image: const DecorationImage(
                       image: AssetImage('assets/images/quick.jpg'),
                       fit: BoxFit.cover,
                     ),
@@ -685,8 +683,8 @@ class _HomeScreenState extends State<HomeScreen>
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            begin: Alignment(0.50, -0.00),
-                            end: Alignment(0.50, 1.00),
+                            begin: const Alignment(0.50, -0.00),
+                            end: const Alignment(0.50, 1.00),
                             colors: [
                               Colors.black.withValues(alpha: 0.20),
                               Colors.black,
@@ -701,7 +699,7 @@ class _HomeScreenState extends State<HomeScreen>
                         child: Container(
                           width: 36,
                           height: 36,
-                          padding: EdgeInsets.all(9),
+                          padding: const EdgeInsets.all(9),
                           clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(18),
@@ -730,7 +728,7 @@ class _HomeScreenState extends State<HomeScreen>
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             Text(
                               'from ${item.price}',
                               style: AppTextStyles.labelMedium.copyWith(
@@ -787,7 +785,7 @@ class _HomeScreenState extends State<HomeScreen>
                           ? Theme.of(context).colorScheme.primary
                           : Theme.of(context).colorScheme.secondary,
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       item.label,
                       style: AppTextStyles.labelMedium.copyWith(

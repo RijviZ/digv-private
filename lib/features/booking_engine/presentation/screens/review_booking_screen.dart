@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_top_bar.dart';
-import '../../domain/section_card.dart';
+import '../widgets/section_card.dart';
 
 class ReviewBookingScreen extends StatefulWidget {
   const ReviewBookingScreen({super.key});

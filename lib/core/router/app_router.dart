@@ -1,6 +1,10 @@
 import 'package:digv/features/auth/presentation/screens/login_screen.dart';
 import 'package:digv/features/auth/presentation/screens/otp_screen.dart';
 import 'package:digv/features/auth/presentation/screens/splash_screen.dart';
+import 'package:digv/features/booking_engine/presentation/screens/booking_confirmed_screen.dart';
+import 'package:digv/features/booking_engine/presentation/screens/booking_requested_screen.dart';
+import 'package:digv/features/booking_engine/presentation/screens/order_tracking_screen.dart';
+import 'package:digv/features/booking_engine/presentation/screens/payment_gateway_screen.dart';
 import 'package:digv/features/booking_engine/presentation/screens/payment_type_screen.dart';
 import 'package:digv/features/booking_engine/presentation/screens/review_booking_screen.dart';
 import 'package:digv/features/booking_engine/presentation/screens/select_date_and_time_screen.dart';
@@ -12,6 +16,7 @@ import 'package:digv/features/profile_settings/presentation/screens/enable_locat
 import 'package:digv/features/profile_settings/presentation/screens/setup_more_details_screen.dart';
 import 'package:digv/features/profile_settings/presentation/screens/setup_welcome_screen.dart';
 import 'package:digv/features/profile_settings/presentation/screens/setup_personal_details_screen.dart';
+import 'package:digv/features/booking_engine/domain/models/order_status.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/booking_engine/presentation/screens/review_and_pay_screen.dart';
@@ -60,6 +65,28 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const PaymentTypeScreen(),
     ),
     GoRoute(
+      path: '/payment_gateway',
+      builder: (context, state) => const PaymentGatewayScreen(),
+    ),
+    GoRoute(
+      path: '/booking_requested',
+      builder: (context, state) => const BookingRequestedScreen(),
+    ),
+    GoRoute(
+      path: '/booking_confirmed',
+      builder: (context, state) {
+        final paymentType = state.extra as PaymentType? ?? PaymentType.prepaid;
+        return BookingConfirmedScreen(paymentType: paymentType);
+      },
+    ),
+    GoRoute(
+      path: '/order_tracking',
+      builder: (context, state) {
+        final paymentType = state.extra as PaymentType? ?? PaymentType.prepaid;
+        return OrderTrackingScreen(paymentType: paymentType);
+      },
+    ),
+    GoRoute(
       path: '/otp',
       builder: (context, state) {
         final phoneNumber = state.extra as String? ?? '';
@@ -83,13 +110,13 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/setup_more_details',
       builder: (context, state) {
-        return SetupMoreDetailsScreen();
+        return const SetupMoreDetailsScreen();
       },
     ),
     GoRoute(
       path: '/enable_location_access',
       builder: (context, state) {
-        return EnableLocationAccessScreen();
+        return const EnableLocationAccessScreen();
       },
     ),
   ],

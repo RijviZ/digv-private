@@ -6,7 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_top_bar.dart';
-import '../../domain/section_card.dart';
+import '../widgets/section_card.dart';
 
 class ReviewPayScreen extends StatefulWidget {
   const ReviewPayScreen({super.key});
@@ -96,7 +96,7 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
+            border: const Border(top: BorderSide(color: AppColors.dropDownBorder)),
           ),
           child: AppPrimaryButton(
             text: 'Confirm & Pay',
@@ -176,7 +176,7 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
       bg: AppColors.inputBgSecondary,
       titleColor: Theme.of(context).colorScheme.secondary,
       titleBorder: false,
-      titlePadding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+      titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       childTopPadding: 0,
       child: _promoApplied ? _buildAppliedPromo() : _buildPromoInput(),
     );
@@ -264,12 +264,12 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
             text: TextSpan(
               style: AppTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.secondary),
               children: [
-                TextSpan(text: 'Try code '),
+                const TextSpan(text: 'Try code '),
                 TextSpan(
                   text: 'FIRST10',
                   style: AppTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w700),
                 ),
-                TextSpan(text: ' for 10% off'),
+                const TextSpan(text: ' for 10% off'),
               ],
             ),
           ),
@@ -280,7 +280,7 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
   Widget _buildAppliedPromo() {
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.only(top: 8),
+      margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.successBg,
@@ -293,7 +293,7 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
             'assets/images/promo.svg',
             width: 14,
             height: 14,
-            colorFilter: ColorFilter.mode(AppColors.successText, BlendMode.srcIn),
+            colorFilter: const ColorFilter.mode(AppColors.successText, BlendMode.srcIn),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -313,7 +313,7 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
       bg: AppColors.inputBgSecondary,
       titleColor: Theme.of(context).colorScheme.secondary,
       titleBorder: false,
-      titlePadding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+      titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       childTopPadding: 0,
       child: Column(
         children: [

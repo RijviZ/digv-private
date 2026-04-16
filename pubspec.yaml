@@ -49,6 +49,7 @@ flutter:
           style: italic
     - family: Poppins
       fonts:
-        - asset: assets/fonts/inter-regular.ttf
-        - asset: assets/fonts/inter-italic.ttf
-          style: italic
+        - asset: assets/fonts/Poppins-Regular.ttf
+    - family: IBMPlexMono
+      fonts:
+        - asset: assets/fonts/IBMPlexMono-Regular.ttf

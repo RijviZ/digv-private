@@ -1,7 +1,6 @@
+import 'package:digv/core/theme/app_colors.dart';
+import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
-
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
 
 class SectionCard extends StatelessWidget {
   final String label;
@@ -39,8 +38,8 @@ class SectionCard extends StatelessWidget {
             padding: titlePadding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: AppColors.inputBgSecondary,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-              border: titleBorder == null ? Border(bottom: BorderSide(color: AppColors.inputBorder)) : null,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+              border: titleBorder == null ? const Border(bottom: BorderSide(color: AppColors.inputBorder)) : null,
             ),
             child: Text(
               label,

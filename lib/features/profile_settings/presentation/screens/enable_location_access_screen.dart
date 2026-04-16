@@ -52,6 +52,7 @@ class EnableLocationAccessScreen extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: double.infinity,
+                    height: 44,
                     child: ElevatedButton(
                       onPressed: () {
                         context.push('/setup_personal_details');
@@ -63,7 +64,7 @@ class EnableLocationAccessScreen extends StatelessWidget {
                           context,
                         ).colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(26),
+                          borderRadius: BorderRadius.circular(999),
                         ),
                         elevation: 0,
                       ),
@@ -76,6 +77,7 @@ class EnableLocationAccessScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
+                    height: 52,
                     child: OutlinedButton(
                       onPressed: () => context.push('/home'),
                       style: OutlinedButton.styleFrom(

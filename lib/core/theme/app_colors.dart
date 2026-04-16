@@ -8,12 +8,14 @@ class AppColors {
   static const Color dropDownBorder = Color(0xFFD1D5DB);
   static const Color textSecondary = Color(0xFF6B7280);
   static const Color textGray = Color(0xFF9CA3AF);
+  static const Color textDark = Color(0xFF0A0A0A);
   static const Color inputBgSecondary = Color(0xFFF3F4F6);
   static const Color bg = Color(0xFFF9FAFB);
   static const Color onLight = Color(0xFF030712);
   static const Color error = Color(0xFFE24B4A);
   static const Color success = Color(0xFF16A34A);
   static const Color successBg = Color(0xFFF0FDF4);
+  static const Color successSecondaryBg = Color(0xFFDCFCE7);
   static const Color successBorder = Color(0xFFBBF7D0);
   static const Color successText = Color(0xFF15803D);
   static const Color warningBg = Color(0xFFFEF3C7);

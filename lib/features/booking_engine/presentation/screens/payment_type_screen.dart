@@ -115,7 +115,7 @@ class _PaymentTypeScreenState extends State<PaymentTypeScreen> {
               AppPrimaryButton(
                 text: 'Confirm & Pay',
                 onTap: () {
-                  context.push('/payment_type');
+                  context.push('/payment_gateway');
                 },
               ),
             ],

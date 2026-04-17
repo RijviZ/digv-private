@@ -80,6 +80,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         subtitle: 'Share OTP with technician',
         isCompleted: idx >= 5,
         isActive: idx == 5,
+        actionLabel: 'View OTP Code',
+        onAction: idx == 5 ? _showOtpSheet : null,
       ),
       TrackingStep(
         title: 'Completed',
@@ -214,8 +216,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     width: 24,
                 ),  
                 const SizedBox(width: 10),
-                const Text(
-                  'Rate Service',
+                Text(
+                  _isPrepaid ? 'Rate Service' : 'Pay & Rate Service',
                   style: AppTextStyles.button,
                 ),
               ],

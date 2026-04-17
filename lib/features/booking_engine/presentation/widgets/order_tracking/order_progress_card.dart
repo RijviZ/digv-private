@@ -107,6 +107,39 @@ class StepTile extends StatelessWidget {
                     const SizedBox(height: 1),
                     Text(step.subtitle!, style: AppTextStyles.caption.copyWith(color: _textColor.withOpacity(0.6))),
                   ],
+                  if (step.actionLabel != null && step.isActive) ...[
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      onTap: step.onAction,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SvgPicture.asset(
+                              'assets/images/lock.svg',
+                              height: 11,
+                              width: 11,
+                              colorFilter: const ColorFilter.mode(Color(0xFF3B82F6), BlendMode.srcIn),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              step.actionLabel!,
+                              style: AppTextStyles.caption.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF3B82F6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

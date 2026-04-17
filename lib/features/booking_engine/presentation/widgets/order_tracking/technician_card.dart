@@ -13,6 +13,7 @@ class TechnicianCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPrepaid = paymentType == PaymentType.prepaid;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -65,6 +66,39 @@ class TechnicianCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 4),
+                    // Payment type badge
+                    GestureDetector(
+                      onTap: onTogglePayment,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isPrepaid ? const Color(0xFFEFF6FF) : const Color(0xFFFFF7ED),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isPrepaid ? const Color(0xFFBFDBFE) : const Color(0xFFFED7AA),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: isPrepaid ? const Color(0xFF3B82F6) : const Color(0xFFF97316),
+                              size: 11,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              isPrepaid ? 'Pre Paid' : 'Post Paid',
+                              style: AppTextStyles.caption.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: isPrepaid ? const Color(0xFF3B82F6) : const Color(0xFFF97316),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -74,30 +108,6 @@ class TechnicianCard extends StatelessWidget {
               IconAction(icon: 'assets/images/phone.svg', onTap: () {}, fillColor: AppColors.successSecondaryBg),
             ],
           ),
-          //const SizedBox(height: 10),
-          // Payment type badge
-          // GestureDetector(
-          //   onTap: onTogglePayment, // toggle for demo
-          //   child: Container(
-          //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          //     decoration: BoxDecoration(
-          //       color: const Color(0xFFFFF7ED),
-          //       borderRadius: BorderRadius.circular(8),
-          //       border: Border.all(color: const Color(0xFFFED7AA)),
-          //     ),
-          //     child: Row(
-          //       mainAxisSize: MainAxisSize.min,
-          //       children: [
-          //         const Icon(Icons.warning_amber_rounded, color: Color(0xFFF97316), size: 13),
-          //         const SizedBox(width: 4),
-          //         Text(
-          //           _isPrepaid ? 'Pre Paid' : 'Post Paid',
-          //           style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600, color: const Color(0xFFF97316)),
-          //         ),
-          //       ],
-          //     ),
-          //   ),
-          // ),
         ],
       ),
     );

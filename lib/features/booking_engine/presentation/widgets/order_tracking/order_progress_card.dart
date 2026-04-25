@@ -105,7 +105,7 @@ class StepTile extends StatelessWidget {
                   ),
                   if (step.subtitle != null && (step.isCompleted || step.isActive)) ...[
                     const SizedBox(height: 1),
-                    Text(step.subtitle!, style: AppTextStyles.caption.copyWith(color: step.subtitleColor??Theme.of(context).colorScheme.secondary)),
+                    Text(step.subtitle!, style: AppTextStyles.caption.copyWith(color: step.isCompleted? step.subtitleColor??Theme.of(context).colorScheme.secondary)),
                   ],
                   if (step.actionLabel != null && step.isActive) ...[
                     const SizedBox(height: 6),

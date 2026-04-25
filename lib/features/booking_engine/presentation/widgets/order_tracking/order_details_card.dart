@@ -41,7 +41,7 @@ class OrderDetailsCard extends StatelessWidget {
             value: _isPrepaid
                 ? '₹400 · Google Pay · Paid'
                 : '₹500 · Postpaid (Pay after service)',
-            valueColor: _isPrepaid ? null : const Color(0xFFF97316),
+            valueColor: _isPrepaid ? null : AppColors.alertText,
           ),
         ],
       ),

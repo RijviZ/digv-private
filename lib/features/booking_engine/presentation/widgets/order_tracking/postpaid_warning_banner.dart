@@ -1,5 +1,7 @@
+import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class PostpaidWarningBanner extends StatelessWidget {
   const PostpaidWarningBanner({super.key});
@@ -7,34 +9,32 @@ class PostpaidWarningBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFFFF7ED),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.alertBg,
+        border: Border.all(color: AppColors.alertBorder),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      padding: const EdgeInsets.all(14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.warning_amber_rounded,
-            color: Color(0xFFF97316),
-            size: 18,
-          ),
-          const SizedBox(width: 10),
+          SvgPicture.asset('assets/images/Warning.svg'),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Postpaid Order',
-                  style: AppTextStyles.captionMedium.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFFC2410C),
+                  style: AppTextStyles.labelMedium.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.alertText,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Payment of ₹500 will be collected after service completion. Please keep cash or UPI ready.',
-                  style: AppTextStyles.labelMedium.copyWith(
-                    color: const Color(0xFFC2410C),
-                  ),
+                  style: AppTextStyles.caption.copyWith(color: AppColors.alertText),
                 ),
               ],
             ),

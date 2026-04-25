@@ -35,12 +35,12 @@ class StepTile extends StatelessWidget {
   Color get _dotColor {
     if (step.isActive) return AppColors.blue;
     if (step.isCompleted) return AppColors.textDark;
-    return const Color(0xFFE5E7EB);
+    return AppColors.onLight;
   }
 
   Color get _textColor {
     if (step.isCompleted || step.isActive) return AppColors.textDark;
-    return const Color(0xFF9CA3AF);
+    return AppColors.textGray;
   }
 
   @override
@@ -72,7 +72,7 @@ class StepTile extends StatelessWidget {
                             'assets/images/check_circle_white.svg',
                             height: 11,
                             width: 11,
-                            colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                           ),
                         )
                       : step.isActive
@@ -83,7 +83,7 @@ class StepTile extends StatelessWidget {
                   Expanded(
                     child: Container(
                       width: 2,
-                      color: step.isCompleted ? AppColors.textDark : Theme.of(context).colorScheme.secondary,
+                      color: AppColors.onLight,
                     ),
                   ),
               ],
@@ -105,7 +105,7 @@ class StepTile extends StatelessWidget {
                   ),
                   if (step.subtitle != null && (step.isCompleted || step.isActive)) ...[
                     const SizedBox(height: 1),
-                    Text(step.subtitle!, style: AppTextStyles.caption.copyWith(color: _textColor.withOpacity(0.6))),
+                    Text(step.subtitle!, style: AppTextStyles.caption.copyWith(color: step.subtitleColor??Theme.of(context).colorScheme.secondary)),
                   ],
                   if (step.actionLabel != null && step.isActive) ...[
                     const SizedBox(height: 6),
@@ -114,25 +114,25 @@ class StepTile extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
+                          color: step.actionBackgroundColor ?? const Color(0xFFEFF6FF),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                          border: Border.all(color: step.actionBorderColor ?? AppColors.blueLight),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             SvgPicture.asset(
                               'assets/images/lock.svg',
-                              height: 11,
-                              width: 11,
-                              colorFilter: const ColorFilter.mode(Color(0xFF3B82F6), BlendMode.srcIn),
+                              height: 12,
+                              width: 12,
+                              colorFilter: ColorFilter.mode(step.actionLabelColor ?? AppColors.blueLight, BlendMode.srcIn),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               step.actionLabel!,
                               style: AppTextStyles.caption.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFF3B82F6),
+                                color: step.actionLabelColor ?? AppColors.blueLight,
                               ),
                             ),
                           ],

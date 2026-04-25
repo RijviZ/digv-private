@@ -47,46 +47,52 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   List<TrackingStep> get _steps {
     final idx = OrderStatus.values.indexOf(_status);
     return [
-      TrackingStep(
+      // These 2 steps are always completed before tracking screen opens
+      const TrackingStep(
         title: 'Booking Confirmed',
         subtitle: 'Payment received',
+        isCompleted: true,
+        isActive: false,
+      ),
+      const TrackingStep(
+        title: 'Technician Assigned',
+        subtitle: 'Arjun Kumar is assigned',
+        isCompleted: true,
+        isActive: false,
+      ),
+      // These 5 steps map 1:1 to OrderStatus enum (indices 0–4)
+      TrackingStep(
+        title: 'On the Way',
+        subtitle: 'ETA 12 minutes',
         isCompleted: idx >= 0,
         isActive: idx == 0,
       ),
       TrackingStep(
-        title: 'Technician Assigned',
-        subtitle: 'Arjun Kumar is assigned',
+        title: 'Arrived',
         isCompleted: idx >= 1,
         isActive: idx == 1,
       ),
       TrackingStep(
-        title: 'On the Way',
-        subtitle: 'ETA 12 minutes',
+        title: 'Work Started',
         isCompleted: idx >= 2,
         isActive: idx == 2,
       ),
       TrackingStep(
-        title: 'Arrived',
-        isCompleted: idx >= 3,
-        isActive: idx == 3,
-      ),
-      TrackingStep(
-        title: 'Work Started',
-        isCompleted: idx >= 4,
-        isActive: idx == 4,
-      ),
-      TrackingStep(
         title: 'Work Done — OTP Needed',
         subtitle: 'Share OTP with technician',
-        isCompleted: idx >= 5,
-        isActive: idx == 5,
+        subtitleColor: AppColors.alertText,
+        isCompleted: idx >= 3,
+        isActive: idx == 3,
         actionLabel: 'View OTP Code',
-        onAction: idx == 5 ? _showOtpSheet : null,
+        actionLabelColor: AppColors.alertText,
+        actionBackgroundColor: AppColors.alertBg,
+        actionBorderColor: AppColors.alertBorder,
+        onAction: idx == 3 ? _showOtpSheet : null,
       ),
       TrackingStep(
         title: 'Completed',
-        isCompleted: _isCompleted,
-        isActive: _isCompleted,
+        isCompleted: idx >= 4,
+        isActive: idx == 4,
       ),
     ];
   }
@@ -227,17 +233,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       );
     }
 
-    // OTP stage (postpaid): View OTP Code + disabled Cancel
-    if (_isOtpStage && !_isPrepaid) {
-      return BottomBarDual(
-        primary: 'View OTP Code',
-        onPrimary: _showOtpSheet,
-        secondary: 'Cancel Booking',
-        onSecondary: null, // disabled
-      );
-    }
-
-    // Can cancel
+    // Can cancel (postpaid: only onTheWay/arrived; prepaid: up to before completed)
     if (_canCancel) {
       return BottomBarSingle(
         label: 'Cancel Booking',
@@ -246,7 +242,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       );
     }
 
-    // Work started and beyond (postpaid) — cancel disabled
+    // Work started / OTP and beyond — cancel disabled
     return const BottomBarSingle(
       label: 'Cancel Booking',
       onTap: null,

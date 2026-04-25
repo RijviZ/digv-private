@@ -4,6 +4,7 @@ class AppTextStyles {
   AppTextStyles._();
 
   static const String fontFamily = 'Inter';
+  static const String fontFamilyPoppins = 'Poppins';
 
   static const TextStyle h1 = TextStyle(
     fontFamily: fontFamily,

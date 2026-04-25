@@ -10,7 +10,17 @@ import 'package:digv/features/booking_engine/presentation/screens/review_booking
 import 'package:digv/features/booking_engine/presentation/screens/select_date_and_time_screen.dart';
 import 'package:digv/features/booking_engine/presentation/screens/select_technician_screen.dart';
 import 'package:digv/features/booking_engine/presentation/screens/service_details_screen.dart';
-import 'package:digv/features/home_discovery/presentation/screens/home_screen.dart';
+import 'package:digv/features/booking_engine/presentation/screens/postpaid_payment_screen.dart';
+import 'package:digv/features/booking_engine/presentation/screens/postpaid_payment_success_screen.dart';
+import 'package:digv/features/shell/presentation/main_shell.dart';
+import 'package:digv/features/more/presentation/screens/edit_profile_screen.dart';
+import 'package:digv/features/more/presentation/screens/manage_addresses_screen.dart';
+import 'package:digv/features/more/presentation/screens/payment_methods_screen.dart';
+import 'package:digv/features/more/presentation/screens/notification_settings_screen.dart';
+import 'package:digv/features/more/presentation/screens/app_settings_screen.dart';
+import 'package:digv/features/more/presentation/screens/help_center_screen.dart';
+import 'package:digv/features/more/presentation/screens/contact_support_screen.dart';
+import 'package:digv/features/more/presentation/screens/faqs_screen.dart';
 import 'package:digv/features/notifications/presentation/screens/notification_screen.dart';
 import 'package:digv/features/profile_settings/presentation/screens/enable_location_access_screen.dart';
 import 'package:digv/features/profile_settings/presentation/screens/setup_more_details_screen.dart';
@@ -32,13 +42,59 @@ final GoRouter appRouter = GoRouter(
       path: '/login',
       builder: (context, state) => const LoginScreen(),
     ),
+    // ── Shell routes — all three tabs live inside MainShell ──────────────
     GoRoute(
       path: '/home',
-      builder: (context, state) => const HomeScreen(),
+      builder: (context, state) => const MainShell(initialTab: kHomeTab),
+    ),
+    GoRoute(
+      path: '/orders',
+      builder: (context, state) => const MainShell(initialTab: kOrdersTab),
+    ),
+    // Legacy alias so any existing context.push('/my_orders') still works
+    GoRoute(
+      path: '/my_orders',
+      builder: (context, state) => const MainShell(initialTab: kOrdersTab),
+    ),
+    GoRoute(
+      path: '/more',
+      builder: (context, state) => const MainShell(initialTab: kMoreTab),
     ),
     GoRoute(
       path: '/notifications',
       builder: (context, state) => const NotificationsScreen(),
+    ),
+    GoRoute(
+      path: '/edit_profile',
+      builder: (context, state) => const EditProfileScreen(),
+    ),
+    GoRoute(
+      path: '/manage_addresses',
+      builder: (context, state) => const ManageAddressesScreen(),
+    ),
+    GoRoute(
+      path: '/payment_methods',
+      builder: (context, state) => const PaymentMethodsScreen(),
+    ),
+    GoRoute(
+      path: '/notification_settings',
+      builder: (context, state) => const NotificationSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/app_settings',
+      builder: (context, state) => const AppSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/help_center',
+      builder: (context, state) => const HelpCenterScreen(),
+    ),
+    GoRoute(
+      path: '/faqs',
+      builder: (context, state) => const FaqsScreen(),
+    ),
+    GoRoute(
+      path: '/contact_support',
+      builder: (context, state) => const ContactSupportScreen(),
     ),
     GoRoute(
       path: '/service_details',
@@ -85,6 +141,14 @@ final GoRouter appRouter = GoRouter(
         final paymentType = state.extra as PaymentType? ?? PaymentType.prepaid;
         return OrderTrackingScreen(paymentType: paymentType);
       },
+    ),
+    GoRoute(
+      path: '/postpaid_payment',
+      builder: (context, state) => const PostpaidPaymentScreen(),
+    ),
+    GoRoute(
+      path: '/postpaid_payment_success',
+      builder: (context, state) => const PostpaidPaymentSuccessScreen(),
     ),
     GoRoute(
       path: '/otp',

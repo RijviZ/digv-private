@@ -1,5 +1,5 @@
 import 'package:digv/core/theme/app_text_styles.dart';
-import 'package:digv/features/home_discovery/presentation/domain/nav_item.dart';
+
 import 'package:digv/features/home_discovery/presentation/domain/quick_service_item.dart';
 import 'package:digv/features/home_discovery/presentation/domain/service_card.dart';
 import 'package:digv/features/home_discovery/presentation/domain/service_category.dart';
@@ -19,7 +19,6 @@ class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   int _selectedCategoryIndex = 0;
   int _selectedSubTypeIndex = 0;
-  int _selectedNavIndex = 0;
   late final PageController _promoBannerController;
   int _currentBannerPage = 0;
 
@@ -179,7 +178,6 @@ class _HomeScreenState extends State<HomeScreen>
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 
@@ -749,58 +747,4 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildBottomNavigationBar(BuildContext context) {
-    const items = [
-      NavItem(icon: 'assets/images/home', label: 'Home'),
-      NavItem(icon: 'assets/images/order', label: 'Order'),
-      NavItem(icon: 'assets/images/more', label: 'More'),
-    ];
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(items.length, (index) {
-              final item = items[index];
-              final isSelected = index == _selectedNavIndex;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedNavIndex = index;
-                  });
-                },
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SvgPicture.asset(
-                      isSelected
-                          ? '${item.icon}-selected.svg'
-                          : '${item.icon}.svg',
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.secondary,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.label,
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.secondary,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ),
-        ),
-      ),
-    );
-  }
 }

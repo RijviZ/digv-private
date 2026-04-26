@@ -14,6 +14,7 @@ import 'package:digv/features/booking_engine/presentation/widgets/order_tracking
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/tracking_bottom_bars.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   final PaymentType paymentType;
@@ -203,7 +204,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           width: double.infinity,
           height: 52,
           child: ElevatedButton(
-            onPressed: (){},
+            onPressed: () {
+              if (!_isPrepaid) {
+                context.push('/postpaid_payment');
+              } else {
+                // handle rate service
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,

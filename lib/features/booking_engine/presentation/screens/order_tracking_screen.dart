@@ -36,7 +36,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   bool get _isPrepaid => _paymentType == PaymentType.prepaid;
   bool get _isCompleted => _status == OrderStatus.completed;
-  bool get _isOtpStage => _status == OrderStatus.workDoneOtp;
 
   // Only postpaid can cancel up to workStarted
   bool get _canCancel {

@@ -1,21 +1,30 @@
 import 'dart:async';
-import 'package:digv/core/theme/app_text_styles.dart';
+
 import 'package:digv/I10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class OtpScreen extends StatefulWidget {
+import '../../../../core/theme/app_text_styles.dart';
+
+import '../providers/auth_provider.dart';
+
+class OtpScreen extends ConsumerStatefulWidget {
   final String phoneNumber;
 
   const OtpScreen({super.key, required this.phoneNumber});
 
   @override
-  State<OtpScreen> createState() => _OtpScreenState();
+  ConsumerState<OtpScreen> createState() => _OtpScreenState();
 }
 
-class _OtpScreenState extends State<OtpScreen> {
+class _OtpScreenState extends ConsumerState<OtpScreen> {
+  final List<TextEditingController> _otpControllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
   int _secondsRemaining = 10;
   Timer? _timer;
   bool _canResend = false;
@@ -23,6 +32,11 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   void initState() {
     super.initState();
+    for (var controller in _otpControllers) {
+      controller.addListener(() {
+        if (mounted) setState(() {});
+      });
+    }
     _startTimer();
   }
 
@@ -45,8 +59,13 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    for (var controller in _otpControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
+
+  String get _currentOtp => _otpControllers.map((c) => c.text).join();
 
   String _formatTime(int seconds) {
     final int minutes = seconds ~/ 60;
@@ -127,6 +146,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     ),
                     child: Center(
                       child: TextField(
+                        controller: _otpControllers[index],
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
                         inputFormatters: [
@@ -162,7 +182,39 @@ class _OtpScreenState extends State<OtpScreen> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: () => context.go('/setup_welcome', extra: widget.phoneNumber),
+                      onPressed: (ref.watch(authProvider).isLoading || _currentOtp.length < 6)
+                          ? null
+                          : () async {
+                              final otp = _currentOtp;
+                              if (otp.length == 6) {
+                                try {
+                                  final result = await ref
+                                      .read(authProvider.notifier)
+                                      .verifyOtp(
+                                        phoneNumber: widget.phoneNumber,
+                                        otp: otp,
+                                      );
+                                  if (context.mounted) {
+                                    final user = result['user'];
+                                    if (user != null && user.isProfileSetupCompleted == true) {
+                                      if (user.latestLocation == null || (user.latestLocation as Map).isEmpty) {
+                                        context.go('/enable_location_access');
+                                      } else {
+                                        context.go('/home');
+                                      }
+                                    } else {
+                                      context.go('/setup_welcome', extra: widget.phoneNumber);
+                                    }
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(e.toString())),
+                                    );
+                                  }
+                                }
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Theme.of(
@@ -173,10 +225,19 @@ class _OtpScreenState extends State<OtpScreen> {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        "Verify & Continue",
-                        style: AppTextStyles.button,
-                      ),
+                      child: ref.watch(authProvider).isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              "Verify & Continue",
+                              style: AppTextStyles.button,
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -191,7 +252,32 @@ class _OtpScreenState extends State<OtpScreen> {
                       ),
                       if (_canResend)
                         GestureDetector(
-                          onTap: _startTimer,
+                          onTap: ref.watch(authProvider).isLoading
+                              ? null
+                              : () async {
+                                  try {
+                                    final response = await ref
+                                        .read(authProvider.notifier)
+                                        .sendOtp(
+                                          phoneNumber: widget.phoneNumber,
+                                          countryCode: '+91',
+                                          role: 'CUSTOMER',
+                                        );
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text(response['message'] ?? 'OTP resent successfully')),
+                                      );
+                                    }
+                                    _startTimer();
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(content: Text(e.toString())),
+                                      );
+                                    }
+                                  }
+                                },
                           child: Text(
                             "Resend",
                             style: AppTextStyles.labelMedium.copyWith(

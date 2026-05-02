@@ -8,14 +8,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class HomeScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
+
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
+class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin {
   int _selectedCategoryIndex = 0;
   int _selectedSubTypeIndex = 0;
@@ -182,6 +185,28 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildHeader(BuildContext context) {
+    final profileAsync = ref.watch(profileProvider);
+    
+    final displayAvatar = profileAsync.when(
+      data: (user) => (user.avatarUrl != null && user.avatarUrl!.isNotEmpty) 
+          ? user.avatarUrl! 
+          : "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
+      loading: () => "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
+      error: (_, __) => "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
+    );
+
+    final locationText = profileAsync.when(
+      data: (user) {
+        final locationData = user.latestLocation;
+        if (locationData != null && locationData.isNotEmpty) {
+          return locationData['addressLine'] ?? locationData['city'] ?? 'Location not set';
+        }
+        return 'Location not set';
+      },
+      loading: () => 'Loading...',
+      error: (_, __) => 'Error loading',
+    );
+
     return Container(
       color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
@@ -192,11 +217,8 @@ class _HomeScreenState extends State<HomeScreen>
             height: 40,
             clipBehavior: Clip.antiAlias,
             decoration: ShapeDecoration(
-              image: const DecorationImage(
-              
-                image: NetworkImage(
-                  "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
-                ),
+              image: DecorationImage(
+                image: NetworkImage(displayAvatar),
                 fit: BoxFit.cover,
               ),
               shape: RoundedRectangleBorder(
@@ -234,13 +256,15 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'JI. Ngagelrejo No.34',
+                      locationText,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontSize: 14,
                         fontFamily: 'Inter Display',
                         fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 8),

@@ -1,39 +1,55 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
-class SetupPersonalDetailsScreen extends StatefulWidget {
+class SetupPersonalDetailsScreen extends ConsumerStatefulWidget {
   final String phoneNumber;
 
   const SetupPersonalDetailsScreen({super.key, this.phoneNumber = ''});
 
   @override
-  State<SetupPersonalDetailsScreen> createState() =>
+  ConsumerState<SetupPersonalDetailsScreen> createState() =>
       _SetupPersonalDetailsScreenState();
 }
 
 class _SetupPersonalDetailsScreenState
-    extends State<SetupPersonalDetailsScreen> {
+    extends ConsumerState<SetupPersonalDetailsScreen> {
   String _selectedGender = 'Male';
   late final TextEditingController _phoneController;
+  late final TextEditingController _nameController;
+  late final FocusNode _nameFocusNode;
+  late final FocusNode _phoneFocusNode;
+  String? _avatarUrl;
+  bool _isUploadingAvatar = false;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     _phoneController = TextEditingController(text: widget.phoneNumber);
+    _nameController = TextEditingController();
+    _nameFocusNode = FocusNode();
+    _phoneFocusNode = FocusNode();
   }
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _nameController.dispose();
+    _nameFocusNode.dispose();
+    _phoneFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Padding(
@@ -81,32 +97,67 @@ class _SetupPersonalDetailsScreenState
               const SizedBox(height: 32),
               Expanded(
                 child: SingleChildScrollView(
-                  child: Column(
-                    children: [
+                  child: AutofillGroup(
+                    child: Column(
+                      children: [
                       Center(
                         child: Column(
                           children: [
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: AppColors.dropDownBorder,
+                            GestureDetector(
+                              onTap: _isUploadingAvatar ? null : _showImagePicker,
+                              child: Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: AppColors.dropDownBorder,
+                                  ),
+                                  image: _avatarUrl != null
+                                      ? DecorationImage(
+                                          image: NetworkImage(_avatarUrl!),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
                                 ),
-                              ),
-                              child: Center(
-                                child: SvgPicture.asset(
-                                  'assets/images/User.svg',
+                                child: Stack(
+                                  children: [
+                                    if (_avatarUrl == null)
+                                      Center(
+                                        child: SvgPicture.asset(
+                                          'assets/images/User.svg',
+                                        ),
+                                      ),
+                                    if (_isUploadingAvatar)
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black45,
+                                          borderRadius: BorderRadius.circular(999),
+                                        ),
+                                        child: const Center(
+                                          child: SizedBox(
+                                            height: 24,
+                                            width: 24,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              "Edit",
-                              style: AppTextStyles.bodyLarge.copyWith(
-                                color: Theme.of(context).colorScheme.secondary,
-                                fontWeight: FontWeight.w500,
+                            GestureDetector(
+                              onTap: _isUploadingAvatar ? null : _showImagePicker,
+                              child: Text(
+                                "Edit",
+                                style: AppTextStyles.bodyLarge.copyWith(
+                                  color: Theme.of(context).colorScheme.secondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
@@ -122,15 +173,30 @@ class _SetupPersonalDetailsScreenState
                             color: Theme.of(context).dividerColor,
                           ),
                         ),
-                        child: TextField(
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.all(16),
-                            hintText: 'Your full name',
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            hintStyle: AppTextStyles.bodyLarge.copyWith(
-                              color: Theme.of(context).colorScheme.secondary,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Center(
+                            child: TextField(
+                              controller: _nameController,
+                              focusNode: _nameFocusNode,
+                              enableSuggestions: false,
+                              autocorrect: false,
+                              autofillHints: null,
+                              keyboardType: TextInputType.text,
+                              style: AppTextStyles.bodyLarge.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              decoration: InputDecoration(
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                                hintText: 'Your full name',
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                hintStyle: AppTextStyles.bodyLarge.copyWith(
+                                  color: Theme.of(context).colorScheme.secondary,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -179,7 +245,11 @@ class _SetupPersonalDetailsScreenState
                                 ),
                                 child: TextField(
                                   controller: _phoneController,
+                                  focusNode: _phoneFocusNode,
                                   keyboardType: TextInputType.phone,
+                                  enableSuggestions: false,
+                                  autocorrect: false,
+                                  autofillHints: const [AutofillHints.telephoneNumber],
                                   decoration: InputDecoration(
                                     contentPadding: EdgeInsets.zero,
                                     hintText: '0987654321',
@@ -238,12 +308,22 @@ class _SetupPersonalDetailsScreenState
                       const SizedBox(height: 20),
                     ],
                   ),
+                  ),
                 ),
               ),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.push('/setup_more_details'),
+                  onPressed: () {
+                    final data = {
+                      'fullName': _nameController.text.trim(),
+                      'gender': _selectedGender.toLowerCase(), // Expected lowercase string in API
+                    };
+                    if (_avatarUrl != null) {
+                      data['avatarUrl'] = _avatarUrl!;
+                    }
+                    context.push('/setup_more_details', extra: data);
+                  },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     backgroundColor: Theme.of(context).colorScheme.primary,
@@ -317,5 +397,80 @@ class _SetupPersonalDetailsScreenState
         ),
       ),
     );
+  }
+
+  void _showImagePicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Take Photo'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 70, // compress slightly
+      );
+
+      if (image != null) {
+        setState(() {
+          _isUploadingAvatar = true;
+        });
+
+        try {
+          final url = await ref.read(authProvider.notifier).uploadAvatar(image.path);
+          if (mounted) {
+            setState(() {
+              _avatarUrl = url;
+            });
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to upload image: $e')),
+            );
+          }
+        } finally {
+          if (mounted) {
+            setState(() {
+              _isUploadingAvatar = false;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking image: $e')),
+        );
+      }
+    }
   }
 }

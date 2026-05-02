@@ -1,0 +1,114 @@
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/network/file_upload_service.dart';
+import '../../data/repositories/auth_repository_impl.dart';
+import '../../domain/entities/user.dart';
+import '../../domain/repositories/auth_repository.dart';
+
+final authProvider = AsyncNotifierProvider<AuthNotifier, void>(() {
+  return AuthNotifier();
+});
+
+final profileProvider = FutureProvider<User>((ref) async {
+  return ref.watch(authRepositoryProvider).getProfile();
+});
+
+class AuthNotifier extends AsyncNotifier<void> {
+  late final AuthRepository _repository;
+  late final FileUploadService _fileService;
+
+  @override
+  FutureOr<void> build() {
+    _repository = ref.watch(authRepositoryProvider);
+    _fileService = ref.watch(fileUploadServiceProvider);
+  }
+
+  Future<Map<String, dynamic>> sendOtp({
+    required String phoneNumber,
+    required String countryCode,
+    required String role,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repository.sendOtp(
+        phoneNumber: phoneNumber,
+        countryCode: countryCode,
+        role: role,
+      );
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyOtp({
+    required String phoneNumber,
+    required String otp,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repository.verifyOtp(
+        phoneNumber: phoneNumber,
+        otp: otp,
+      );
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<User> getProfile() async {
+    state = const AsyncValue.loading();
+    try {
+      final user = await _repository.getProfile();
+      state = const AsyncValue.data(null);
+      return user;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<User> updateProfile(Map<String, dynamic> data) async {
+    state = const AsyncValue.loading();
+    try {
+      final user = await _repository.updateProfile(data);
+      state = const AsyncValue.data(null);
+      ref.invalidate(profileProvider);
+      return user;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> updateLocation(Map<String, dynamic> data) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.updateLocation(data);
+      state = const AsyncValue.data(null);
+      ref.invalidate(profileProvider);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<String> uploadAvatar(String filePath) async {
+    state = const AsyncValue.loading();
+    try {
+      final url = await _fileService.uploadFile(filePath);
+      state = const AsyncValue.data(null);
+      return url;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+}

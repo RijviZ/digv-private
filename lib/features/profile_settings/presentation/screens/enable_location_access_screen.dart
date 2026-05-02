@@ -1,12 +1,23 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
-class EnableLocationAccessScreen extends StatelessWidget {
+class EnableLocationAccessScreen extends ConsumerStatefulWidget {
   const EnableLocationAccessScreen({super.key});
 
+  @override
+  ConsumerState<EnableLocationAccessScreen> createState() =>
+      _EnableLocationAccessScreenState();
+}
+
+class _EnableLocationAccessScreenState
+    extends ConsumerState<EnableLocationAccessScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,24 +65,122 @@ class EnableLocationAccessScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 44,
                     child: ElevatedButton(
-                      onPressed: () {
-                        context.push('/setup_personal_details');
-                      },
+                      onPressed: ref.watch(authProvider).isLoading
+                          ? null
+                          : () async {
+                              try {
+                                final bool serviceEnabled =
+                                    await Geolocator.isLocationServiceEnabled();
+                                if (!serviceEnabled) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Location services are disabled.'),
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
+
+                                LocationPermission permission =
+                                    await Geolocator.checkPermission();
+                                if (permission == LocationPermission.denied) {
+                                  permission =
+                                      await Geolocator.requestPermission();
+                                  if (permission == LocationPermission.denied) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Location permissions are denied'),
+                                        ),
+                                      );
+                                    }
+                                    return;
+                                  }
+                                }
+
+                                if (permission ==
+                                    LocationPermission.deniedForever) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Location permissions are permanently denied, we cannot request permissions.'),
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
+
+                                final Position position =
+                                    await Geolocator.getCurrentPosition();
+
+                                final List<Placemark> placemarks =
+                                    await placemarkFromCoordinates(
+                                        position.latitude, position.longitude);
+                                final Placemark place = placemarks.isNotEmpty
+                                    ? placemarks.first
+                                    : const Placemark();
+
+                                final data = {
+                                  "lat": position.latitude,
+                                  "lng": position.longitude,
+                                  "addressLine": [
+                                    place.name,
+                                    place.street,
+                                    place.subLocality,
+                                  ]
+                                      .where((e) => e != null && e.isNotEmpty)
+                                      .join(', '),
+                                  "city": [
+                                    place.locality,
+                                    place.subAdministrativeArea,
+                                    place.administrativeArea,
+                                    'Unknown City'
+                                  ].firstWhere((c) => c != null && c.trim().length >= 2)!,
+                                  "accuracy": position.accuracy.toInt(),
+                                };
+
+                                await ref
+                                    .read(authProvider.notifier)
+                                    .updateLocation(data);
+                                if (context.mounted) {
+                                  context.push('/home');
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(e.toString())),
+                                  );
+                                }
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(999),
                         ),
                         elevation: 0,
                       ),
-                      child: Text(
-                        'Allow location access',
-                        style: AppTextStyles.button,
-                      ),
+                      child: ref.watch(authProvider).isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Allow location access',
+                              style: AppTextStyles.button,
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -81,7 +190,7 @@ class EnableLocationAccessScreen extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: () => context.push('/home'),
                       style: OutlinedButton.styleFrom(
-                        padding: EdgeInsetsGeometry.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         foregroundColor: Theme.of(context).colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(26),

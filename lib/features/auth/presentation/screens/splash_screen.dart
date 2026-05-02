@@ -1,17 +1,21 @@
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/I10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class SplashScreen extends StatefulWidget {
+import '../providers/auth_provider.dart';
+import '../../../../core/storage/secure_storage_provider.dart';
+
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _fadeIn;
@@ -26,9 +30,42 @@ class _SplashScreenState extends State<SplashScreen>
     _fadeIn = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _controller.forward();
 
-    Future.delayed(const Duration(seconds: 2), () {
+    _checkAuthAndNavigate();
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    // Wait for the minimum splash duration (e.g. 2 seconds)
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    final storage = ref.read(secureStorageProvider);
+    final token = await storage.read(key: 'accessToken');
+
+    if (token == null || token.isEmpty) {
       if (mounted) context.go('/login');
-    });
+      return;
+    }
+
+    try {
+      final user = await ref.read(authProvider.notifier).getProfile();
+      if (mounted) {
+        if (user.fullName == null ||
+            user.gender == null ||
+            user.email == null ||
+            user.dateOfBirth == null ||
+            user.avatarUrl == null) {
+          context.go('/setup_welcome', extra: user.phoneNumber);
+        } else if (user.latestLocation == null || user.latestLocation!.isEmpty) {
+          context.go('/enable_location_access');
+        } else {
+          context.go('/home');
+        }
+      }
+    } catch (e) {
+      // Token might be expired or invalid
+      if (mounted) context.go('/login');
+    }
   }
 
   @override

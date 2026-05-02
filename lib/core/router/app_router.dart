@@ -174,7 +174,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/setup_more_details',
       builder: (context, state) {
-        return const SetupMoreDetailsScreen();
+        final profileData = state.extra as Map<String, dynamic>? ?? {};
+        return SetupMoreDetailsScreen(profileData: profileData);
       },
     ),
     GoRoute(

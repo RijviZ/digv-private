@@ -1,10 +1,32 @@
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class SetupMoreDetailsScreen extends StatelessWidget {
-  const SetupMoreDetailsScreen({super.key});
+class SetupMoreDetailsScreen extends ConsumerStatefulWidget {
+  final Map<String, dynamic> profileData;
+
+  const SetupMoreDetailsScreen({super.key, required this.profileData});
+
+  @override
+  ConsumerState<SetupMoreDetailsScreen> createState() =>
+      _SetupMoreDetailsScreenState();
+}
+
+class _SetupMoreDetailsScreenState extends ConsumerState<SetupMoreDetailsScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _referralController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _dobController.dispose();
+    _referralController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +71,7 @@ class SetupMoreDetailsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                "ust few more details to give you best security",
+                "Just few more details to give you best security",
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: Theme.of(context).colorScheme.secondary,
                   height: 1.50,
@@ -71,9 +93,13 @@ class SetupMoreDetailsScreen extends StatelessWidget {
                           ),
                         ),
                         child: TextField(
+                          controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
+                          enableSuggestions: false,
+                          autocorrect: false,
+                          autofillHints: null,
                           decoration: InputDecoration(
-                            contentPadding: EdgeInsets.all(16),
+                            contentPadding: const EdgeInsets.all(16),
                             hintText: 'Email',
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
@@ -99,12 +125,39 @@ class SetupMoreDetailsScreen extends StatelessWidget {
                             horizontal: 16.0,
                           ),
                           child: TextField(
-                            keyboardType: TextInputType.datetime,
+                            controller: _dobController,
+                            readOnly: true,
+                            onTap: () async {
+                              final pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+                                firstDate: DateTime(1900),
+                                lastDate: DateTime.now(),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: ColorScheme.light(
+                                        primary: Theme.of(context).colorScheme.primary,
+                                        onPrimary: Theme.of(context).colorScheme.onPrimary,
+                                        onSurface: Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (pickedDate != null) {
+                                final formattedDate = "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+                                setState(() {
+                                  _dobController.text = formattedDate;
+                                });
+                              }
+                            },
                             decoration: InputDecoration(
                               contentPadding: EdgeInsets.zero,
                               hintText: 'Date of Birth',
                               border: InputBorder.none,
-                              suffixIconConstraints: BoxConstraints(
+                              suffixIconConstraints: const BoxConstraints(
                                 minHeight: 20,
                                 minWidth: 20,
                                 maxHeight: 20,
@@ -146,12 +199,13 @@ class SetupMoreDetailsScreen extends StatelessWidget {
                             horizontal: 16.0,
                           ),
                           child: TextField(
-                            keyboardType: TextInputType.datetime,
+                            controller: _referralController,
+                            keyboardType: TextInputType.text,
                             decoration: InputDecoration(
                               contentPadding: EdgeInsets.zero,
                               hintText: 'Referral code (optional)',
                               border: InputBorder.none,
-                              suffixIconConstraints: BoxConstraints(
+                              suffixIconConstraints: const BoxConstraints(
                                 minHeight: 20,
                                 minWidth: 20,
                                 maxHeight: 20,
@@ -186,9 +240,32 @@ class SetupMoreDetailsScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.push('/enable_location_access'),
+                  onPressed: ref.watch(authProvider).isLoading
+                      ? null
+                      : () async {
+                          final data = Map<String, dynamic>.from(widget.profileData);
+                          data['email'] = _emailController.text.trim();
+                          data['dateOfBirth'] = _dobController.text.trim();
+                          final referral = _referralController.text.trim();
+                          if (referral.isNotEmpty) {
+                            data['referredByCode'] = referral;
+                          }
+
+                          try {
+                            await ref.read(authProvider.notifier).updateProfile(data);
+                            if (context.mounted) {
+                              context.push('/enable_location_access');
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(e.toString())),
+                              );
+                            }
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
@@ -196,7 +273,16 @@ class SetupMoreDetailsScreen extends StatelessWidget {
                     ),
                     elevation: 0,
                   ),
-                  child: Text("Continue", style: AppTextStyles.button),
+                  child: ref.watch(authProvider).isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text("Continue", style: AppTextStyles.button),
                 ),
               ),
               const SizedBox(height: 8),

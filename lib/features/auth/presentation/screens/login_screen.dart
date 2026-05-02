@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import '../providers/auth_provider.dart';
+
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -198,12 +200,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () {
-                    final phone = _phoneController.text.trim();
-                    if (phone.isNotEmpty) {
-                      context.push('/otp', extra: '+91 $phone');
-                    }
-                  },
+                  onPressed: ref.watch(authProvider).isLoading
+                      ? null
+                      : () async {
+                          final phone = _phoneController.text.trim();
+                          if (phone.isNotEmpty) {
+                            try {
+                              final response = await ref
+                                  .read(authProvider.notifier)
+                                  .sendOtp(
+                                    phoneNumber: phone,
+                                    countryCode: '+91',
+                                    role: 'CUSTOMER',
+                                  );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(response['message'] ?? 'OTP sent successfully')),
+                                );
+                                context.push('/otp', extra: phone);
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(e.toString())),
+                                );
+                              }
+                            }
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -212,7 +236,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: Text(l10n.send_otp, style: AppTextStyles.button),
+                  child: ref.watch(authProvider).isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(l10n.send_otp, style: AppTextStyles.button),
                 ),
               ),
               const SizedBox(height: 20),

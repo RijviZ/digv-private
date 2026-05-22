@@ -1,11 +1,18 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/core/widgets/app_top_bar.dart';
+import 'package:digv/features/address/domain/entities/address.dart';
+import 'package:digv/features/booking_engine/domain/date_item.dart';
+import 'package:digv/features/booking_engine/domain/technician.dart';
+import 'package:digv/features/booking_engine/presentation/providers/booking_provider.dart';
+import 'package:digv/features/search/domain/entities/search_result.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../widgets/payment_method_chip.dart';
+import '../../../payments/presentation/providers/payments_provider.dart';
 
 enum _PayTab { upi, card, netBanking }
 
@@ -44,19 +51,23 @@ extension _PayTabX on _PayTab {
   }
 }
 
-class PostpaidPaymentScreen extends StatefulWidget {
-  const PostpaidPaymentScreen({super.key});
+class PostpaidPaymentScreen extends ConsumerStatefulWidget {
+  final Map<String, dynamic> bookingDetails;
+
+  const PostpaidPaymentScreen({super.key, required this.bookingDetails});
+
+  int get amount => bookingDetails['amount'] as int? ?? 0;
 
   @override
-  State<PostpaidPaymentScreen> createState() => _PostpaidPaymentScreenState();
+  ConsumerState<PostpaidPaymentScreen> createState() => _PostpaidPaymentScreenState();
 }
 
-class _PostpaidPaymentScreenState extends State<PostpaidPaymentScreen> {
+class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
   _PayTab _selectedTab = _PayTab.upi;
   bool _isProcessing = false;
   final TextEditingController _upiCtrl = TextEditingController();
 
-  static const int _amount = 525;
+  // amount comes from widget
 
   @override
   void dispose() {
@@ -64,12 +75,220 @@ class _PostpaidPaymentScreenState extends State<PostpaidPaymentScreen> {
     super.dispose();
   }
 
+  String _formatScheduledDate(DateItem dateItem) {
+    final now = DateTime.now();
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final monthIdx = months.indexOf(dateItem.month) + 1;
+    final year = now.year;
+    final mm = monthIdx.toString().padLeft(2, '0');
+    final dd = dateItem.date.toString().padLeft(2, '0');
+    return '$year-$mm-$dd';
+  }
+
   void _onPay() async {
     setState(() => _isProcessing = true);
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      context.push('/postpaid_payment_success');
+    try {
+      if (widget.bookingDetails['isRemainingPayment'] == true) {
+        // Real Postpaid remaining due payment flow!
+        final serviceRequestId = widget.bookingDetails['serviceRequestId'] as String;
+        final amountValue = widget.bookingDetails['amount'] as int? ?? 500;
+        
+        String method = 'WALLET';
+        if (_selectedTab == _PayTab.card) {
+          method = 'CARD';
+        } else if (_selectedTab == _PayTab.netBanking) {
+          method = 'BANK_ACCOUNT';
+        } else if (_selectedTab == _PayTab.upi) {
+          method = 'UPI';
+        }
+
+        String gatewayRef = 'MANUAL-REF-001';
+        if (_selectedTab == _PayTab.card) {
+          gatewayRef = 'CARD-REF-001';
+        } else if (_selectedTab == _PayTab.netBanking) {
+          gatewayRef = 'BANK-REF-001';
+        } else if (_selectedTab == _PayTab.upi) {
+          gatewayRef = 'UPI-REF-${_upiCtrl.text.isEmpty ? "GUEST" : _upiCtrl.text.toUpperCase()}';
+        }
+
+        // 1. Create a pending payment
+        final paymentRes = await ref.read(paymentsNotifierProvider.notifier).createPendingPayment(
+          serviceRequestId: serviceRequestId,
+          method: method,
+          collectionType: 'POSTPAID',
+          amount: amountValue.toDouble().toStringAsFixed(2),
+          gatewayReference: gatewayRef,
+          note: 'Remaining postpaid payment',
+        );
+
+        final paymentId = paymentRes['paymentId'] as String? ?? paymentRes['data']?['paymentId'] as String? ?? '';
+        if (paymentId.isEmpty) {
+          throw Exception('Failed to get payment ID from server.');
+        }
+
+        // 2. Confirm the payment
+        await ref.read(paymentsNotifierProvider.notifier).confirmPayment(
+          paymentId: paymentId,
+          gatewayTransactionId: 'TXN-${DateTime.now().millisecondsSinceEpoch}',
+          gatewayResponse: {
+            'provider': 'MANUAL',
+            'status': 'SUCCESS',
+            'paidAt': DateTime.now().toUtc().toIso8601String(),
+          },
+        );
+
+        if (mounted) {
+          context.push('/postpaid_payment_success', extra: serviceRequestId);
+        }
+      } else {
+        // Existing initial booking creation flow
+        final service = widget.bookingDetails['service'] as SearchServiceEntity?;
+        final technician = widget.bookingDetails['technician'] as Technician?;
+        final date = widget.bookingDetails['date'] as DateItem?;
+        final address = widget.bookingDetails['address'] as Address?;
+        final timeStr = widget.bookingDetails['time'] as String? ?? '';
+        
+        final scheduledDateStr = date != null ? _formatScheduledDate(date) : '2026-05-10';
+        
+        final timeParts = timeStr.split('|');
+        final slotId = timeParts.length > 1 ? timeParts[1] : '11111111-1111-4111-8111-111111111111';
+        
+        String gatewayRef = 'MANUAL-REF-001';
+        if (_selectedTab == _PayTab.card) {
+          gatewayRef = 'CARD-REF-001';
+        } else if (_selectedTab == _PayTab.netBanking) {
+          gatewayRef = 'BANK-REF-001';
+        } else if (_selectedTab == _PayTab.upi) {
+          gatewayRef = 'UPI-REF-${_upiCtrl.text.isEmpty ? "GUEST" : _upiCtrl.text.toUpperCase()}';
+        }
+
+        final payload = {
+          'providerId': technician?.providerId ?? '2f4a8f15-3c10-4d1a-9821-111111111111',
+          'serviceId': service?.serviceId ?? '7a8b9c10-1111-4d1a-9821-222222222222',
+          'scheduledDate': scheduledDateStr,
+          'availabilitySlotIds': [
+            slotId
+          ],
+          'quantity': widget.bookingDetails['quantity'] as int? ?? 1,
+          'description': 'Need service booking for ${service?.title ?? "Regular Service"}.',
+          'paymentMethod': widget.bookingDetails['paymentMethod'] as String? ?? 'CASH',
+          'collectionType': widget.bookingDetails['collectionType'] as String? ?? 'POSTPAID',
+          'gatewayReference': gatewayRef,
+          'paymentAmount': '0.00',
+          'addressLabel': address?.label ?? 'Home',
+          'addressLine': address?.addressLine ?? 'House 12, Road 5, Dhanmondi',
+          'city': address?.city ?? 'Dhaka',
+          'state': address?.state ?? 'Dhaka',
+          'postalCode': address?.postalCode ?? '1209',
+          'serviceLat': address?.lat ?? 23.7465,
+          'serviceLng': address?.lng ?? 90.376
+        };
+
+        // 2. Make the service request POST call
+        final bookingRes = await ref.read(createBookingProvider.notifier).createBooking(payload);
+
+        if (mounted) {
+          final createdId = bookingRes['serviceRequestId'] as String? ?? bookingRes['data']?['serviceRequestId'] as String? ?? '';
+          context.push('/postpaid_payment_success', extra: createdId);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMessage = 'An unexpected error occurred.';
+        try {
+          final dynamic errorData = (e as dynamic).response?.data;
+          if (errorData is Map && errorData['message'] != null) {
+            errorMessage = errorData['message'].toString();
+          } else {
+            errorMessage = e.toString();
+          }
+        } catch (_) {
+          errorMessage = e.toString();
+        }
+        _showErrorDialog(context, errorMessage);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
     }
+  }
+
+  void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 8,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    color: AppColors.errorBg,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/images/XCircle.svg',
+                      width: 28,
+                      height: 28,
+                      colorFilter: const ColorFilter.mode(AppColors.error, BlendMode.srcIn),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Booking Failed',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.titleLight.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onLight,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.captionMedium.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.onLight,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    child: Text(
+                      'Understood',
+                      style: AppTextStyles.button.copyWith(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -200,7 +419,7 @@ class _PostpaidPaymentScreenState extends State<PostpaidPaymentScreen> {
                   ),
                   const SizedBox(width: 2),
                   Text(
-                    '$_amount',
+                    '${widget.amount}',
                     style: const TextStyle(
                       color: AppColors.onLight,
                       fontSize: 24,
@@ -460,7 +679,7 @@ class _PostpaidPaymentScreenState extends State<PostpaidPaymentScreen> {
                   ),
                   const SizedBox(width: 2),
                   Text(
-                    '$_amount',
+                    '${widget.amount}',
                     style: AppTextStyles.h3.copyWith(
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0,
@@ -508,7 +727,7 @@ class _PostpaidPaymentScreenState extends State<PostpaidPaymentScreen> {
                         ],
                       )
                     : Text(
-                        'Pay ₹$_amount',
+                        'Pay ₹${widget.amount}',
                         textAlign: TextAlign.center,
                         style: AppTextStyles.button.copyWith(
                           color: AppColors.bg,

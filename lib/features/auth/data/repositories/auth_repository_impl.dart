@@ -84,4 +84,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> updateLocation(Map<String, dynamic> data) async {
     await remoteDataSource.updateLocation(data);
   }
+
+  @override
+  Future<void> logout() async {
+    await secureStorage.delete(key: 'accessToken');
+  }
 }

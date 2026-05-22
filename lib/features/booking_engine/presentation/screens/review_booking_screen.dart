@@ -1,28 +1,42 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/features/address/presentation/providers/address_provider.dart';
+import 'package:digv/features/booking_engine/domain/date_item.dart';
+import 'package:digv/features/booking_engine/domain/technician.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_top_bar.dart';
+import '../../../search/domain/entities/search_result.dart';
 import '../widgets/section_card.dart';
 
-class ReviewBookingScreen extends StatefulWidget {
-  const ReviewBookingScreen({super.key});
+class ReviewBookingScreen extends ConsumerStatefulWidget {
+  final SearchServiceEntity service;
+  final Technician technician;
+  final DateItem selectedDate;
+  final String selectedTime;
+
+  const ReviewBookingScreen({
+    super.key,
+    required this.service,
+    required this.technician,
+    required this.selectedDate,
+    required this.selectedTime,
+  });
 
   @override
-  State<ReviewBookingScreen> createState() => _ReviewBookingScreenState();
+  ConsumerState<ReviewBookingScreen> createState() => _ReviewBookingScreenState();
 }
 
-class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
+class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
   int _quantity = 1;
   int _selectedAddress = 0;
   bool _agreedToTerms = false;
 
-  static const int _pricePerUnit = 500;
-
-  int get _totalPrice => _pricePerUnit * _quantity;
+  int get _totalPrice => widget.technician.pricePerVisit * _quantity;
 
   @override
   Widget build(BuildContext context) {
@@ -58,13 +72,25 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
+            border: const Border(top: BorderSide(color: AppColors.dropDownBorder)),
           ),
           child: AppPrimaryButton(
             text: 'Proceed to Payment',
             onTap: _agreedToTerms
                 ? () {
-                    context.push('/review_and_pay');
+                    final addressState = ref.read(addressListProvider);
+                    final addresses = addressState.value;
+                    if (addresses != null && addresses.isNotEmpty) {
+                      final address = addresses[_selectedAddress];
+                      context.push('/review_and_pay', extra: (
+                        widget.service,
+                        widget.technician,
+                        widget.selectedDate,
+                        widget.selectedTime,
+                        _quantity,
+                        address,
+                      ));
+                    }
                   }
                 : null,
           ),
@@ -80,13 +106,13 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'AC Regular Service',
+            widget.service.categoryName,
             style: AppTextStyles.titleLight.copyWith(
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w500,
             ),
           ),
-          Text('Split AC', style: AppTextStyles.labelMedium.copyWith(color: Theme.of(context).colorScheme.secondary)),
+          Text(widget.service.title, style: AppTextStyles.labelMedium.copyWith(color: Theme.of(context).colorScheme.secondary)),
           const SizedBox(height: 12),
           _buildTechnicianRow(),
           const SizedBox(height: 14),
@@ -121,15 +147,17 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
             height: 44,
             decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF90A4AE)),
             child: ClipOval(
-              child: CustomPaint(
-                painter: _AvatarPainter(),
-                child: const Center(
-                  child: Text(
-                    'AK',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
-                  ),
-                ),
-              ),
+              child: widget.technician.avatarUrl != null && widget.technician.avatarUrl!.isNotEmpty
+                  ? Image.network(
+                      widget.technician.avatarUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => CustomPaint(
+                        painter: _AvatarPainter(),
+                      ),
+                    )
+                  : CustomPaint(
+                      painter: _AvatarPainter(),
+                    ),
             ),
           ),
           const SizedBox(width: 10),
@@ -140,7 +168,7 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Arjun Kumar',
+                  widget.technician.name,
                   style: AppTextStyles.captionMedium.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w700,
@@ -152,7 +180,7 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
                     SizedBox(height: 10, width: 10, child: SvgPicture.asset('assets/images/star.svg')),
                     const SizedBox(width: 2),
                     Text(
-                      '4.9',
+                      widget.technician.rating.toStringAsFixed(1),
                       style: AppTextStyles.caption.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w700,
@@ -169,7 +197,7 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
                     SvgPicture.asset('assets/images/briefcase.svg', height: 10, width: 10),
                     const SizedBox(width: 3),
                     Text(
-                      '5 yrs',
+                      '${widget.technician.experience} yrs',
                       style: AppTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.secondary),
                     ),
                   ],
@@ -184,7 +212,7 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
             children: [
               SvgPicture.asset('assets/images/rupee.svg', height: 13, width: 13),
               const SizedBox(width: 2),
-              Text('500', style: AppTextStyles.bodyMediumBold.copyWith(color: AppColors.blue)),
+              Text('${widget.technician.pricePerVisit}', style: AppTextStyles.bodyMediumBold.copyWith(color: AppColors.blue)),
               const SizedBox(width: 1),
               Text(
                 '/visit',
@@ -213,7 +241,7 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
             Text('Schedule', style: AppTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.secondary)),
             const SizedBox(height: 1),
             Text(
-              'Today · 10:00 AM',
+              '${widget.selectedDate.day}, ${widget.selectedDate.month} ${widget.selectedDate.date} · ${widget.selectedTime.split('|')[0]}',
               style: AppTextStyles.captionMedium.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w600,
@@ -242,7 +270,7 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
                 children: [
                   SvgPicture.asset('assets/images/rupee.svg', height: 11, width: 11),
                   const SizedBox(width: 4),
-                  Text('500', style: AppTextStyles.bodyMediumBold.copyWith(color: AppColors.blue)),
+                  Text('${widget.technician.pricePerVisit}', style: AppTextStyles.bodyMediumBold.copyWith(color: AppColors.blue)),
                   const SizedBox(width: 4),
                   Text(
                     ' × $_quantity = ',
@@ -306,8 +334,8 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
         decoration: BoxDecoration(
           color: AppColors.inputBgSecondary,
           borderRadius: BorderRadius.horizontal(
-            left: text == '-' ? Radius.circular(2) : Radius.zero,
-            right: text == '+' ? Radius.circular(2) : Radius.zero,
+            left: text == '-' ? const Radius.circular(2) : Radius.zero,
+            right: text == '+' ? const Radius.circular(2) : Radius.zero,
           ),
         ),
         child: Text(text, style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.primary)),
@@ -316,27 +344,44 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
   }
 
   Widget _buildAddressCard() {
+    final addressState = ref.watch(addressListProvider);
+
     return SectionCard(
       label: 'SELECT ADDRESS',
-      child: Column(
-        children: [
-          const SizedBox(height: 4),
-          _buildAddressOption(
-            index: 0,
-            icon: 'assets/images/house.svg',
-            title: 'Home',
-            subtitle: 'Jl. Ngagelrejo No.34, Khulna — 9000',
-          ),
-          const SizedBox(height: 10),
-          _buildAddressOption(
-            index: 1,
-            icon: 'assets/images/briefcase.svg',
-            title: 'Office',
-            subtitle: 'Road 5, Satmasjid Road, Khulna — 9100',
-          ),
-          const SizedBox(height: 10),
-          _buildAddNewAddress(),
-        ],
+      child: addressState.when(
+        data: (addresses) {
+          if (addresses.isEmpty) {
+            return Column(
+              children: [
+                const SizedBox(height: 10),
+                _buildAddNewAddress(),
+              ],
+            );
+          }
+          return Column(
+            children: [
+              const SizedBox(height: 4),
+              ...addresses.asMap().entries.map((entry) {
+                final index = entry.key;
+                final address = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _buildAddressOption(
+                    index: index,
+                    icon: address.label?.toLowerCase() == 'home'
+                        ? 'assets/images/house.svg'
+                        : 'assets/images/briefcase.svg',
+                    title: address.label??'',
+                    subtitle: '${address.addressLine}, ${address.city} — ${address.postalCode}',
+                  ),
+                );
+              }),
+              _buildAddNewAddress(),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, st) => Text('Error loading addresses: $e'),
       ),
     );
   }
@@ -413,7 +458,7 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
     return Container(
       width: 34,
       height: 34,
-      padding: EdgeInsets.all(9),
+      padding: const EdgeInsets.all(9),
       decoration: BoxDecoration(
         color: selected ? AppColors.inputBorder : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(10),
@@ -433,7 +478,9 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
 
   Widget _buildAddNewAddress() {
     return GestureDetector(
-      onTap: () {},
+      onTap: () {
+        context.push('/add_address');
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
@@ -487,12 +534,12 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
                   fontWeight: FontWeight.w400,
                 ),
                 children: [
-                  TextSpan(text: 'I agree to the '),
+                  const TextSpan(text: 'I agree to the '),
                   TextSpan(
                     text: 'Terms of Service',
                     style: AppTextStyles.captionMedium.copyWith(color: AppColors.blueDeep, fontWeight: FontWeight.w700),
                   ),
-                  TextSpan(text: ' and authorise 100% advance payment for this booking.'),
+                  const TextSpan(text: ' and authorise 100% advance payment for this booking.'),
                 ],
               ),
             ),
@@ -510,9 +557,9 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
           'assets/images/shield.svg',
           height: 13,
           width: 13,
-          colorFilter: ColorFilter.mode(AppColors.blueDeep, BlendMode.srcIn),
+          colorFilter: const ColorFilter.mode(AppColors.blueDeep, BlendMode.srcIn),
         ),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             '100% Advance Safe Payment · All technicians background verified',

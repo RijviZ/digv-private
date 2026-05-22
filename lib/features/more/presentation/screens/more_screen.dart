@@ -3,23 +3,30 @@ import 'package:digv/features/more/presentation/widgets/profile_header.dart';
 import 'package:digv/features/more/presentation/widgets/section_card.dart';
 import 'package:digv/features/more/presentation/widgets/stats_bar.dart';
 import 'package:digv/features/more/presentation/widgets/support_section.dart';
+import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class MoreScreen extends StatelessWidget {
+class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(profileProvider);
     return SafeArea(
       bottom: false,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(28, 16, 28, 0),
-              child: ProfileHeader(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 16, 28, 0),
+              child: profileAsync.when(
+                data: (user) => ProfileHeader(user: user),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => const Text('Failed to load profile'),
+              ),
             ),
             const SizedBox(height: 16),
             const Padding(

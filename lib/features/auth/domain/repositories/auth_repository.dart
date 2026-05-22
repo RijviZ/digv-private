@@ -18,4 +18,5 @@ abstract class AuthRepository {
   Future<User> updateProfile(Map<String, dynamic> data);
 
   Future<void> updateLocation(Map<String, dynamic> data);
+  Future<void> logout();
 }

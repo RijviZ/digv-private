@@ -50,20 +50,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     try {
       final user = await ref.read(authProvider.notifier).getProfile();
       if (mounted) {
-        if (user.fullName == null ||
-            user.gender == null ||
-            user.email == null ||
-            user.dateOfBirth == null ||
-            user.avatarUrl == null) {
+        if (user.isOnboardingCompleted) {
+          context.go('/home');
+        } else if (!user.isProfileSetupCompleted) {
           context.go('/setup_welcome', extra: user.phoneNumber);
-        } else if (user.latestLocation == null || user.latestLocation!.isEmpty) {
+        } else if (user.latestLocation == null && !user.isLocationAccessSkipped) {
           context.go('/enable_location_access');
         } else {
           context.go('/home');
         }
       }
     } catch (e) {
-      // Token might be expired or invalid
       if (mounted) context.go('/login');
     }
   }

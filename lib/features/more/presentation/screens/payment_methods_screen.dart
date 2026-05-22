@@ -1,16 +1,23 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/features/bank_account/domain/entities/bank_account.dart';
+import 'package:digv/features/bank_account/presentation/providers/bank_account_provider.dart';
 import 'package:digv/features/more/presentation/widgets/outline_add_button.dart';
+import 'package:digv/features/payment_method/presentation/providers/payment_method_provider.dart';
+import 'package:digv/features/payment_method/presentation/widgets/add_card_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class PaymentMethodsScreen extends StatelessWidget {
+class PaymentMethodsScreen extends ConsumerWidget {
   const PaymentMethodsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final bankAccountsAsync = ref.watch(bankAccountsProvider);
+    final paymentMethodsAsync = ref.watch(paymentMethodsProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
@@ -21,7 +28,13 @@ class PaymentMethodsScreen extends StatelessWidget {
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: SvgPicture.asset('assets/images/CaretLeft.svg', colorFilter: ColorFilter.mode(theme.colorScheme.onSurface, BlendMode.srcIn),height: 18,width: 18,),
+            icon: SvgPicture.asset(
+              'assets/images/CaretLeft.svg',
+              colorFilter: ColorFilter.mode(
+                  theme.colorScheme.onSurface, BlendMode.srcIn),
+              height: 18,
+              width: 18,
+            ),
             onPressed: () => Navigator.maybePop(context),
           ),
           title: Text(
@@ -47,25 +60,70 @@ class PaymentMethodsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              const _CardTile(
-                brandColor: Color(0xFF1A1F71),
-                brandLabel: 'VISA',
-                maskedNumber: '•••• •••• •••• 4587',
-                expiry: 'Expires 08/27',
-                isDefault: true,
+              paymentMethodsAsync.when(
+                data: (methods) {
+                  if (methods.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.only(bottom: 20),
+                      child: Text('No saved cards'),
+                    );
+                  }
+                  return Column(
+                    children: methods.map((method) {
+                      Color brandColor = const Color(0xFF1A1F71);
+                      if (method.cardBrand.toUpperCase().contains('MASTER')) {
+                        brandColor = const Color(0xFFEB001B);
+                      }
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _CardTile(
+                          brandColor: brandColor,
+                          brandLabel: method.cardBrand.toUpperCase() == 'MASTERCARD' ? 'MASTER\nCARD' : method.cardBrand.toUpperCase(),
+                          maskedNumber: '•••• •••• •••• ${method.cardLast4}',
+                          expiry: 'Expires ${method.expiryMonth.toString().padLeft(2, '0')}/${method.expiryYear.toString().substring(2)}',
+                          isDefault: method.isDefault,
+                          onDelete: () {
+                            if (method.userPaymentMethodId != null) {
+                              ref.read(paymentMethodsProvider.notifier).deletePaymentMethod(method.userPaymentMethodId!);
+                            }
+                          },
+                          onSetDefault: () {
+                            if (method.userPaymentMethodId != null) {
+                              ref.read(paymentMethodsProvider.notifier).setDefaultPaymentMethod(method.userPaymentMethodId!);
+                            }
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: 20),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+                error: (err, stack) => Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Text('Error: $err'),
+                ),
               ),
               const SizedBox(height: 10),
 
-              const _CardTile(
-                brandColor: Color(0xFFEB001B),
-                brandLabel: 'MASTER\nCARD',
-                maskedNumber: '•••• •••• •••• 1234',
-                expiry: 'Expires 03/26',
-                isDefault: false,
+              OutlineAddButton(
+                label: 'Add New Card',
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    builder: (context) => const AddCardBottomSheet(),
+                  );
+                },
               ),
-              const SizedBox(height: 20),
-
-              OutlineAddButton(label: 'Add New Card', onTap: () {}),
 
               const SizedBox(height: 16),
 
@@ -86,6 +144,38 @@ class PaymentMethodsScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               OutlineAddButton(label: 'Link UPI ID', onTap: () {}),
+
+              const SizedBox(height: 32),
+
+              Text(
+                'Bank Accounts',
+                style: AppTextStyles.titleLight.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              bankAccountsAsync.when(
+                data: (accounts) {
+                  if (accounts.isEmpty) {
+                    return const Text('No bank accounts saved');
+                  }
+                  return Column(
+                    children: accounts.map((account) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _BankAccountTile(account: account),
+                      );
+                    }).toList(),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Text('Error: $err'),
+              ),
+              const SizedBox(height: 8),
+
+              OutlineAddButton(label: 'Add Bank Account', onTap: () {}),
             ],
           ),
         ),
@@ -100,6 +190,8 @@ class _CardTile extends StatelessWidget {
   final String maskedNumber;
   final String expiry;
   final bool isDefault;
+  final VoidCallback? onDelete;
+  final VoidCallback? onSetDefault;
 
   const _CardTile({
     required this.brandColor,
@@ -107,23 +199,27 @@ class _CardTile extends StatelessWidget {
     required this.maskedNumber,
     required this.expiry,
     required this.isDefault,
+    this.onDelete,
+    this.onSetDefault,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDefault ? theme.colorScheme.primary : theme.dividerColor,
-          width: isDefault ? 1.5 : 1,
+    return GestureDetector(
+      onTap: (!isDefault && onSetDefault != null) ? onSetDefault : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDefault ? theme.colorScheme.primary : theme.dividerColor,
+            width: isDefault ? 1.5 : 1,
+          ),
         ),
-      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -189,20 +285,27 @@ class _CardTile extends StatelessWidget {
               ),
             )
           else
-            Container(
-              width: 30,
-              height: 30,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.errorBg,
-                borderRadius: BorderRadius.circular(8),
+            GestureDetector(
+              onTap: onDelete,
+              child: Container(
+                width: 30,
+                height: 30,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.errorBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: SvgPicture.asset(
+                  'assets/images/delete.svg',
+                  height: 14,
+                  width: 14,
+                ),
               ),
-              alignment: Alignment.center,
-              child: SvgPicture.asset('assets/images/delete.svg',height: 14,width: 14,),
             ),
         ],
       ),
-    );
+      ));
   }
 }
 
@@ -255,10 +358,116 @@ class _UpiTile extends StatelessWidget {
               ],
             ),
           ),
-          SvgPicture.asset('assets/images/checkmark.svg',height: 18,width: 18,),
+          SvgPicture.asset(
+            'assets/images/checkmark.svg',
+            height: 18,
+            width: 18,
+          ),
         ],
       ),
     );
   }
 }
+
+class _BankAccountTile extends StatelessWidget {
+  final BankAccount account;
+
+  const _BankAccountTile({required this.account});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final String maskedNumber =
+        '•••• ${account.accountNumber.substring(account.accountNumber.length - 4)}';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: account.isDefault ? theme.colorScheme.primary : theme.dividerColor,
+          width: account.isDefault ? 1.5 : 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
+            child: SvgPicture.asset(
+              'assets/images/bank.svg',
+              height: 24,
+              width: 24,
+              colorFilter: ColorFilter.mode(
+                theme.colorScheme.primary,
+                BlendMode.srcIn,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  account.bankName,
+                  style: AppTextStyles.bodyMediumBold.copyWith(
+                    color: AppColors.textDark,
+                    fontFamily: AppTextStyles.fontFamilyPoppins,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  maskedNumber,
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: theme.colorScheme.secondary,
+                    fontFamily: AppTextStyles.fontFamilyPoppins,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (account.isDefault)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.unread,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'Default',
+                style: AppTextStyles.captionSmall.copyWith(
+                  color: AppColors.blueDeep,
+                  fontFamily: AppTextStyles.fontFamilyPoppins,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          if (account.isVerified)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: SvgPicture.asset(
+                'assets/images/checkmark.svg',
+                height: 18,
+                width: 18,
+                colorFilter: const ColorFilter.mode(
+                  Colors.green,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 

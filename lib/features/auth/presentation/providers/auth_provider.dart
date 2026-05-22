@@ -6,6 +6,9 @@ import '../../../../core/network/file_upload_service.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../../address/presentation/providers/address_provider.dart';
+import '../../../bank_account/presentation/providers/bank_account_provider.dart';
+import '../../../notifications/presentation/providers/notification_settings_provider.dart';
 
 final authProvider = AsyncNotifierProvider<AuthNotifier, void>(() {
   return AuthNotifier();
@@ -106,6 +109,21 @@ class AuthNotifier extends AsyncNotifier<void> {
       final url = await _fileService.uploadFile(filePath);
       state = const AsyncValue.data(null);
       return url;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> logout() async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.logout();
+      state = const AsyncValue.data(null);
+      ref.invalidate(profileProvider);
+      ref.invalidate(addressListProvider);
+      ref.invalidate(bankAccountsProvider);
+      ref.invalidate(notificationSettingsProvider);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       rethrow;

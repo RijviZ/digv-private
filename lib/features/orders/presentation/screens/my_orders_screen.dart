@@ -1,240 +1,38 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/orders/domain/models/order_item.dart';
+import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
+import 'package:digv/features/orders/presentation/widgets/reschedule_bottom_sheet.dart';
+import 'package:digv/features/orders/presentation/widgets/cancel_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class MyOrdersScreen extends StatefulWidget {
+class MyOrdersScreen extends ConsumerStatefulWidget {
   const MyOrdersScreen({super.key});
 
   @override
-  State<MyOrdersScreen> createState() => _MyOrdersScreenState();
+  ConsumerState<MyOrdersScreen> createState() => _MyOrdersScreenState();
 }
 
-class _MyOrdersScreenState extends State<MyOrdersScreen> {
+class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
   OrderTab _selectedTab = OrderTab.active;
 
-  final Map<OrderTab, List<OrderItem>> _ordersByTab = {
-    OrderTab.active: [
-      const OrderItem(
-        id: '1',
-        serviceName: 'AC Regular Service',
-        orderId: 'ORD-7845',
-        status: OrderBadgeStatus.active,
-        scheduledTime: 'Today, 3:30 PM',
-        location: 'Home',
-        technicianName: 'Arjun Kumar',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹199',
-      ),
-      const OrderItem(
-        id: '2',
-        serviceName: 'AC Express Service',
-        orderId: 'ORD-7846',
-        status: OrderBadgeStatus.active,
-        scheduledTime: 'Today, 4:15 PM',
-        location: 'Work',
-        technicianName: 'Meera Singh',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹299',
-      ),
-      const OrderItem(
-        id: '3',
-        serviceName: 'AC Premium Service',
-        orderId: 'ORD-7847',
-        status: OrderBadgeStatus.active,
-        scheduledTime: 'Today, 2:00 PM',
-        location: 'Gym',
-        technicianName: 'Rahul Verma',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹399',
-      ),
-    ],
-    OrderTab.upcoming: [
-      const OrderItem(
-        id: '4',
-        serviceName: 'Full Home Deep Clean',
-        orderId: 'ORD-7832',
-        status: OrderBadgeStatus.upcoming,
-        scheduledTime: 'Tomorrow, 10:00 AM',
-        location: 'Home',
-        technicianName: 'Karim Ali',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹589',
-      ),
-      const OrderItem(
-        id: '5',
-        serviceName: 'Full Home Deep Clean',
-        orderId: 'ORD-7832',
-        status: OrderBadgeStatus.upcoming,
-        scheduledTime: 'Tomorrow, 10:00 AM',
-        location: 'Home',
-        technicianName: 'Karim Ali',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹589',
-      ),
-    ],
-    OrderTab.past: [
-      const OrderItem(
-        id: '6',
-        serviceName: 'Tap Repair',
-        orderId: 'ORD-7807',
-        status: OrderBadgeStatus.completed,
-        scheduledTime: '20 Feb 2025, 11:00 AM',
-        location: 'Home',
-        technicianName: 'Suresh Rao',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹199',
-        rating: 5,
-      ),
-      const OrderItem(
-        id: '7',
-        serviceName: 'Replace Battery',
-        orderId: 'ORD-7802',
-        status: OrderBadgeStatus.pending,
-        scheduledTime: '21 Feb 2025, 02:30 PM',
-        location: 'Office',
-        technicianName: 'Anita Shah',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹1500',
-        rating: 5,
-      ),
-      const OrderItem(
-        id: '8',
-        serviceName: 'Screen Replacement',
-        orderId: 'ORD-7798',
-        status: OrderBadgeStatus.inProgress,
-        scheduledTime: '18 Feb 2025, 01:00 PM',
-        location: 'Home',
-        technicianName: 'Priya Nair',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹799',
-        rating: 4,
-      ),
-      const OrderItem(
-        id: '9',
-        serviceName: 'Wiring Repair',
-        orderId: 'ORD-7790',
-        status: OrderBadgeStatus.completed,
-        scheduledTime: '15 Feb 2025, 03:00 PM',
-        location: 'Office',
-        technicianName: 'Vijay Kumar',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹349',
-        rating: 4,
-      ),
-      const OrderItem(
-        id: '10',
-        serviceName: 'AC Deep Cleaning',
-        orderId: 'ORD-7785',
-        status: OrderBadgeStatus.completed,
-        scheduledTime: '12 Feb 2025, 11:30 AM',
-        location: 'Home',
-        technicianName: 'Arjun Kumar',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹299',
-        rating: 5,
-      ),
-      const OrderItem(
-        id: '11',
-        serviceName: 'Drain Cleaning',
-        orderId: 'ORD-7776',
-        status: OrderBadgeStatus.completed,
-        scheduledTime: '10 Feb 2025, 09:00 AM',
-        location: 'Home',
-        technicianName: 'Meera Singh',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹249',
-        rating: 5,
-      ),
-      const OrderItem(
-        id: '12',
-        serviceName: 'Fan Installation',
-        orderId: 'ORD-7765',
-        status: OrderBadgeStatus.completed,
-        scheduledTime: '08 Feb 2025, 02:00 PM',
-        location: 'Home',
-        technicianName: 'Rahul Verma',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹199',
-        rating: 4,
-      ),
-      const OrderItem(
-        id: '13',
-        serviceName: 'Pipe Repair',
-        orderId: 'ORD-7754',
-        status: OrderBadgeStatus.completed,
-        scheduledTime: '05 Feb 2025, 10:00 AM',
-        location: 'Work',
-        technicianName: 'Karim Ali',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹299',
-        rating: 4,
-      ),
-      const OrderItem(
-        id: '14',
-        serviceName: 'Home Cleaning',
-        orderId: 'ORD-7743',
-        status: OrderBadgeStatus.completed,
-        scheduledTime: '02 Feb 2025, 09:30 AM',
-        location: 'Home',
-        technicianName: 'Anita Shah',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹399',
-        rating: 5,
-      ),
-      const OrderItem(
-        id: '15',
-        serviceName: 'AC Installation',
-        orderId: 'ORD-7730',
-        status: OrderBadgeStatus.completed,
-        scheduledTime: '28 Jan 2025, 01:00 PM',
-        location: 'Home',
-        technicianName: 'Suresh Rao',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹899',
-        rating: 5,
-      ),
-    ],
-    OrderTab.cancelled: [
-      const OrderItem(
-        id: '16',
-        serviceName: 'Fan Installation',
-        orderId: 'ORD-7786',
-        status: OrderBadgeStatus.cancelled,
-        scheduledTime: '15 Feb 2025, 2:00 PM',
-        location: 'Home',
-        technicianName: 'Arjun Kumar',
-        technicianImageUrl:
-            'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg',
-        price: '₹199',
-      ),
-    ],
-  };
-
-  final Map<OrderTab, int> _tabCounts = {
-    OrderTab.active: 3,
-    OrderTab.upcoming: 2,
-    OrderTab.past: 10,
-    OrderTab.cancelled: 1,
-  };
+  OrderTab _mapStatusToTab(OrderBadgeStatus status) {
+    switch (status) {
+      case OrderBadgeStatus.active:
+      case OrderBadgeStatus.inProgress:
+        return OrderTab.active;
+      case OrderBadgeStatus.upcoming:
+        return OrderTab.upcoming;
+      case OrderBadgeStatus.completed:
+        return OrderTab.past;
+      case OrderBadgeStatus.cancelled:
+        return OrderTab.cancelled;
+    }
+  }
 
   String _tabLabel(OrderTab tab) {
     switch (tab) {
@@ -286,6 +84,17 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   }
 
   Widget _buildTabBar() {
+    final ordersAsync = ref.watch(ordersProvider);
+    final counts = {
+      for (var tab in OrderTab.values) tab: 0,
+    };
+    ordersAsync.whenData((allOrders) {
+      for (var order in allOrders) {
+        final tab = _mapStatusToTab(order.status);
+        counts[tab] = (counts[tab] ?? 0) + 1;
+      }
+    });
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -298,9 +107,12 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         child: Row(
           children: OrderTab.values.map((tab) {
             final isSelected = tab == _selectedTab;
-            final count = _tabCounts[tab] ?? 0;
+            final count = counts[tab] ?? 0;
             return GestureDetector(
-              onTap: () => setState(() => _selectedTab = tab),
+              onTap: () {
+                setState(() => _selectedTab = tab);
+                //ref.read(ordersProvider.notifier).refresh();
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -333,35 +145,89 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   }
 
   Widget _buildOrderList() {
-    final orders = _ordersByTab[_selectedTab] ?? [];
-    if (orders.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              'assets/images/order.svg',
-              width: 56,
-              height: 56,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No ${_tabLabel(_selectedTab).toLowerCase()} orders',
-              style: AppTextStyles.bodyLarge.copyWith(
-                color: AppColors.textSecondary,
+    final ordersAsync = ref.watch(ordersProvider);
+
+    return ordersAsync.when(
+      data: (allOrders) {
+        final ordersByTab = {
+          for (var tab in OrderTab.values) tab: <OrderItem>[],
+        };
+        for (var order in allOrders) {
+          final tab = _mapStatusToTab(order.status);
+          ordersByTab[tab]!.add(order);
+        }
+
+        final orders = ordersByTab[_selectedTab] ?? [];
+        final Widget childWidget;
+        
+        if (orders.isEmpty) {
+          childWidget = SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Container(
+              height: 400,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SvgPicture.asset(
+                    'assets/images/order.svg',
+                    width: 56,
+                    height: 56,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No ${_tabLabel(_selectedTab).toLowerCase()} orders',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      );
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      itemCount: orders.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        return _buildOrderCard(orders[index]);
+          );
+        } else {
+          childWidget = ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            itemCount: orders.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              return _buildOrderCard(orders[index]);
+            },
+          );
+        }
+
+        return RefreshIndicator(
+          color: Theme.of(context).primaryColor,
+          backgroundColor: Colors.white,
+          onRefresh: () => ref.read(ordersProvider.notifier).refresh(),
+          child: childWidget,
+        );
       },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => RefreshIndicator(
+        color: Theme.of(context).primaryColor,
+        backgroundColor: Colors.white,
+        onRefresh: () => ref.read(ordersProvider.notifier).refresh(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Container(
+            height: 400,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Failed to load orders: $error', style: const TextStyle(color: AppColors.error)),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () => ref.read(ordersProvider.notifier).refresh(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -461,10 +327,6 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         bgColor = const Color(0xFFEDE9FE);
         textColor = const Color(0xFF7C3AED);
         break;
-      case OrderBadgeStatus.pending:
-        bgColor = const Color(0xFFFEF3C7);
-        textColor = AppColors.warningText;
-        break;
       case OrderBadgeStatus.cancelled:
         bgColor = const Color(0xFFFEE2E2);
         textColor = AppColors.error;
@@ -538,6 +400,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       decoration: const ShapeDecoration(
         shape: Border(
           top: BorderSide(width: 1, color: AppColors.inputBorder),
+          bottom: BorderSide(width: 1, color: AppColors.inputBorder),
         ),
       ),
       child: Padding(
@@ -619,14 +482,14 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   }
 
   Widget _buildCardActions(OrderItem order) {
+    print(order.status);
     switch (order.status) {
       case OrderBadgeStatus.active:
+      case OrderBadgeStatus.inProgress:
         return _buildActiveActions(order);
       case OrderBadgeStatus.upcoming:
         return _buildUpcomingActions(order);
       case OrderBadgeStatus.completed:
-      case OrderBadgeStatus.inProgress:
-      case OrderBadgeStatus.pending:
         return _buildPastActions(order);
       case OrderBadgeStatus.cancelled:
         return _buildCancelledActions(order);
@@ -658,14 +521,14 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         Expanded(
           child: _buildSecondaryButton(
             label: 'Reschedule',
-            onTap: () {},
+            onTap: () => RescheduleBottomSheet.show(context, order),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: _buildOutlineButton(
             label: 'Cancel',
-            onTap: () {},
+            onTap: () => CancelBottomSheet.show(context, order),
           ),
         ),
       ],
@@ -706,10 +569,12 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
               ),
             ),
             const SizedBox(width: 4),
-            Text(
-              'Reason: Technician unavailable',
-              style: AppTextStyles.labelMedium.copyWith(
-                color: AppColors.error,
+            Expanded(
+              child: Text(
+                'Reason: ${order.cancelReason ?? 'No reason provided'}',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: AppColors.error,
+                ),
               ),
             ),
           ],

@@ -1,56 +1,98 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
-import 'package:digv/core/widgets/app_top_bar.dart';
 import 'package:digv/core/widgets/app_primary_button.dart';
-import 'package:flutter/material.dart';
+import 'package:digv/core/widgets/app_top_bar.dart';
 import 'package:digv/features/booking_engine/domain/date_item.dart';
+import 'package:digv/features/booking_engine/domain/technician.dart';
+import 'package:digv/features/booking_engine/presentation/providers/booking_provider.dart';
+import 'package:digv/features/search/domain/entities/search_result.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class SelectDateTimeScreen extends StatefulWidget {
-  const SelectDateTimeScreen({super.key});
+class SelectDateTimeScreen extends ConsumerStatefulWidget {
+  final SearchServiceEntity service;
+  final Technician technician;
+
+  const SelectDateTimeScreen({
+    super.key,
+    required this.service,
+    required this.technician,
+  });
 
   @override
-  State<SelectDateTimeScreen> createState() => _SelectDateTimeScreenState();
+  ConsumerState<SelectDateTimeScreen> createState() => _SelectDateTimeScreenState();
 }
 
-class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
-  int _selectedDateIndex = 1;
+class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
+  int _selectedDateIndex = 0;
   int? _selectedTimeIndex;
 
-  final List<DateItem> _dates = const [
-    DateItem(day: 'Fri', date: 3, month: 'Apr'),
-    DateItem(day: 'Sat', date: 4, month: 'Apr'),
-    DateItem(day: 'Sun', date: 5, month: 'Apr'),
-    DateItem(day: 'Mon', date: 6, month: 'Apr'),
-    DateItem(day: 'Tue', date: 7, month: 'Apr'),
-    DateItem(day: 'Wed', date: 8, month: 'Apr'),
-    DateItem(day: 'Thu', date: 9, month: 'Apr'),
-  ];
+  late final List<DateItem> _dates;
 
-  final List<String> _timeSlots = const [
-    '8:00 AM',
-    '9:00 AM',
-    '10:00 AM',
-    '11:00 AM',
-    '12:00 PM',
-    '1:00 PM',
-    '2:00 PM',
-    '3:00 PM',
-    '4:00 PM',
-    '5:00 PM',
-    '6:00 PM',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _dates = _generateDates();
+  }
 
-  final Set<int> _unavailableSlots = const {0, 1, 5};
+  List<DateItem> _generateDates() {
+    final now = DateTime.now();
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-  String get _ctaLabel {
-    if (_selectedTimeIndex == null) return 'Select a time slot';
-    return 'Confirm booking at ${_timeSlots[_selectedTimeIndex!]}';
+    return List.generate(7, (index) {
+      final date = now.add(Duration(days: index));
+      return DateItem(
+        day: days[date.weekday - 1],
+        date: date.day,
+        month: months[date.month - 1],
+      );
+    });
+  }
+
+  String _formatScheduledDate(DateItem dateItem) {
+    final now = DateTime.now();
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final monthIdx = months.indexOf(dateItem.month) + 1;
+    final year = now.year;
+    final mm = monthIdx.toString().padLeft(2, '0');
+    final dd = dateItem.date.toString().padLeft(2, '0');
+    return '$year-$mm-$dd';
+  }
+
+  String _formatTime12H(String time24) {
+    try {
+      final parts = time24.split(':');
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final hour12 = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+      final minuteStr = minute.toString().padLeft(2, '0');
+      return '$hour12:$minuteStr $period';
+    } catch (_) {
+      return time24;
+    }
+  }
+
+  String _ctaLabel(List<Map<String, dynamic>> slots) {
+    if (_selectedTimeIndex == null || _selectedTimeIndex! >= slots.length) return 'Select a time slot';
+    final slot = slots[_selectedTimeIndex!];
+    final startTimeStr = _formatTime12H(slot['startTime'] as String? ?? '00:00');
+    final endTimeStr = _formatTime12H(slot['endTime'] as String? ?? '00:00');
+    return 'Confirm booking at $startTimeStr - $endTimeStr';
   }
 
   @override
   Widget build(BuildContext context) {
+    final selectedDate = _dates[_selectedDateIndex];
+    final dateStr = _formatScheduledDate(selectedDate);
+
+    final slotsAsync = ref.watch(availableSlotsProvider(
+      '${widget.technician.providerId ?? ''}|$dateStr',
+    ));
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
@@ -69,7 +111,24 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                     const SizedBox(height: 20),
                     _buildSectionLabel('Select Time Slot'),
                     const SizedBox(height: 12),
-                    _buildTimeGrid(),
+                    slotsAsync.when(
+                      data: (slots) => _buildTimeGrid(slots),
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                      error: (err, _) => Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Text(
+                            'Failed to load slots: $err',
+                            style: const TextStyle(color: AppColors.error),
+                          ),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -83,13 +142,32 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
+            border: const Border(top: BorderSide(color: AppColors.dropDownBorder)),
           ),
-          child: AppPrimaryButton(
-            text: _ctaLabel,
-            onTap: _selectedTimeIndex != null ? () {
-              context.push('/review_booking');
-            } : null,
+          child: slotsAsync.when(
+            data: (slots) {
+              final canConfirm = _selectedTimeIndex != null && _selectedTimeIndex! < slots.length;
+              return AppPrimaryButton(
+                text: _ctaLabel(slots),
+                onTap: canConfirm ? () {
+                  final slot = slots[_selectedTimeIndex!];
+                  final startTimeStr = _formatTime12H(slot['startTime'] as String? ?? '00:00');
+                  final endTimeStr = _formatTime12H(slot['endTime'] as String? ?? '00:00');
+                  final label = '$startTimeStr - $endTimeStr';
+                  
+                  final selectedTimeEncoded = '$label|${slot["availabilitySlotId"]}';
+                  
+                  context.push('/review_booking', extra: (
+                    widget.service,
+                    widget.technician,
+                    selectedDate,
+                    selectedTimeEncoded,
+                  ));
+                } : null,
+              );
+            },
+            loading: () => const AppPrimaryButton(text: 'Loading slots...', onTap: null),
+            error: (_, __) => const AppPrimaryButton(text: 'Error loading slots', onTap: null),
           ),
         ),
       ),
@@ -166,28 +244,44 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
     );
   }
 
-  Widget _buildTimeGrid() {
+  Widget _buildTimeGrid(List<Map<String, dynamic>> slots) {
+    if (slots.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            'No available slots for this date',
+            style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
+
     final List<Widget> rows = [];
-    for (int i = 0; i < _timeSlots.length; i += 2) {
-      final hasSecond = i + 1 < _timeSlots.length;
+    for (int i = 0; i < slots.length; i += 2) {
+      final hasSecond = i + 1 < slots.length;
       rows.add(
         Row(
           children: [
-            Expanded(child: _buildTimeSlot(i)),
+            Expanded(child: _buildTimeSlot(slots, i)),
             const SizedBox(width: 10),
-            hasSecond ? Expanded(child: _buildTimeSlot(i + 1)) : const Expanded(child: SizedBox()),
+            hasSecond ? Expanded(child: _buildTimeSlot(slots, i + 1)) : const Expanded(child: SizedBox()),
           ],
         ),
       );
-      if (i + 2 < _timeSlots.length) rows.add(const SizedBox(height: 10));
+      if (i + 2 < slots.length) rows.add(const SizedBox(height: 10));
     }
     return Column(children: rows);
   }
 
-  Widget _buildTimeSlot(int index) {
+  Widget _buildTimeSlot(List<Map<String, dynamic>> slots, int index) {
     final selected = _selectedTimeIndex == index;
-    final unavailable = _unavailableSlots.contains(index);
-    final label = _timeSlots[index];
+    final slot = slots[index];
+    final unavailable = !(slot['isAvailable'] as bool? ?? false);
+    
+    final startTimeStr = _formatTime12H(slot['startTime'] as String? ?? '00:00');
+    final endTimeStr = _formatTime12H(slot['endTime'] as String? ?? '00:00');
+    final label = '$startTimeStr - $endTimeStr';
 
     Color bgColor;
     Color borderColor;

@@ -13,19 +13,24 @@ import 'package:digv/features/booking_engine/presentation/widgets/order_tracking
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/tracking_app_bar.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/tracking_bottom_bars.dart';
 import 'package:flutter/material.dart';
+import 'package:digv/features/orders/domain/models/order_item.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
+import 'package:digv/features/orders/domain/models/order_tracking_data.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class OrderTrackingScreen extends StatefulWidget {
+class OrderTrackingScreen extends ConsumerStatefulWidget {
   final PaymentType paymentType;
+  final OrderItem? order;
 
-  const OrderTrackingScreen({super.key, required this.paymentType});
+  const OrderTrackingScreen({super.key, required this.paymentType, this.order});
 
   @override
-  State<OrderTrackingScreen> createState() => _OrderTrackingScreenState();
+  ConsumerState<OrderTrackingScreen> createState() => _OrderTrackingScreenState();
 }
 
-class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
+class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   OrderStatus _status = OrderStatus.onTheWay;
   late PaymentType _paymentType;
 
@@ -44,6 +49,53 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     return _status == OrderStatus.onTheWay || _status == OrderStatus.arrived;
   }
 
+  void _resolveStatusFromLogs(List<OrderTrackingLog> logs) {
+    if (widget.order == null) return;
+    
+    // Check if any log is COMPLETED or if the order badge status is completed
+    if (widget.order!.status == OrderBadgeStatus.completed || 
+        logs.any((l) => l.newStatus == 'COMPLETED')) {
+      _status = OrderStatus.completed;
+      return;
+    }
+    
+    // Check for work done OTP
+    if (logs.any((l) => l.newStatus == 'WORK_DONE' || l.newStatus == 'OTP_REQUIRED' || l.newStatus == 'WORK_DONE_OTP')) {
+      _status = OrderStatus.workDoneOtp;
+      return;
+    }
+    
+    // Check for work started
+    if (logs.any((l) => l.newStatus == 'WORK_STARTED')) {
+      _status = OrderStatus.workStarted;
+      return;
+    }
+    
+    // Check for arrived
+    if (logs.any((l) => l.newStatus == 'ARRIVED')) {
+      _status = OrderStatus.arrived;
+      return;
+    }
+    
+    // Check for on the way
+    if (logs.any((l) => l.newStatus == 'ON_THE_WAY')) {
+      _status = OrderStatus.onTheWay;
+      return;
+    }
+    
+    // Default fallback to the order status
+    switch (widget.order!.status) {
+      case OrderBadgeStatus.completed:
+        _status = OrderStatus.completed;
+        break;
+      case OrderBadgeStatus.inProgress:
+        _status = OrderStatus.workStarted;
+        break;
+      default:
+        _status = OrderStatus.onTheWay;
+    }
+  }
+
   List<TrackingStep> get _steps {
     final idx = OrderStatus.values.indexOf(_status);
     return [
@@ -54,9 +106,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         isCompleted: true,
         isActive: false,
       ),
-      const TrackingStep(
+      TrackingStep(
         title: 'Technician Assigned',
-        subtitle: 'Arjun Kumar is assigned',
+        subtitle: widget.order != null ? '${widget.order!.technicianName} is assigned' : 'Arjun Kumar is assigned',
         isCompleted: true,
         isActive: false,
       ),
@@ -115,7 +167,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => const ChatSheet(),
+      builder: (_) => ChatSheet(
+        peerUserId: widget.order?.providerId ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111',
+        peerName: widget.order?.technicianName ?? 'Arjun Kumar',
+        peerAvatarUrl: widget.order?.technicianImageUrl,
+      ),
     );
   }
 
@@ -133,15 +189,41 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  // Dev helper: cycle through statuses
-  void _nextStatus() {
-    const values = OrderStatus.values;
-    final next = (values.indexOf(_status) + 1) % values.length;
-    setState(() => _status = values[next]);
-  }
+
 
   @override
   Widget build(BuildContext context) {
+    if (widget.order != null) {
+      final trackingAsync = ref.watch(orderTrackingProvider(widget.order!.id));
+      return trackingAsync.when(
+        data: (trackingData) {
+          _resolveStatusFromLogs(trackingData.logs);
+          return _buildContent(context);
+        },
+        loading: () => const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+        error: (error, _) => Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Failed to load tracking data: $error', style: const TextStyle(color: AppColors.error)),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () => ref.invalidate(orderTrackingProvider(widget.order!.id)),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return _buildContent(context);
+  }
+
+  Widget _buildContent(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: Column(
@@ -150,7 +232,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               bottom: false,
               child: TrackingAppBar(
                 statusLabel: _status.label,
-                onNext: _nextStatus, // Remove in production
               ),
           ),
           Expanded(
@@ -162,6 +243,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   const SizedBox(height: 20,),
                   TechnicianCard(
                     paymentType: _paymentType,
+                    order: widget.order,
                     onChat: _showChatSheet,
                     onTogglePayment: () => setState(() {
                       _paymentType = _isPrepaid
@@ -172,7 +254,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   const SizedBox(height: 20),
                   OrderProgressCard(steps: _steps),
                   const SizedBox(height: 10),
-                  OrderDetailsCard(paymentType: _paymentType),
+                  OrderDetailsCard(
+                    paymentType: _paymentType,
+                    order: widget.order,
+                  ),
                   if (!_isPrepaid) ...[
                     const SizedBox(height: 10),
                     const PostpaidWarningBanner(),
@@ -206,9 +291,18 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           child: ElevatedButton(
             onPressed: () {
               if (!_isPrepaid) {
-                context.push('/postpaid_payment');
+                int dueAmount = 500;
+                if (widget.order?.price != null) {
+                  final rawPrice = widget.order!.price.replaceAll(RegExp(r'\D'), '');
+                  dueAmount = int.tryParse(rawPrice) ?? 500;
+                }
+                context.push('/postpaid_payment', extra: {
+                  'serviceRequestId': widget.order?.id ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111',
+                  'amount': dueAmount,
+                  'isRemainingPayment': true,
+                });
               } else {
-                // handle rate service
+                context.push('/postpaid_payment_success', extra: widget.order?.id ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111');
               }
             },
             style: ElevatedButton.styleFrom(

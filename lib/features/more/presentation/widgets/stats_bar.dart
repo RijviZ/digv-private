@@ -2,7 +2,16 @@ import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
 class StatsBar extends StatelessWidget {
-  const StatsBar({super.key});
+  final String bookings;
+  final String avgRating;
+  final String spent;
+
+  const StatsBar({
+    super.key,
+    this.bookings = '4',
+    this.avgRating = '4.9',
+    this.spent = '₹997',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,11 +26,11 @@ class StatsBar extends StatelessWidget {
       child: IntrinsicHeight(
         child: Row(
           children: [
-            const _StatCell(value: '4', label: 'Bookings'),
+            _StatCell(value: bookings, label: 'Bookings'),
             VerticalDivider(width: 1, color: theme.dividerColor),
-            const _StatCell(value: '4.9', label: 'Avg Rating'),
+            _StatCell(value: avgRating, label: 'Avg Rating'),
             VerticalDivider(width: 1, color: theme.dividerColor),
-            const _StatCell(value: '₹997', label: 'Spent'),
+            _StatCell(value: spent, label: 'Spent'),
           ],
         ),
       ),

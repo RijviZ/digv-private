@@ -1,17 +1,25 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/core/widgets/app_filter_bar.dart';
+import 'package:digv/core/widgets/app_top_bar.dart';
+import 'package:digv/features/booking_engine/domain/technician.dart';
+import 'package:digv/features/search/domain/entities/search_result.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:digv/features/booking_engine/domain/technician.dart';
 
-import 'package:digv/core/widgets/app_top_bar.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/technician_card.dart';
  
 class SelectTechnicianScreen extends StatefulWidget {
-  const SelectTechnicianScreen({super.key});
+  final List<SearchProviderEntity> providers;
+  final SearchServiceEntity service;
+
+  const SelectTechnicianScreen({
+    super.key,
+    required this.providers,
+    required this.service,
+  });
  
   @override
   State<SelectTechnicianScreen> createState() => _SelectTechnicianScreenState();
@@ -20,52 +28,49 @@ class SelectTechnicianScreen extends StatefulWidget {
 class _SelectTechnicianScreenState extends State<SelectTechnicianScreen> {
   int _selectedFilter = 0;
   final List<String> _filters = ['All', 'Top rated', 'Nearest'];
+  Technician? _selectedTechnician;
  
-static const List<Technician> technicians = [
-  Technician(
-    name: 'Arjun Kumar',
-    specialty: 'AC & Electrical',
-    rating: 4.9,
-    reviews: 312,
-    jobs: 892,
-    experience: 5,
-    pricePerVisit: 500,
-    distanceKm: 2.1,
-    distanceLabel: 'Near',
-    isTopRated: true,
-  ),
-  Technician(
-    name: 'Maya Singh',
-    specialty: 'Plumbing Services',
-    rating: 4.8,
-    reviews: 415,
-    jobs: 250,
-    experience: 3,
-    pricePerVisit: 300,
-    distanceKm: 1.5,
-    distanceLabel: 'Nearby', isTopRated: false,
-  ),
-  Technician(
-    name: 'Ravi Sharma',
-    specialty: 'Home Renovation',
-    rating: 5.0,
-    reviews: 510,
-    jobs: 150,
-    experience: 2,
-    pricePerVisit: 400,
-    distanceKm: 3.0,
-    distanceLabel: 'Close by', isTopRated: false,
-  ),
-];
+  List<Technician> get _allTechnicians {
+    return widget.providers.map((p) {
+      // Find the specific service offered by this provider that matches our current service's subcategory
+      final providerService = p.services.cast<SearchServiceEntity>().firstWhere(
+        (s) => s.serviceType == widget.service.serviceType,
+        orElse: () => widget.service,
+      );
+
+      final distanceKm = double.tryParse(p.distanceKm) ?? 0.0;
+
+      return Technician(
+        providerId: p.userId,
+        name: p.fullName,
+        specialty: providerService.title,
+        rating: double.tryParse(p.averageRating ?? '0') ?? 0.0,
+        reviews: p.reviewCount ?? 0,
+        jobs: p.completedServiceRequestCount ?? 0,
+        experience: providerService.experienceYears,
+        pricePerVisit: providerService.priceOverride.toInt(),
+        distanceKm: distanceKm,
+        distanceLabel: distanceKm <= 1.99
+            ? 'Nearby'
+            : distanceKm <= 2.99
+                ? 'Near'
+                : 'Close by',
+        isTopRated: (double.tryParse(p.averageRating ?? '0') ?? 0.0) >= 4.5,
+        avatarUrl: p.avatarUrl,
+        durationMinutes: providerService.durationMinutes,
+      );
+    }).toList();
+  }
 
   List<Technician> get _filteredTechnicians {
+    final list = _allTechnicians;
     switch (_selectedFilter) {
       case 1:
-        return technicians.where((t) => t.isTopRated).toList();
+        return list.where((t) => t.isTopRated).toList();
       case 2:
-        return [...technicians]..sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
+        return [...list]..sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
       default:
-        return technicians;
+        return list;
     }
   }
  
@@ -98,7 +103,17 @@ static const List<Technician> technicians = [
                     ..._filteredTechnicians
                         .map((t) => Padding(
                               padding: const EdgeInsets.only(bottom: 12),
-                              child: TechnicianCard(technician: t),
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedTechnician = t;
+                                  });
+                                },
+                                child: TechnicianCard(
+                                  technician: t,
+                                  isSelected: _selectedTechnician == t,
+                                ),
+                              ),
                             ))
                         ,
                     _buildVerifiedFooter(),
@@ -119,9 +134,11 @@ static const List<Technician> technicians = [
           ),
           child: AppPrimaryButton(
             text: 'Continue to select time',
-            onTap: () {
-              context.push('/select_date_and_time');
-            },
+            onTap: _selectedTechnician == null
+                ? null
+                : () {
+                    context.push('/select_date_and_time', extra: (widget.service, _selectedTechnician!));
+                  },
           ),
         ),
       ),
@@ -148,9 +165,9 @@ static const List<Technician> technicians = [
             ),
           ),
           const SizedBox(width: 8),
-          const Text(
-            '3 verified technicians available near you',
-            style: TextStyle(
+          Text(
+            '${widget.providers.length} verified technicians available near you',
+            style: const TextStyle(
               fontSize: 12,
               color: AppColors.blue,
               fontWeight: FontWeight.w400,

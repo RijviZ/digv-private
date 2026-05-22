@@ -1,3 +1,7 @@
+import 'package:digv/features/address/domain/entities/address.dart';
+import 'package:digv/features/booking_engine/domain/date_item.dart';
+import 'package:digv/features/booking_engine/domain/technician.dart';
+import 'package:digv/features/search/domain/entities/search_result.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -9,7 +13,22 @@ import '../../../../core/widgets/app_top_bar.dart';
 import '../widgets/section_card.dart';
 
 class ReviewPayScreen extends StatefulWidget {
-  const ReviewPayScreen({super.key});
+  final SearchServiceEntity service;
+  final Technician technician;
+  final DateItem date;
+  final String time;
+  final int quantity;
+  final Address address;
+
+  const ReviewPayScreen({
+    super.key,
+    required this.service,
+    required this.technician,
+    required this.date,
+    required this.time,
+    required this.quantity,
+    required this.address,
+  });
 
   @override
   State<ReviewPayScreen> createState() => _ReviewPayScreenState();
@@ -24,8 +43,8 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
 
   final Map<String, int> _validCodes = {'FIRST10': 10};
 
-  static const int _serviceCharge = 199;
-  static const int _platformFee = 10;
+  int get _serviceCharge => widget.technician.pricePerVisit * widget.quantity;
+  int get _platformFee => (_serviceCharge * 0.05).round();
 
   int get _discountPercent => _promoApplied ? (_validCodes[_promoController.text.trim().toUpperCase()] ?? 0) : 0;
 
@@ -101,7 +120,17 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
           child: AppPrimaryButton(
             text: 'Confirm & Pay',
             onTap: () {
-              context.push('/payment_type');
+              context.push('/payment_type', extra: {
+                'amount': _total,
+                'quantity': widget.quantity,
+                'serviceCharge': _serviceCharge,
+                'fee': _platformFee,
+                'service': widget.service,
+                'technician': widget.technician,
+                'date': widget.date,
+                'time': widget.time,
+                'address': widget.address,
+              });
             },
           ),
         ),
@@ -117,7 +146,7 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
         children: [
           const SizedBox(height: 2),
           Text(
-            'Regular Service',
+            widget.service.categoryName,
             style: AppTextStyles.titleLight.copyWith(
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w500,
@@ -125,18 +154,18 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
           ),
           const SizedBox(height: 3),
           Text(
-            'Split • 1 unit',
+            '${widget.service.title} • ${widget.quantity} unit${widget.quantity > 1 ? 's' : ''}',
             style: AppTextStyles.labelMedium.copyWith(color: Theme.of(context).colorScheme.secondary),
           ),
 
           const SizedBox(height: 16),
           const Divider(color: AppColors.dropDownBorder, thickness: 1, height: 1),
           const SizedBox(height: 14),
-          _buildInfoRow(icon: 'assets/images/person.svg', label: 'Technician', value: 'Karim Ali'),
+          _buildInfoRow(icon: 'assets/images/person.svg', label: 'Technician', value: widget.technician.name),
           const SizedBox(height: 14),
-          _buildInfoRow(icon: 'assets/images/CalendarBlank.svg', label: 'Schedule', value: 'Tomorrow · 10:00 AM'),
+          _buildInfoRow(icon: 'assets/images/CalendarBlank.svg', label: 'Schedule', value: '${widget.date.date} ${widget.date.month} · ${widget.time.split('|')[0]}'),
           const SizedBox(height: 14),
-          _buildInfoRow(icon: 'assets/images/pin_g.svg', label: 'Address', value: 'Home — Jl. Ngagelrejo No.34'),
+          _buildInfoRow(icon: 'assets/images/pin_g.svg', label: 'Address', value: '${widget.address.label ?? 'Address'} — ${widget.address.addressLine}'),
         ],
       ),
     );

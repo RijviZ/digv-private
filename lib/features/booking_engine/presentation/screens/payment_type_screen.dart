@@ -11,7 +11,20 @@ import '../widgets/payment_method_chip.dart';
 import '../widgets/payment_section.dart';
 
 class PaymentTypeScreen extends StatefulWidget {
-  const PaymentTypeScreen({super.key});
+  final int amount;
+  final int quantity;
+  final int serviceCharge;
+  final int fee;
+  final Map<String, dynamic> bookingDetails;
+
+  const PaymentTypeScreen({
+    super.key,
+    required this.amount,
+    required this.quantity,
+    required this.serviceCharge,
+    required this.fee,
+    required this.bookingDetails,
+  });
 
   @override
   State<PaymentTypeScreen> createState() => _PaymentTypeScreenState();
@@ -22,7 +35,7 @@ class _PaymentTypeScreenState extends State<PaymentTypeScreen> {
   PrepaidMethod _prepaidMethod = PrepaidMethod.upi;
   PostpaidMethod _postpaidMethod = PostpaidMethod.card;
 
-  static const int _amount = 525;
+  // dynamic amount passed from widget
 
   String get _summaryLabel {
     if (_mode == PaymentMode.prepaid) {
@@ -99,7 +112,7 @@ class _PaymentTypeScreenState extends State<PaymentTypeScreen> {
                       ),
                       const SizedBox(width: 2),
                       Text(
-                        '$_amount',
+                        '${widget.amount}',
                         style: AppTextStyles.h3.copyWith(
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0,
@@ -115,7 +128,42 @@ class _PaymentTypeScreenState extends State<PaymentTypeScreen> {
               AppPrimaryButton(
                 text: 'Confirm & Pay',
                 onTap: () {
-                  context.push('/payment_gateway');
+                  final updatedDetails = Map<String, dynamic>.from(widget.bookingDetails);
+                  updatedDetails['collectionType'] = _mode == PaymentMode.prepaid ? 'PREPAID' : 'POSTPAID';
+                  
+                  String paymentMethodStr = 'CASH';
+                  if (_mode == PaymentMode.prepaid) {
+                    switch (_prepaidMethod) {
+                      case PrepaidMethod.upi:
+                        paymentMethodStr = 'UPI';
+                        break;
+                      case PrepaidMethod.card:
+                        paymentMethodStr = 'CARD';
+                        break;
+                      case PrepaidMethod.netBanking:
+                        paymentMethodStr = 'BANK_ACCOUNT';
+                        break;
+                    }
+                  } else {
+                    switch (_postpaidMethod) {
+                      case PostpaidMethod.card:
+                        paymentMethodStr = 'CARD';
+                        break;
+                      case PostpaidMethod.netBanking:
+                        paymentMethodStr = 'BANK_ACCOUNT';
+                        break;
+                      case PostpaidMethod.cash:
+                        paymentMethodStr = 'CASH';
+                        break;
+                    }
+                  }
+                  updatedDetails['paymentMethod'] = paymentMethodStr;
+
+                  if (_mode == PaymentMode.prepaid) {
+                    context.push('/payment_gateway', extra: updatedDetails);
+                  } else {
+                    context.push('/postpaid_payment', extra: updatedDetails);
+                  }
                 },
               ),
             ],
@@ -145,7 +193,7 @@ class _PaymentTypeScreenState extends State<PaymentTypeScreen> {
             ),
             SizedBox(height: 2),
             Text(
-              '1 unit × ₹500 + ₹25 fee',
+              '${widget.quantity} unit${widget.quantity > 1 ? 's' : ''} × ₹${widget.serviceCharge} + ₹${widget.fee} fee',
               style: AppTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.secondary),
             ),
           ],
@@ -162,7 +210,7 @@ class _PaymentTypeScreenState extends State<PaymentTypeScreen> {
             ),
             SizedBox(width: 2),
             Text(
-              '$_amount',
+              '${widget.amount}',
               style: AppTextStyles.h3.copyWith(
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.primary,

@@ -5,12 +5,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class TrackingAppBar extends StatelessWidget {
   final String statusLabel;
-  final VoidCallback onNext;
 
   const TrackingAppBar({
     super.key,
     required this.statusLabel,
-    required this.onNext,
   });
 
   @override
@@ -45,23 +43,7 @@ class TrackingAppBar extends StatelessWidget {
               ],
             ),
           ),
-          // Dev button to cycle status — remove in production
-          GestureDetector(
-            onTap: onNext,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Next →',
-                style: AppTextStyles.captionSmall.copyWith(
-                  color: AppColors.textGray,
-                ),
-              ),
-            ),
-          ),
+          const SizedBox(width: 18),
         ],
       ),
     );

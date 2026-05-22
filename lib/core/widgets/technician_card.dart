@@ -7,8 +7,13 @@ import '../theme/app_colors.dart';
 
 class TechnicianCard extends StatelessWidget {
   final Technician technician;
+  final bool isSelected;
  
-  const TechnicianCard({super.key, required this.technician});
+  const TechnicianCard({
+    super.key,
+    required this.technician,
+    this.isSelected = false,
+  });
  
   @override
   Widget build(BuildContext context) {
@@ -16,7 +21,10 @@ class TechnicianCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.dropDownBorder, width: 1),
+        border: Border.all(
+          color: isSelected ? AppColors.blue : AppColors.dropDownBorder,
+          width: isSelected ? 2 : 1,
+        ),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -84,9 +92,15 @@ class TechnicianCard extends StatelessWidget {
         color: Color(0xFFC8CDD4),
       ),
       child: ClipOval(
-        child: CustomPaint(
-          painter: _AvatarPainter(),
-        ),
+        child: technician.avatarUrl != null && technician.avatarUrl!.isNotEmpty
+            ? Image.network(
+                technician.avatarUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => CustomPaint(painter: _AvatarPainter()),
+              )
+            : CustomPaint(
+                painter: _AvatarPainter(),
+              ),
       ),
     );
   }
@@ -144,10 +158,10 @@ class TechnicianCard extends StatelessWidget {
         const Icon(Icons.access_time_rounded, size: 13, color: AppColors.textSecondary),
         const SizedBox(width: 3),
         Text(
-          '${technician.experience} yrs',
-            style: AppTextStyles.caption.copyWith(
-                color: Theme.of(context).colorScheme.secondary
-            ),
+          '${technician.experience} yrs · ${technician.durationMinutes ?? 0} min',
+          style: AppTextStyles.caption.copyWith(
+            color: Theme.of(context).colorScheme.secondary,
+          ),
         ),
       ],
     );
@@ -206,7 +220,7 @@ class TechnicianCard extends StatelessWidget {
           SvgPicture.asset('assets/images/pin_g.svg'),
           const SizedBox(width: 4),
           Text(
-            '${technician.distanceKm} km · ${technician.distanceLabel}',
+            '${technician.distanceKm.toStringAsFixed(1)} km · ${technician.distanceLabel}',
             style: AppTextStyles.caption.copyWith(
               color: AppColors.successText,
             ),
@@ -216,25 +230,6 @@ class TechnicianCard extends StatelessWidget {
     );
   }
  
-  Widget _buildReviewsRow() {
-    final fullStars = technician.rating.floor();
-    return Row(
-      children: [
-        ...List.generate(5, (i) => Icon(
-          i < fullStars ? Icons.star_rounded : Icons.star_rounded,
-          size: 14,
-          color: i < fullStars ? const Color(0xFFF59E0B) : const Color(0xFFDDDDDD),
-        )),
-        const SizedBox(width: 6),
-        const Text(
-          'Reviews',
-          style: TextStyle(fontSize: 11, color: Color(0xFF555555)),
-        ),
-        const SizedBox(width: 4),
-        const Icon(Icons.chevron_right, size: 14, color: Color(0xFFAAAAAA)),
-      ],
-    );
-  }
 }
 
 class _AvatarPainter extends CustomPainter {

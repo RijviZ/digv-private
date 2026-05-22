@@ -1,19 +1,34 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/booking_engine/domain/models/order_status.dart';
+import 'package:digv/features/orders/domain/models/order_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class TechnicianCard extends StatelessWidget {
   final PaymentType paymentType;
+  final OrderItem? order;
   final VoidCallback onChat;
   final VoidCallback onTogglePayment;
 
-  const TechnicianCard({super.key, required this.paymentType, required this.onChat, required this.onTogglePayment});
+  const TechnicianCard({
+    super.key,
+    required this.paymentType,
+    this.order,
+    required this.onChat,
+    required this.onTogglePayment,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isPrepaid = paymentType == PaymentType.prepaid;
+    final isPrepaid = order != null
+        ? !(order!.price.toLowerCase().contains('postpaid') || order!.status == OrderBadgeStatus.completed)
+        : paymentType == PaymentType.prepaid;
+
+    final name = order?.technicianName ?? 'Arjun Kumar';
+    final imageUrl = order?.technicianImageUrl;
+    final rating = order?.rating ?? 4.9;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -32,8 +47,16 @@ class TechnicianCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: const Color(0xFFE5E7EB),
                   border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
+                  image: imageUrl != null && imageUrl.isNotEmpty
+                      ? DecorationImage(
+                          image: NetworkImage(imageUrl),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
                 ),
-                child: const Icon(Icons.person, color: Color(0xFF9CA3AF), size: 24),
+                child: imageUrl == null || imageUrl.isEmpty
+                    ? const Icon(Icons.person, color: Color(0xFF9CA3AF), size: 24)
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -41,7 +64,7 @@ class TechnicianCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Arjun Kumar',
+                      name,
                       style: AppTextStyles.h6.copyWith(fontWeight: FontWeight.w700, color: AppColors.textDark),
                     ),
                     const SizedBox(height: 2),
@@ -50,7 +73,7 @@ class TechnicianCard extends StatelessWidget {
                         SvgPicture.asset('assets/images/star.svg', height: 13, width: 13),
                         const SizedBox(width: 2),
                         Text(
-                          '4.9',
+                          rating.toStringAsFixed(1),
                           style: AppTextStyles.caption.copyWith(
                             fontWeight: FontWeight.w700,
                             color: Theme.of(context).colorScheme.primary,

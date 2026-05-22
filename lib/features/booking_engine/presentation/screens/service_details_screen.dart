@@ -1,15 +1,25 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/core/widgets/app_top_bar.dart';
+import 'package:digv/features/search/domain/entities/search_result.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:digv/core/widgets/app_top_bar.dart';
-import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_filter_bar.dart';
+import '../../../../core/widgets/app_primary_button.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
-  const ServiceDetailsScreen({super.key});
+  final SearchProviderEntity provider;
+  final SearchServiceEntity service;
+  final List<SearchProviderEntity> allProviders;
+
+  const ServiceDetailsScreen({
+    super.key,
+    required this.provider,
+    required this.service,
+    required this.allProviders,
+  });
 
   @override
   State<ServiceDetailsScreen> createState() => _ServiceDetailsScreenState();
@@ -47,14 +57,14 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
               clipBehavior: Clip.antiAlias,
               decoration: ShapeDecoration(
                 image: DecorationImage(
-                  image: NetworkImage(
-                    'https://images.unsplash.com/photo-1621905251189-08b45d6a269e',
-                  ),
+                  image: widget.service.serviceImageUrl != null && widget.service.serviceImageUrl!.isNotEmpty
+                      ? NetworkImage(widget.service.serviceImageUrl!)
+                      : const AssetImage('assets/images/Container.png') as ImageProvider,
                   fit: BoxFit.cover,
                 ),
                 gradient: LinearGradient(
-                  begin: Alignment(0.50, -0.00),
-                  end: Alignment(0.50, 1.00),
+                  begin: const Alignment(0.50, -0.00),
+                  end: const Alignment(0.50, 1.00),
                   colors: [Colors.black.withValues(alpha: 0.20), Colors.black],
                 ),
                 shape: RoundedRectangleBorder(
@@ -62,44 +72,45 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                 ),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'Deep Cleaning',
+              widget.service.title,
               style: AppTextStyles.h3.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 height: 1.40,
                 letterSpacing: 0,
               ),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Row(
               children: [
                 SvgPicture.asset('assets/images/star.svg'),
-                SizedBox(width: 6),
+                const SizedBox(width: 6),
                 Text(
-                  '4.8',
+                  double.tryParse(widget.provider.averageRating ?? '0.0')
+                 ?.toStringAsFixed(1) ?? '0.0',
                   style: AppTextStyles.labelMedium.copyWith(
                     color: Theme.of(context).colorScheme.secondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(width: 6),
+                const SizedBox(width: 6),
                 Text(
-                  '· 12.3k bookings · 45 mins',
+                  '· ${widget.provider.completedServiceRequestCount ?? 0} bookings · ${widget.service.durationMinutes ?? 0} mins',
                   style: AppTextStyles.labelMedium.copyWith(
                     color: Theme.of(context).colorScheme.secondary,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
-              'Complete AC checkup, filter cleaning, gas pressure check & performance optimization.',
+              widget.service.serviceDescription ?? widget.provider.bio ?? 'Professional service provided by ${widget.provider.fullName}.',
               style: AppTextStyles.captionMedium.copyWith(
                 color: Theme.of(context).colorScheme.secondary,
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
               'What\'s Included',
               style: AppTextStyles.titleLight.copyWith(
@@ -108,12 +119,16 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                 letterSpacing: 0,
               ),
             ),
-            SizedBox(height: 7),
-            _includedItem(text: 'Filter Cleaning'),
-            _includedItem(text: 'Gas Pressure Check'),
-            _includedItem(text: 'Cooling Test'),
-            _includedItem(text: 'Performance Report'),
-            SizedBox(height: 17),
+            const SizedBox(height: 7),
+            if (widget.service.serviceFeatures != null && widget.service.serviceFeatures!.isNotEmpty)
+              ...widget.service.serviceFeatures!.map((feature) => _includedItem(text: feature))
+            else ...[
+              _includedItem(text: 'Filter Cleaning'),
+              _includedItem(text: 'Gas Pressure Check'),
+              _includedItem(text: 'Cooling Test'),
+              _includedItem(text: 'Performance Report'),
+            ],
+            const SizedBox(height: 17),
             Text(
               'Select Type',
               style: AppTextStyles.titleLight.copyWith(
@@ -121,18 +136,18 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             AppFilterBar(
               items: _types,
               selectedItem: _selectedService,
-              padding: EdgeInsets.all(0),
+              padding: const EdgeInsets.all(0),
               onSelected: (item) {
                 setState(() {
                   _selectedService = item;
                 });
               },
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
               'Quantity',
               style: AppTextStyles.titleLight.copyWith(
@@ -140,7 +155,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             _buildQuantitySelector(),
                   ],
                 ),
@@ -154,12 +169,12 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
+            border: const Border(top: BorderSide(color: AppColors.dropDownBorder)),
           ),
           child: AppPrimaryButton(
             text: 'Continue to select technician',
             onTap: () {
-              context.push('/select_technician');
+              context.push('/select_technician', extra: (widget.allProviders, widget.service));
             },
           ),
         ),
@@ -191,7 +206,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(color: AppColors.inputBgSecondary),
+              decoration: const BoxDecoration(color: AppColors.inputBgSecondary),
               child: Text(
                 '–',
                 style: AppTextStyles.bodyMedium.copyWith(
@@ -223,7 +238,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(color: AppColors.inputBgSecondary),
+              decoration: const BoxDecoration(color: AppColors.inputBgSecondary),
               child: Text(
                 '+',
                 style: AppTextStyles.bodyMedium.copyWith(
@@ -240,11 +255,11 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
 
   Widget _includedItem({required String text}) {
     return Padding(
-      padding: EdgeInsetsGeometry.symmetric(vertical: 3),
+      padding: const EdgeInsetsGeometry.symmetric(vertical: 3),
       child: Row(
         children: [
           SvgPicture.asset('assets/images/checkmark-circle.svg'),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           Text(
             text,
             style: AppTextStyles.bodyLarge.copyWith(

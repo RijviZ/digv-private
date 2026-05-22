@@ -1,28 +1,25 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/features/notifications/presentation/providers/notification_settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class NotificationSettingsScreen extends StatefulWidget {
+class NotificationSettingsScreen extends ConsumerStatefulWidget {
   const NotificationSettingsScreen({super.key});
 
   @override
-  State<NotificationSettingsScreen> createState() =>
+  ConsumerState<NotificationSettingsScreen> createState() =>
       _NotificationSettingsScreenState();
 }
 
 class _NotificationSettingsScreenState
-    extends State<NotificationSettingsScreen> {
-  bool _pushNotifications = true;
-  bool _orderUpdates = true;
-  bool _offersPromotions = true;
-  bool _appAnnouncements = false;
-  bool _chatMessages = true;
-
+    extends ConsumerState<NotificationSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final settingsAsync = ref.watch(notificationSettingsProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
@@ -53,96 +50,105 @@ class _NotificationSettingsScreenState
           ),
           centerTitle: true,
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _NotifCard(
-                iconData: 'assets/images/notification.svg',
-                iconBg: AppColors.unread,
-                iconColor: AppColors.blueDeep,
-                title: 'Push Notifications',
-                subtitle: 'Allow DigV to send notifications',
-                value: _pushNotifications,
-                onChanged: (v) => setState(() => _pushNotifications = v),
-                isBold: true,
-                theme: theme,
-              ),
+        body: settingsAsync.when(
+          data: (settings) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _NotifCard(
+                    iconData: 'assets/images/notification.svg',
+                    iconBg: AppColors.unread,
+                    iconColor: AppColors.blueDeep,
+                    title: 'Push Notifications',
+                    subtitle: 'Allow DigV to send notifications',
+                    value: settings.pushEnabled,
+                    onChanged: (v) => ref.read(notificationSettingsProvider.notifier).togglePush(v),
+                    isBold: true,
+                    theme: theme,
+                  ),
 
-              const SizedBox(height: 28),
+                  const SizedBox(height: 28),
 
-              // ── Notification Types section ──
-              Text(
-                'Notification Types',
-                style: AppTextStyles.h4.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 12),
+                  // ── Notification Types section ──
+                  Text(
+                    'Notification Types',
+                    style: AppTextStyles.h4.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.dividerColor),
-                ),
-                child: Column(
-                  children: [
-                    _NotifRow(
-                      iconData: 'assets/images/update.svg',
-                      iconBg: AppColors.unread,
-                      iconColor: AppColors.blueDeep,
-                      title: 'Order Updates',
-                      subtitle: 'Booking confirmed, technician on way',
-                      value: _orderUpdates,
-                      onChanged: (v) => setState(() => _orderUpdates = v),
-                      theme: theme,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: theme.dividerColor),
                     ),
-                    _divider(theme),
-                    _NotifRow(
-                      iconData: 'assets/images/promo.svg',
-                      iconBg: AppColors.unread,
-                      iconColor: AppColors.blueDeep,
-                      title: 'Offers & Promotions',
-                      subtitle: 'Discounts, referral bonuses',
-                      value: _offersPromotions,
-                      onChanged: (v) => setState(() => _offersPromotions = v),
-                      theme: theme,
+                    child: Column(
+                      children: settings.settings.asMap().entries.map((entry) {
+                        final idx = entry.key;
+                        final item = entry.value;
+                        final isLast = idx == settings.settings.length - 1;
+
+                        return Column(
+                          children: [
+                            _NotifRow(
+                              iconData: _getIconForKey(item.key),
+                              iconBg: AppColors.unread,
+                              iconColor: AppColors.blueDeep,
+                              title: item.title,
+                              subtitle: item.description,
+                              value: item.enabled,
+                              onChanged: (v) => ref.read(notificationSettingsProvider.notifier).toggleSettingItem(item.key, v),
+                              theme: theme,
+                            ),
+                            if (!isLast) _divider(theme),
+                          ],
+                        );
+                      }).toList(),
                     ),
-                    _divider(theme),
-                    _NotifRow(
-                      iconData: 'assets/images/announcement.svg',
-                      iconBg: AppColors.inputBgSecondary,
-                      iconColor: AppColors.textSecondary,
-                      title: 'App Announcements',
-                      subtitle: 'Updates, maintenance notices',
-                      value: _appAnnouncements,
-                      onChanged: (v) => setState(() => _appAnnouncements = v),
-                      theme: theme,
-                    ),
-                    _divider(theme),
-                    _NotifRow(
-                      iconData: 'assets/images/message.svg',
-                      iconBg: AppColors.unread,
-                      iconColor: AppColors.blueDeep,
-                      title: 'Chat Messages',
-                      subtitle: 'Messages from technicians',
-                      value: _chatMessages,
-                      onChanged: (v) => setState(() => _chatMessages = v),
-                      theme: theme,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Error: $err'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => ref.invalidate(notificationSettingsProvider),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  String _getIconForKey(String key) {
+    switch (key) {
+      case 'ORDER_UPDATES':
+        return 'assets/images/update.svg';
+      case 'OFFERS_PROMOTIONS':
+        return 'assets/images/promo.svg';
+      case 'APP_ANNOUNCEMENTS':
+        return 'assets/images/announcement.svg';
+      case 'CHAT_MESSAGES':
+        return 'assets/images/message.svg';
+      default:
+        return 'assets/images/notification.svg';
+    }
   }
 
   Widget _divider(ThemeData theme) => Divider(

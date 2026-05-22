@@ -1,15 +1,14 @@
 import 'package:digv/core/theme/app_text_styles.dart';
-
+import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
 import 'package:digv/features/home_discovery/presentation/domain/quick_service_item.dart';
-import 'package:digv/features/home_discovery/presentation/domain/service_card.dart';
-import 'package:digv/features/home_discovery/presentation/domain/service_category.dart';
+import 'package:digv/features/home_discovery/presentation/providers/service_categories_provider.dart';
+import 'package:digv/features/search/domain/entities/search_result.dart';
+import 'package:digv/features/search/presentation/providers/search_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -25,20 +24,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late final PageController _promoBannerController;
   int _currentBannerPage = 0;
 
-  final List<ServiceCategory> _categories = const [
-    ServiceCategory(label: 'AC', icon: 'assets/images/fast-wind.svg'),
-    ServiceCategory(label: 'Electrical', icon: 'assets/images/flash.svg'),
-    ServiceCategory(label: 'Plumber', icon: 'assets/images/wrench.svg'),
-    ServiceCategory(label: 'Clean', icon: 'assets/images/soil-temp.svg'),
-  ];
-
-  final List<List<String>> _subTypes = [
-    ['Split', 'Window', 'Central', 'Cassette', 'In Progress'],
-    ['Wiring', 'Fan', 'Switch', 'MCB', 'Light'],
-    ['Tap', 'Pipe', 'Drain', 'Toilet', 'Geyser'],
-    ['Home', 'Office', 'Sofa', 'Carpet', 'Kitchen'],
-  ];
-
   final List<Map<String, String>> _promoBanners = [
     {'title': 'First Service 10% OFF', 'subtitle': 'New user exclusive offer'},
     {
@@ -49,89 +34,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     {'title': 'Flash Sale!', 'subtitle': 'Grab your discount today'},
   ];
 
-  final List<List<ServiceCard>> _serviceCards = [
-    [
-      const ServiceCard(
-        title: 'Regular Service',
-        price: '₹199',
-        rating: '4.8',
-        bookings: '12.3k bookings',
-        duration: '45 mins',
-        imageColor: Color(0xFF3A3A3A),
-        image: 'assets/images/Container.png',
-      ),
-      const ServiceCard(
-        title: 'Deep Cleaning',
-        price: '₹299',
-        rating: '4.9',
-        bookings: '8.4k bookings',
-        duration: '30 mins',
-        imageColor: Color(0xFF2A2A2A),
-        image: 'assets/images/Container.png',
-      ),
-
-      const ServiceCard(
-        title: 'Installation',
-        price: '₹399',
-        rating: '5.0',
-        bookings: '2.1k bookings',
-        duration: '15 mins',
-        imageColor: Color(0xFF1A1A1A),
-        image: 'assets/images/Container.png',
-      ),
-    ],
-    [
-      const ServiceCard(
-        title: 'Wiring Repair',
-        price: '₹149',
-        rating: '4.7',
-        bookings: '9.1k bookings',
-        duration: '30 mins',
-        imageColor: Color(0xFF3A3A3A),
-        image: 'assets/images/Container.png',
-      ),
-      const ServiceCard(
-        title: 'Fan Installation',
-        price: '₹199',
-        rating: '4.8',
-        bookings: '5.2k bookings',
-        duration: '20 mins',
-        imageColor: Color(0xFF2A2A2A),
-        image: 'assets/images/Container.png',
-      ),
-    ],
-    [
-      const ServiceCard(
-        title: 'Tap Fixing',
-        price: '₹129',
-        rating: '4.6',
-        bookings: '7.3k bookings',
-        duration: '25 mins',
-        imageColor: Color(0xFF3A3A3A),
-        image: 'assets/images/Container.png',
-      ),
-      const ServiceCard(
-        title: 'Pipe Repair',
-        price: '₹199',
-        rating: '4.8',
-        bookings: '4.1k bookings',
-        duration: '40 mins',
-        imageColor: Color(0xFF2A2A2A),
-        image: 'assets/images/Container.png',
-      ),
-    ],
-    [
-      const ServiceCard(
-        title: 'Home Cleaning',
-        price: '₹249',
-        rating: '4.9',
-        bookings: '15.6k bookings',
-        duration: '60 mins',
-        imageColor: Color(0xFF3A3A3A),
-        image: 'assets/images/Container.png',
-      ),
-    ],
-  ];
+  // _serviceCards removed to use live data from searchResultsProvider
 
   final List<QuickServiceItem> _quickServices = [
     const QuickServiceItem(label: 'AC Regular Service', price: '₹199'),
@@ -167,14 +70,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           children: [
             _buildHeader(context),
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _buildExploreSection(),
-                    _buildServicesForYouSection(),
-                    _buildQuickServicesSection(),
-                    const SizedBox(height: 16),
-                  ],
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(profileProvider);
+                  ref.invalidate(serviceCategoriesProvider);
+                  ref.invalidate(searchResultsProvider);
+                  
+                  try {
+                    await Future.wait([
+                      ref.read(profileProvider.future),
+                      ref.read(serviceCategoriesProvider.future),
+                    ]);
+                  } catch (_) {}
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      _buildExploreSection(),
+                      _buildServicesForYouSection(),
+                      _buildQuickServicesSection(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -198,8 +116,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final locationText = profileAsync.when(
       data: (user) {
         final locationData = user.latestLocation;
-        if (locationData != null && locationData.isNotEmpty) {
-          return locationData['addressLine'] ?? locationData['city'] ?? 'Location not set';
+        if (locationData != null) {
+          final address = locationData.addressLine ?? locationData.city;
+          return (address != null && address.isNotEmpty) ? address : 'Location not set';
         }
         return 'Location not set';
       },
@@ -315,133 +234,201 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildExploreSection() {
-    final subTypes = _subTypes[_selectedCategoryIndex];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 22, 16, 12),
-          child: Text('Explore Services', style: AppTextStyles.h3),
-        ),
-        SizedBox(
-          height: 44,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _categories.length,
+    final categoriesAsync = ref.watch(serviceCategoriesProvider);
+    
+    return categoriesAsync.when(
+      data: (categories) {
+        if (categories.isEmpty) return const SizedBox.shrink();
+        
+        final safeCategoryIndex = _selectedCategoryIndex < categories.length ? _selectedCategoryIndex : 0;
+        final category = categories[safeCategoryIndex];
+        final serviceTypes = category.serviceTypes;
+        final safeSubTypeIndex = _selectedSubTypeIndex < serviceTypes.length ? _selectedSubTypeIndex : 0;
 
-            itemBuilder: (context, index) {
-              final category = _categories[index];
-              final isSelected = index == _selectedCategoryIndex;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedCategoryIndex = index;
-                    _selectedSubTypeIndex = 0;
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsetsGeometry.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        width: 1,
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).dividerColor,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 22, 16, 12),
+              child: Text('Explore Services', style: AppTextStyles.h3),
+            ),
+            SizedBox(
+              height: 44,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: categories.length,
+                itemBuilder: (context, index) {
+                  final cat = categories[index];
+                  final isSelected = index == safeCategoryIndex;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedCategoryIndex = index;
+                        _selectedSubTypeIndex = 0;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsetsGeometry.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
                       ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      SvgPicture.asset(category.icon),
-                      const SizedBox(width: 8),
-                      Text(
-                        category.label,
-                        style: AppTextStyles.bodyLarge.copyWith(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.secondary,
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            width: 1,
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).dividerColor,
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 40,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: subTypes.length,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemBuilder: (context, index) {
-              final isSelected = index == _selectedSubTypeIndex;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedSubTypeIndex = index;
-                  });
-                },
-                child: Container(
-                  margin: const EdgeInsets.only(right: 12),
-                  padding: const EdgeInsetsGeometry.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(2),
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                  ),
-                  child: Text(
-                    subTypes[index],
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.primary,
+                      child: Row(
+                        children: [
+                          Image.network(
+                            cat.iconUrl,
+                            width: 24,
+                            height: 24,
+                            errorBuilder: (context, error, stackTrace) => 
+                                const Icon(Icons.category, size: 24, color: Colors.grey),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            cat.name,
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsetsGeometry.symmetric(horizontal: 16),
-          child: Column(
-            children: _serviceCards[_selectedCategoryIndex]
-                .map(
-                  (card) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildServiceCard(card),
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      ],
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 40,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: serviceTypes.length,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemBuilder: (context, index) {
+                  final type = serviceTypes[index];
+                  final isSelected = index == safeSubTypeIndex;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedSubTypeIndex = index;
+                      });
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      padding: const EdgeInsetsGeometry.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(2),
+                        border: Border.all(color: Theme.of(context).dividerColor),
+                      ),
+                      child: Text(
+                        type,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.onPrimary
+                              : Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsetsGeometry.symmetric(horizontal: 16),
+              child: Consumer(
+                builder: (context, ref, child) {
+                  final searchAsync = ref.watch(searchResultsProvider(SearchFilters(
+                    categoryId: category.categoryId,
+                    serviceType: serviceTypes[safeSubTypeIndex],
+                  )));
+
+                  return searchAsync.when(
+                    data: (searchResponse) {
+                      final String currentType = serviceTypes[safeSubTypeIndex];
+                      
+                      final matchingServicesWithProviders = searchResponse.providers
+                          .expand((provider) => provider.services
+                              .where((s) => s.serviceType == currentType || s.title == currentType)
+                              .map((service) => (provider, service)))
+                          .toList();
+
+                      if (matchingServicesWithProviders.isEmpty) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Text('No services found.'),
+                          ),
+                        );
+                      }
+
+                      return Column(
+                        children: matchingServicesWithProviders
+                            .map(
+                              (pair) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _buildServiceCard(pair.$1, pair.$2, searchResponse.providers),
+                              ),
+                            )
+                            .toList(),
+                      );
+                    },
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    error: (e, s) => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Text('Error loading providers'),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.all(32.0),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, s) => const Padding(
+        padding: EdgeInsets.all(32.0),
+        child: Center(child: Text('Error loading categories')),
+      ),
     );
   }
 
-  Widget _buildServiceCard(ServiceCard card) {
+  Widget _buildServiceCard(SearchProviderEntity provider, SearchServiceEntity service, List<SearchProviderEntity> allProviders) {
     return GestureDetector(
       onTap: () {
-        context.push('/service_details');
+        context.push('/service_details', extra: (provider, service, allProviders));
       },
       child: Container(
         width: double.infinity,
         height: 180,
         decoration: BoxDecoration(
-          color: card.imageColor,
+          color: const Color(0xFF3A3A3A),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Stack(
@@ -450,9 +437,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 image: DecorationImage(
-                  image: AssetImage(card.image),
+                  image: service.serviceImageUrl != null && service.serviceImageUrl!.isNotEmpty
+                      ? NetworkImage(service.serviceImageUrl!)
+                      : const AssetImage('assets/images/Container.png') as ImageProvider,
                   fit: BoxFit.cover,
                 ),
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
                 gradient: LinearGradient(
                   begin: const Alignment(0.50, -0.00),
                   end: const Alignment(0.50, 1.00),
@@ -471,11 +465,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: const Color(0xFF838383),
+                  color: const Color(0x1A838383),
                   border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
                 ),
                 child: Text(
-                  'from ${card.price}',
+                  'from ${provider.currency} ${service.priceOverride}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -514,7 +508,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    card.title,
+                    service.title,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -527,19 +521,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   Row(
                     children: [
                       SvgPicture.asset('assets/images/star.svg'),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 6), 
                       Text(
-                        card.rating,
+                        '${double.tryParse(provider.averageRating ?? '0.0')?.toStringAsFixed(1) ?? '0.0'} · ${provider.completedServiceRequestCount ?? 0} bookings · ${service.durationMinutes ?? 0} min',
                         style: AppTextStyles.labelMedium.copyWith(
                           color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '· ${card.bookings} · ${card.duration}',
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: Colors.white,
-                        ),
+                        ), 
                       ),
                     ],
                   ),

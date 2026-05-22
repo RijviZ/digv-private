@@ -1,25 +1,106 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
+import 'package:digv/core/network/file_upload_service.dart';
 
-class PostpaidPaymentSuccessScreen extends StatefulWidget {
-  const PostpaidPaymentSuccessScreen({super.key});
+class PostpaidPaymentSuccessScreen extends ConsumerStatefulWidget {
+  final String serviceRequestId;
+
+  const PostpaidPaymentSuccessScreen({super.key, required this.serviceRequestId});
 
   @override
-  State<PostpaidPaymentSuccessScreen> createState() => _PostpaidPaymentSuccessScreenState();
+  ConsumerState<PostpaidPaymentSuccessScreen> createState() => _PostpaidPaymentSuccessScreenState();
 }
 
-class _PostpaidPaymentSuccessScreenState extends State<PostpaidPaymentSuccessScreen> {
+class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSuccessScreen> {
   int _rating = 0;
   final TextEditingController _reviewController = TextEditingController();
   final List<String> _photos = [];
+  bool _isUploadingPhoto = false;
+  bool _isSubmitting = false;
 
   void _onRatingChanged(int rating) {
     setState(() {
       _rating = rating;
     });
+  }
+
+  Future<void> _pickAndUploadPhoto() async {
+    if (_photos.length >= 4) return;
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() => _isUploadingPhoto = true);
+      try {
+        final url = await ref.read(fileUploadServiceProvider).uploadFile(pickedFile.path);
+        setState(() {
+          _photos.add(url);
+        });
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to upload image: $e')),
+          );
+        }
+      } finally {
+        setState(() => _isUploadingPhoto = false);
+      }
+    }
+  }
+
+  void _onSubmitReview() async {
+    if (_rating == 0 || _isSubmitting) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      final repository = ref.read(ordersRepositoryProvider);
+      
+      final tags = <String>[];
+      if (_rating >= 4) {
+        tags.addAll(['Friendly', 'Cooperative', 'Good Behaviour']);
+      } else if (_rating >= 3) {
+        tags.addAll(['Punctual', 'Average Experience']);
+      } else {
+        tags.addAll(['Late', 'Poor Communication']);
+      }
+
+      await repository.submitReview(
+        serviceRequestId: widget.serviceRequestId,
+        targetType: 'PROVIDER',
+        rating: _rating,
+        comment: _reviewController.text.trim(),
+        tags: tags,
+        photos: _photos,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Review submitted successfully!'),
+            backgroundColor: AppColors.successText,
+          ),
+        );
+        context.go('/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit review: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -351,39 +432,87 @@ class _PostpaidPaymentSuccessScreenState extends State<PostpaidPaymentSuccessScr
           ],
         ),
         const SizedBox(height: 9),
-        // Add Photo Card
-        if (_photos.length < 4)
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF7F7F7),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.inputBorder, width: 1.08),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SvgPicture.asset(
-                  'assets/images/photo.svg',
-                  width: 20,
-                  height: 20,
-                  colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Add',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 10,
-                    fontFamily: AppTextStyles.fontFamilyPoppins,
-                    fontWeight: FontWeight.w600,
-                    height: 1.50,
+        Row(
+          children: [
+            ..._photos.map((url) => Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Stack(
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.inputBorder),
+                      image: DecorationImage(
+                        image: NetworkImage(url),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
+                  Positioned(
+                    top: 2,
+                    right: 2,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _photos.remove(url)),
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(2),
+                        child: const Icon(Icons.close, size: 12, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )),
+            if (_photos.length < 4)
+              GestureDetector(
+                onTap: _pickAndUploadPhoto,
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F7F7),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.inputBorder, width: 1.08),
+                  ),
+                  child: _isUploadingPhoto
+                      ? const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SvgPicture.asset(
+                              'assets/images/photo.svg',
+                              width: 20,
+                              height: 20,
+                              colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Add',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 10,
+                                fontFamily: AppTextStyles.fontFamilyPoppins,
+                                fontWeight: FontWeight.w600,
+                                height: 1.50,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
-              ],
-            ),
-          ),
+              ),
+          ],
+        ),
         const SizedBox(height: 8),
         const Text(
           'Add photos of the completed work to help future customers',
@@ -414,9 +543,9 @@ class _PostpaidPaymentSuccessScreenState extends State<PostpaidPaymentSuccessScr
         children: [
           // Submit / Rate Button
           InkWell(
-            onTap: _rating > 0 ? () => context.go('/home') : null,
+            onTap: _rating > 0 && !_isSubmitting ? _onSubmitReview : null,
             child: Opacity(
-              opacity: _rating > 0 ? 1.0 : 0.5,
+              opacity: _rating > 0 && !_isSubmitting ? 1.0 : 0.5,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -424,17 +553,28 @@ class _PostpaidPaymentSuccessScreenState extends State<PostpaidPaymentSuccessScr
                   color: AppColors.onLight,
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text(
-                  _rating > 0 ? 'Submit Review' : 'Tap a star to rate',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.onDark,
-                    fontSize: 16,
-                    fontFamily: AppTextStyles.fontFamily,
-                    fontWeight: FontWeight.w400,
-                    height: 1.50,
-                  ),
-                ),
+                child: _isSubmitting
+                    ? const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        _rating > 0 ? 'Submit Review' : 'Tap a star to rate',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.onDark,
+                          fontSize: 16,
+                          fontFamily: AppTextStyles.fontFamily,
+                          fontWeight: FontWeight.w400,
+                          height: 1.50,
+                        ),
+                      ),
               ),
             ),
           ),

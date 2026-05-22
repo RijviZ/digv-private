@@ -6,22 +6,309 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:digv/features/payment_method/domain/entities/payment_method.dart';
+import 'package:digv/features/payment_method/presentation/providers/payment_method_provider.dart';
+import 'package:digv/features/search/domain/entities/search_result.dart';
+import 'package:digv/features/booking_engine/domain/technician.dart';
+import 'package:digv/features/booking_engine/domain/date_item.dart';
+import 'package:digv/features/address/domain/entities/address.dart';
+import 'package:digv/features/booking_engine/presentation/providers/booking_provider.dart';
+import '../../../payments/presentation/providers/payments_provider.dart';
 
 import '../../../../core/widgets/app_primary_button.dart';
 
-class PaymentGatewayScreen extends StatefulWidget {
-  const PaymentGatewayScreen({super.key});
+class PaymentGatewayScreen extends ConsumerStatefulWidget {
+  final Map<String, dynamic> bookingDetails;
+
+  const PaymentGatewayScreen({super.key, required this.bookingDetails});
+
+  int get amount => bookingDetails['amount'] as int? ?? 0;
 
   @override
-  State<PaymentGatewayScreen> createState() => _PaymentGatewayScreenState();
+  ConsumerState<PaymentGatewayScreen> createState() => _PaymentGatewayScreenState();
 }
 
-class _PaymentGatewayScreenState extends State<PaymentGatewayScreen> {
+class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
   PayTab _tab = PayTab.upi;
   int _selectedUpiApp = -1;
   final TextEditingController _upiCtrl = TextEditingController();
+  bool _isProcessing = false;
 
-  static const int _amount = 525;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final methodsAsync = ref.read(paymentMethodsProvider);
+      methodsAsync.whenData((methods) {
+        if (_cardNumCtrl.text.isEmpty && _nameCtrl.text.isEmpty && _expiryCtrl.text.isEmpty) {
+          PaymentMethod? defaultCard;
+          for (final m in methods) {
+            if (m.isDefault) {
+              defaultCard = m;
+              break;
+            }
+          }
+          final promoCard = defaultCard;
+          if (promoCard != null) {
+            setState(() {
+              _nameCtrl.text = promoCard.cardHolderName;
+              _cardNumCtrl.text = '•••• •••• •••• ${promoCard.cardLast4}';
+              _expiryCtrl.text = '${promoCard.expiryMonth.toString().padLeft(2, '0')}/${promoCard.expiryYear.toString().substring(2)}';
+              _tab = PayTab.credit;
+            });
+          }
+        }
+      });
+    });
+  }
+
+  String _formatScheduledDate(DateItem dateItem) {
+    final now = DateTime.now();
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final monthIdx = months.indexOf(dateItem.month) + 1;
+    final year = now.year;
+    final mm = monthIdx.toString().padLeft(2, '0');
+    final dd = dateItem.date.toString().padLeft(2, '0');
+    return '$year-$mm-$dd';
+  }
+
+  String _getCardBrand(String number) {
+    final clean = number.replaceAll(RegExp(r'\D'), '');
+    if (clean.startsWith('4')) return 'VISA';
+    if (RegExp(r'^5[1-5]').hasMatch(clean) || RegExp(r'^2[2-7]').hasMatch(clean)) return 'MASTERCARD';
+    if (clean.startsWith('34') || clean.startsWith('37')) return 'AMEX';
+    if (clean.startsWith('60') || clean.startsWith('65') || clean.startsWith('81') || clean.startsWith('82') || clean.startsWith('508')) return 'RUPAY';
+    if (clean.startsWith('6011') || clean.startsWith('64') || clean.startsWith('65')) return 'DISCOVER';
+    return 'OTHER';
+  }
+
+  void _onConfirmPay() async {
+    setState(() => _isProcessing = true);
+    try {
+      // 1. If card tab is active and "Save this card" is checked, save card first
+      if ((_tab == PayTab.credit || _tab == PayTab.debit) && _saveCard) {
+        if (_cardNumCtrl.text.isNotEmpty) {
+          final cardBrand = _getCardBrand(_cardNumCtrl.text);
+          final cardLast4 = _cardNumCtrl.text.replaceAll(RegExp(r'\D'), '');
+          final last4 = cardLast4.length >= 4 ? cardLast4.substring(cardLast4.length - 4) : '0000';
+          
+          final expiryParts = _expiryCtrl.text.split('/');
+          final month = expiryParts.isNotEmpty ? int.tryParse(expiryParts[0]) ?? 1 : 1;
+          final year = expiryParts.length > 1 ? int.tryParse('20${expiryParts[1]}') ?? 2026 : 2026;
+          
+          final paymentMethodToSave = PaymentMethod(
+            cardHolderName: _nameCtrl.text.isEmpty ? 'Customer' : _nameCtrl.text,
+            cardBrand: cardBrand,
+            cardLast4: last4,
+            expiryMonth: month,
+            expiryYear: year,
+            isDefault: false,
+          );
+          await ref.read(paymentMethodsProvider.notifier).addPaymentMethod(paymentMethodToSave);
+        }
+      }
+
+      // 2. Determine payment details
+      final service = widget.bookingDetails['service'] as SearchServiceEntity?;
+      final technician = widget.bookingDetails['technician'] as Technician?;
+      final date = widget.bookingDetails['date'] as DateItem?;
+      final address = widget.bookingDetails['address'] as Address?;
+      final timeStr = widget.bookingDetails['time'] as String? ?? '';
+      
+      final scheduledDateStr = date != null ? _formatScheduledDate(date) : '2026-05-10';
+      
+      final timeParts = timeStr.split('|');
+      final slotId = timeParts.length > 1 ? timeParts[1] : '11111111-1111-4111-8111-111111111111';
+      
+      String gatewayRef = 'MANUAL-REF-001';
+      if (_tab == PayTab.credit || _tab == PayTab.debit) {
+        final brand = _getCardBrand(_cardNumCtrl.text);
+        final raw = _cardNumCtrl.text.replaceAll(RegExp(r'\D'), '');
+        final last4 = raw.length >= 4 ? raw.substring(raw.length - 4) : '0000';
+        gatewayRef = '$brand-REF-$last4';
+      } else if (_tab == PayTab.bank) {
+        gatewayRef = 'BANK-REF-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+      } else if (_tab == PayTab.upi) {
+        gatewayRef = 'UPI-REF-${_upiCtrl.text.isEmpty ? "GUEST" : _upiCtrl.text.toUpperCase()}';
+      }
+
+      final quantity = widget.bookingDetails['quantity'] as int? ?? 1;
+      final baseAmount = (technician?.pricePerVisit ?? 0) * quantity;
+
+      // 4. Create the booking / service request first without passing client-side IDs
+      final payload = {
+        'providerId': technician?.providerId ?? '2f4a8f15-3c10-4d1a-9821-111111111111',
+        'serviceId': service?.serviceId ?? '7a8b9c10-1111-4d1a-9821-222222222222',
+        'scheduledDate': scheduledDateStr,
+        'availabilitySlotIds': [
+          slotId
+        ],
+        'quantity': quantity,
+        'description': 'Need service booking for ${service?.title ?? "Regular Service"}.',
+        'paymentMethod': widget.bookingDetails['paymentMethod'] as String? ?? 'CARD',
+        'collectionType': widget.bookingDetails['collectionType'] as String? ?? 'PREPAID',
+        'gatewayReference': gatewayRef,
+        'paymentAmount': baseAmount.toDouble().toStringAsFixed(2),
+        'addressLabel': address?.label ?? 'Home',
+        'addressLine': address?.addressLine ?? 'House 12, Road 5, Dhanmondi',
+        'city': address?.city ?? 'Dhaka',
+        'state': address?.state ?? 'Dhaka',
+        'postalCode': address?.postalCode ?? '1209',
+        'serviceLat': address?.lat ?? 23.7465,
+        'serviceLng': address?.lng ?? 90.376
+      };
+
+      final bookingRes = await ref.read(createBookingProvider.notifier).createBooking(payload);
+
+      // 5. Extract the server-generated serviceRequestId from the booking response
+      final serviceRequestId = bookingRes['serviceRequestId'] as String? ?? 
+                               bookingRes['data']?['serviceRequestId'] as String? ??
+                               bookingRes['id'] as String? ??
+                               bookingRes['data']?['id'] as String? ?? '';
+
+      if (serviceRequestId.isEmpty) {
+        throw Exception('Failed to retrieve service request ID from server.');
+      }
+
+      // 6. Create a pending prepaid payment second (now that the serviceRequestId is valid and registered in the server DB)
+      String method = 'CARD';
+      if (_tab == PayTab.upi) {
+        method = 'UPI';
+      } else if (_tab == PayTab.bank) {
+        method = 'BANK_ACCOUNT';
+      }
+
+      final paymentRes = await ref.read(paymentsNotifierProvider.notifier).createPendingPayment(
+        serviceRequestId: serviceRequestId,
+        method: method,
+        collectionType: 'PREPAID',
+        amount: baseAmount.toDouble().toStringAsFixed(2),
+        gatewayReference: gatewayRef,
+        note: 'Prepaid checkout payment',
+      );
+
+      final paymentId = paymentRes['paymentId'] as String? ?? 
+                        paymentRes['data']?['paymentId'] as String? ?? '';
+
+      if (paymentId.isEmpty) {
+        throw Exception('Failed to initiate prepaid payment.');
+      }
+
+      // 7. Confirm the prepaid payment third to mark it as PAID on the server
+      await ref.read(paymentsNotifierProvider.notifier).confirmPayment(
+        paymentId: paymentId,
+        gatewayTransactionId: 'TXN-${DateTime.now().millisecondsSinceEpoch}',
+        gatewayResponse: {
+          'provider': 'MANUAL',
+          'status': 'SUCCESS',
+          'paidAt': DateTime.now().toUtc().toIso8601String(),
+        },
+      );
+
+      if (mounted) {
+        context.push('/booking_requested');
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMessage = 'An unexpected error occurred.';
+        try {
+          final dynamic errorData = (e as dynamic).response?.data;
+          if (errorData is Map && errorData['message'] != null) {
+            errorMessage = errorData['message'].toString();
+          } else {
+            errorMessage = e.toString();
+          }
+        } catch (_) {
+          errorMessage = e.toString();
+        }
+        _showErrorDialog(context, errorMessage);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 8,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    color: AppColors.errorBg,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/images/XCircle.svg',
+                      width: 28,
+                      height: 28,
+                      colorFilter: const ColorFilter.mode(AppColors.error, BlendMode.srcIn),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Booking Failed',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.titleLight.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onLight,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.captionMedium.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.onLight,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    child: Text(
+                      'Understood',
+                      style: AppTextStyles.button.copyWith(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // amount comes from widget
 
   final List<UpiApp> _upiApps = const [
     UpiApp(name: 'Google Pay', bgColor: Color(0xFFF5F5F5), iconBg: Colors.white, imagePath: 'assets/images/gpay.png'),
@@ -61,6 +348,29 @@ class _PaymentGatewayScreenState extends State<PaymentGatewayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<List<PaymentMethod>>>(paymentMethodsProvider, (prev, next) {
+      next.whenData((methods) {
+        if (_cardNumCtrl.text.isEmpty && _nameCtrl.text.isEmpty && _expiryCtrl.text.isEmpty) {
+          PaymentMethod? defaultCard;
+          for (final m in methods) {
+            if (m.isDefault) {
+              defaultCard = m;
+              break;
+            }
+          }
+          final promoCard = defaultCard;
+          if (promoCard != null) {
+            setState(() {
+              _nameCtrl.text = promoCard.cardHolderName;
+              _cardNumCtrl.text = '•••• •••• •••• ${promoCard.cardLast4}';
+              _expiryCtrl.text = '${promoCard.expiryMonth.toString().padLeft(2, '0')}/${promoCard.expiryYear.toString().substring(2)}';
+              _tab = PayTab.credit;
+            });
+          }
+        }
+      });
+    });
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -116,7 +426,7 @@ class _PaymentGatewayScreenState extends State<PaymentGatewayScreen> {
                       ),
                       const SizedBox(width: 2),
                       Text(
-                        '$_amount',
+                        '${widget.amount}',
                         style: AppTextStyles.h3.copyWith(
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0,
@@ -130,10 +440,8 @@ class _PaymentGatewayScreenState extends State<PaymentGatewayScreen> {
               ),
               const SizedBox(height: 24),
               AppPrimaryButton(
-                text: 'Confirm & Pay',
-                onTap: () {
-                  context.push('/booking_requested');
-                },
+                text: _isProcessing ? 'Processing...' : 'Confirm & Pay',
+                onTap: _isProcessing ? null : _onConfirmPay,
               ),
             ],
           ),
@@ -444,7 +752,7 @@ class _PaymentGatewayScreenState extends State<PaymentGatewayScreen> {
                     ),
                     const SizedBox(width: 2),
                     Text(
-                      '$_amount',
+                      '${widget.amount}',
                       style: AppTextStyles.h3.copyWith(color: Theme
                           .of(context)
                           .colorScheme

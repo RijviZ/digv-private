@@ -1,17 +1,31 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/booking_engine/domain/models/order_status.dart';
+import 'package:digv/features/orders/domain/models/order_item.dart';
 import 'package:flutter/material.dart';
 
 class OrderDetailsCard extends StatelessWidget {
   final PaymentType paymentType;
+  final OrderItem? order;
 
-  const OrderDetailsCard({super.key, required this.paymentType});
+  const OrderDetailsCard({super.key, required this.paymentType, this.order});
 
-  bool get _isPrepaid => paymentType == PaymentType.prepaid;
+  bool get _isPrepaid {
+    if (order != null) {
+      final priceLower = order!.price.toLowerCase();
+      final isPostpaid = priceLower.contains('postpaid') || order!.status == OrderBadgeStatus.completed;
+      return !isPostpaid;
+    }
+    return paymentType == PaymentType.prepaid;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final service = order?.serviceName ?? 'Deep Cleaning';
+    final schedule = order?.scheduledTime ?? 'Today · 10:00 AM';
+    final address = order?.location ?? 'Home — Jl. Ngagelrejo No.34,\nKhulna — 9000';
+    final price = order?.price ?? (_isPrepaid ? '₹400' : '₹500');
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -29,18 +43,18 @@ class OrderDetailsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          const DetailRow(label: 'Service', value: 'Deep Cleaning'),
-          const DetailRow(label: 'Type', value: 'Split'),
-          const DetailRow(label: 'Schedule', value: 'Today · 10:00 AM'),
-          const DetailRow(
+          DetailRow(label: 'Service', value: service),
+          if (order == null) const DetailRow(label: 'Type', value: 'Split'),
+          DetailRow(label: 'Schedule', value: schedule),
+          DetailRow(
             label: 'Address',
-            value: 'Home — Jl. Ngagelrejo No.34,\nKhulna — 9000',
+            value: address,
           ),
           DetailRow(
             label: 'Payment',
             value: _isPrepaid
-                ? '₹400 · Google Pay · Paid'
-                : '₹500 · Postpaid (Pay after service)',
+                ? '$price · Paid'
+                : '$price · Postpaid (Pay after service)',
             valueColor: _isPrepaid ? null : AppColors.alertText,
           ),
         ],

@@ -1,3 +1,6 @@
+import 'package:digv/features/address/domain/entities/address.dart';
+import 'user_profile.dart';
+
 class User {
   final String userId;
   final String phoneNumber;
@@ -7,13 +10,16 @@ class User {
   final String? gender;
   final String? dateOfBirth;
   final String? avatarUrl;
+  final String? referredByCode;
   final String role;
   final bool isPhoneVerified;
   final bool isEmailVerified;
   final bool isProfileSetupCompleted;
   final bool isLocationAccessSkipped;
   final bool isOnboardingCompleted;
-  final Map<String, dynamic>? latestLocation;
+  final Address? latestLocation;
+  final List<Address>? addresses;
+  final UserProfile? profile;
 
   const User({
     required this.userId,
@@ -24,6 +30,7 @@ class User {
     this.gender,
     this.dateOfBirth,
     this.avatarUrl,
+    this.referredByCode,
     required this.role,
     required this.isPhoneVerified,
     required this.isEmailVerified,
@@ -31,5 +38,8 @@ class User {
     required this.isLocationAccessSkipped,
     required this.isOnboardingCompleted,
     this.latestLocation,
+    this.addresses,
+    this.profile,
   });
 }
+

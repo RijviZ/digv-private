@@ -196,14 +196,16 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                       );
                                   if (context.mounted) {
                                     final user = result['user'];
-                                    if (user != null && user.isProfileSetupCompleted == true) {
-                                      if (user.latestLocation == null || (user.latestLocation as Map).isEmpty) {
+                                    if (user != null) {
+                                      if (user.isOnboardingCompleted == true) {
+                                        context.go('/home');
+                                      } else if (user.isProfileSetupCompleted != true) {
+                                        context.go('/setup_welcome', extra: widget.phoneNumber);
+                                      } else if (user.latestLocation == null && user.isLocationAccessSkipped != true) {
                                         context.go('/enable_location_access');
                                       } else {
                                         context.go('/home');
                                       }
-                                    } else {
-                                      context.go('/setup_welcome', extra: widget.phoneNumber);
                                     }
                                   }
                                 } catch (e) {

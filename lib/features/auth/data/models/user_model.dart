@@ -1,4 +1,7 @@
+import 'package:digv/features/address/data/models/address_model.dart';
+
 import '../../domain/entities/user.dart';
+import 'user_profile_model.dart';
 
 class UserModel extends User {
   const UserModel({
@@ -10,6 +13,7 @@ class UserModel extends User {
     super.gender,
     super.dateOfBirth,
     super.avatarUrl,
+    super.referredByCode,
     required super.role,
     required super.isPhoneVerified,
     required super.isEmailVerified,
@@ -17,9 +21,25 @@ class UserModel extends User {
     required super.isLocationAccessSkipped,
     required super.isOnboardingCompleted,
     super.latestLocation,
+    super.addresses,
+    super.profile,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    Map<String, dynamic>? latestLocationJson = json['latestLocation'] as Map<String, dynamic>?;
+    
+    // If latestLocation is null, try to find it in the locations list (legacy support)
+    if (latestLocationJson == null && json['locations'] is List) {
+      final locations = json['locations'] as List;
+      if (locations.isNotEmpty) {
+        final latest = locations.firstWhere(
+          (loc) => loc['isLatest'] == true,
+          orElse: () => locations.first,
+        );
+        latestLocationJson = latest as Map<String, dynamic>;
+      }
+    }
+
     return UserModel(
       userId: json['userId'] as String,
       phoneNumber: json['phoneNumber'] as String,
@@ -29,13 +49,22 @@ class UserModel extends User {
       gender: json['gender'] as String?,
       dateOfBirth: json['dateOfBirth'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
+      referredByCode: json['referredByCode'] as String?,
       role: json['role'] as String,
       isPhoneVerified: json['isPhoneVerified'] as bool? ?? false,
       isEmailVerified: json['isEmailVerified'] as bool? ?? false,
       isProfileSetupCompleted: json['isProfileSetupCompleted'] as bool? ?? false,
       isLocationAccessSkipped: json['isLocationAccessSkipped'] as bool? ?? false,
       isOnboardingCompleted: json['isOnboardingCompleted'] as bool? ?? false,
-      latestLocation: json['latestLocation'] as Map<String, dynamic>?,
+      latestLocation: latestLocationJson != null ? AddressModel.fromJson(latestLocationJson) : null,
+      addresses: json['addresses'] != null
+          ? (json['addresses'] as List)
+              .map((e) => AddressModel.fromJson(e as Map<String, dynamic>))
+              .toList()
+          : null,
+      profile: json['profile'] != null
+          ? UserProfileModel.fromJson(json['profile'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -49,13 +78,17 @@ class UserModel extends User {
       'gender': gender,
       'dateOfBirth': dateOfBirth,
       'avatarUrl': avatarUrl,
+      'referredByCode': referredByCode,
       'role': role,
       'isPhoneVerified': isPhoneVerified,
       'isEmailVerified': isEmailVerified,
       'isProfileSetupCompleted': isProfileSetupCompleted,
       'isLocationAccessSkipped': isLocationAccessSkipped,
       'isOnboardingCompleted': isOnboardingCompleted,
-      'latestLocation': latestLocation,
+      'latestLocation': (latestLocation as AddressModel?)?.toJson(),
+      'addresses': addresses?.map((e) => (e as AddressModel).toJson()).toList(),
+      'profile': (profile as UserProfileModel?)?.toJson(),
     };
   }
 }
+

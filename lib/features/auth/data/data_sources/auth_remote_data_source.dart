@@ -111,7 +111,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<Map<String, dynamic>> getProfile() async {
     try {
-      final response = await dio.get('/users/me');
+      final response = await dio.get('/users');
       
       if (response.data['success'] == true) {
         return response.data['data'];
@@ -130,7 +130,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
     try {
       final response = await dio.patch(
-        '/users/me/profile',
+        '/users/profile',
         data: data,
       );
       
@@ -151,7 +151,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<Map<String, dynamic>> updateLocation(Map<String, dynamic> data) async {
     try {
       final response = await dio.patch(
-        '/users/me/location',
+        '/users/location',
         data: data,
       );
       

@@ -27,8 +27,9 @@ class OrdersRepositoryImpl implements OrdersRepository {
       case 'ON_THE_WAY':
       case 'ARRIVED':
       case 'WORK_STARTED':
+      case 'PENDING':
       case 'IN_PROGRESS':
-        badgeStatus = OrderBadgeStatus.inProgress;
+        badgeStatus = OrderBadgeStatus.active;
         break;
       case 'COMPLETED':
         badgeStatus = OrderBadgeStatus.completed;
@@ -65,10 +66,13 @@ class OrdersRepositoryImpl implements OrdersRepository {
       scheduledTime: scheduledTime,
       location: map['addressLabel'] as String? ?? 'Home',
       technicianName: map['providerName'] as String? ?? 'Assigned Professional',
-      technicianImageUrl: map['providerImageUrl'] as String?,
+      technicianImageUrl: map['providerAvatarUrl'] as String? ?? map['providerImageUrl'] as String?,
       price: priceStr,
       rating: map['rating'] != null ? (map['rating'] as num).toDouble() : null,
       cancelReason: map['cancelReason'] as String? ?? map['reason'] as String?,
+      paymentStatus: map['paymentStatus'] as String?,
+      paymentMethod: map['paymentMethod'] as String?,
+      providerPhoneNumber: map['providerPhoneNumber'] as String?,
     );
   }
 

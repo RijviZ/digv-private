@@ -6,7 +6,7 @@ import 'package:digv/features/booking_engine/presentation/widgets/order_tracking
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/order_details_card.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/order_progress_card.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/postpaid_warning_banner.dart';
-import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/sheets/cancel_booking_sheet.dart';
+import 'package:digv/features/orders/presentation/widgets/cancel_bottom_sheet.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/sheets/chat_sheet.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/sheets/otp_sheet.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/technician_card.dart';
@@ -19,6 +19,7 @@ import 'package:digv/features/orders/presentation/providers/orders_provider.dart
 import 'package:digv/features/orders/domain/models/order_tracking_data.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OrderTrackingScreen extends ConsumerStatefulWidget {
   final PaymentType paymentType;
@@ -31,13 +32,59 @@ class OrderTrackingScreen extends ConsumerStatefulWidget {
 }
 
 class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
-  OrderStatus _status = OrderStatus.onTheWay;
+  OrderStatus _status = OrderStatus.assigned;
   late PaymentType _paymentType;
+  List<OrderTrackingLog>? _logs;
+
+  Future<void> _makeCall(String phoneNumber) async {
+    // Using Uri.parse instead of Uri constructor prevents percent-encoding of the "+" symbol.
+    // LaunchMode.externalApplication forces the OS to open the phone's native dialer directly.
+    final Uri launchUri = Uri.parse('tel:${phoneNumber.replaceAll(' ', '')}');
+    try {
+      await launchUrl(
+        launchUri,
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      debugPrint('Could not launch phone call: $e');
+    }
+  }
+
+  String? _findTechnicianPhoneNumber(List<OrderTrackingLog>? logs) {
+    if (widget.order?.providerPhoneNumber != null && widget.order!.providerPhoneNumber!.isNotEmpty) {
+      return widget.order!.providerPhoneNumber;
+    }
+    if (logs == null) return null;
+    for (final log in logs) {
+      if (log.actor != null && log.actor!.phoneNumber.isNotEmpty) {
+        if (log.action.contains('PROVIDER') || 
+            log.newStatus == 'ON_THE_WAY' || 
+            log.newStatus == 'ARRIVED' || 
+            log.newStatus == 'WORK_STARTED' || 
+            log.newStatus == 'WORK_DONE') {
+          return '${log.actor!.countryCode}${log.actor!.phoneNumber}';
+        }
+      }
+    }
+    for (final log in logs) {
+      if (log.actor != null && 
+          log.actor!.phoneNumber.isNotEmpty && 
+          log.actor!.phoneNumber != '9876543211') {
+        return '${log.actor!.countryCode}${log.actor!.phoneNumber}';
+      }
+    }
+    return null;
+  }
 
   @override
   void initState() {
     super.initState();
     _paymentType = widget.paymentType;
+    if (widget.order != null) {
+      final isPostpaid = widget.order!.paymentStatus == 'UNPAID' ||
+          widget.order!.price.toLowerCase().contains('postpaid');
+      _paymentType = isPostpaid ? PaymentType.postpaid : PaymentType.prepaid;
+    }
   }
 
   bool get _isPrepaid => _paymentType == PaymentType.prepaid;
@@ -46,7 +93,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   // Only postpaid can cancel up to workStarted
   bool get _canCancel {
     if (_isPrepaid) return _status != OrderStatus.completed;
-    return _status == OrderStatus.onTheWay || _status == OrderStatus.arrived;
+    return _status == OrderStatus.onTheWay || _status == OrderStatus.arrived || _status == OrderStatus.assigned;
   }
 
   void _resolveStatusFromLogs(List<OrderTrackingLog> logs) {
@@ -88,11 +135,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       case OrderBadgeStatus.completed:
         _status = OrderStatus.completed;
         break;
-      case OrderBadgeStatus.inProgress:
-        _status = OrderStatus.workStarted;
+      case OrderBadgeStatus.active:
+        _status = OrderStatus.assigned;
         break;
       default:
-        _status = OrderStatus.onTheWay;
+        _status = OrderStatus.assigned;
     }
   }
 
@@ -110,55 +157,59 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         title: 'Technician Assigned',
         subtitle: widget.order != null ? '${widget.order!.technicianName} is assigned' : 'Arjun Kumar is assigned',
         isCompleted: true,
-        isActive: false,
+        isActive: _status == OrderStatus.assigned,
       ),
-      // These 5 steps map 1:1 to OrderStatus enum (indices 0–4)
+      // These 5 steps map 1:1 to OrderStatus enum (indices 1–5)
       TrackingStep(
         title: 'On the Way',
         subtitle: 'ETA 12 minutes',
-        isCompleted: idx >= 0,
-        isActive: idx == 0,
-      ),
-      TrackingStep(
-        title: 'Arrived',
         isCompleted: idx >= 1,
         isActive: idx == 1,
       ),
       TrackingStep(
-        title: 'Work Started',
+        title: 'Arrived',
         isCompleted: idx >= 2,
         isActive: idx == 2,
+      ),
+      TrackingStep(
+        title: 'Work Started',
+        isCompleted: idx >= 3,
+        isActive: idx == 3,
       ),
       TrackingStep(
         title: 'Work Done — OTP Needed',
         subtitle: 'Share OTP with technician',
         subtitleColor: AppColors.alertText,
-        isCompleted: idx >= 3,
-        isActive: idx == 3,
+        isCompleted: idx >= 4,
+        isActive: idx == 4,
         actionLabel: 'View OTP Code',
         actionLabelColor: AppColors.alertText,
         actionBackgroundColor: AppColors.alertBg,
         actionBorderColor: AppColors.alertBorder,
-        onAction: idx == 3 ? _showOtpSheet : null,
+        onAction: idx == 4 ? _showOtpSheet : null,
       ),
       TrackingStep(
         title: 'Completed',
-        isCompleted: idx >= 4,
-        isActive: idx == 4,
+        isCompleted: idx >= 5,
+        isActive: idx == 5,
       ),
     ];
   }
 
   void _showCancelDialog() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => CancelBookingSheet(
-        onConfirm: () {
-          Navigator.pop(context);
-        },
-      ),
+    if (widget.order == null) return;
+    CancelBottomSheet.show(
+      context,
+      widget.order!,
+      onCancelSuccess: () {
+        if (mounted) {
+          Future.delayed(const Duration(milliseconds: 350), () {
+            if (mounted) {
+              context.go('/orders');
+            }
+          });
+        }
+      },
     );
   }
 
@@ -197,6 +248,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       final trackingAsync = ref.watch(orderTrackingProvider(widget.order!.id));
       return trackingAsync.when(
         data: (trackingData) {
+          _logs = trackingData.logs;
           _resolveStatusFromLogs(trackingData.logs);
           return _buildContent(context);
         },
@@ -232,6 +284,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               bottom: false,
               child: TrackingAppBar(
                 statusLabel: _status.label,
+                orderId: widget.order?.orderId ?? 'ORD-7845',
               ),
           ),
           Expanded(
@@ -245,6 +298,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     paymentType: _paymentType,
                     order: widget.order,
                     onChat: _showChatSheet,
+                    onCall: () {
+                      final phone = _findTechnicianPhoneNumber(_logs) ?? '+919876543210';
+                      _makeCall(phone);
+                    },
                     onTogglePayment: () => setState(() {
                       _paymentType = _isPrepaid
                           ? PaymentType.postpaid
@@ -260,7 +317,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                   ),
                   if (!_isPrepaid) ...[
                     const SizedBox(height: 10),
-                    const PostpaidWarningBanner(),
+                    PostpaidWarningBanner(price: widget.order?.price ?? '₹500'),
                   ],
                   const SizedBox(height: 96),
                 ],
@@ -300,6 +357,8 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                   'serviceRequestId': widget.order?.id ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111',
                   'amount': dueAmount,
                   'isRemainingPayment': true,
+                  'serviceName': widget.order?.serviceName ?? 'AC Regular Service',
+                  'technicianName': widget.order?.technicianName ?? 'Arjun Kumar',
                 });
               } else {
                 context.push('/postpaid_payment_success', extra: widget.order?.id ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111');

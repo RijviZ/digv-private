@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
 import 'package:digv/core/network/file_upload_service.dart';
+import 'package:digv/features/orders/domain/models/order_item.dart';
 
 class PostpaidPaymentSuccessScreen extends ConsumerStatefulWidget {
   final String serviceRequestId;
@@ -23,6 +24,22 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
   final List<String> _photos = [];
   bool _isUploadingPhoto = false;
   bool _isSubmitting = false;
+
+  OrderItem? _findOrder() {
+    for (final status in [null, 'ACTIVE', 'PAST', 'UPCOMING', 'CANCELLED']) {
+      try {
+        final ordersAsync = ref.read(ordersProvider(status));
+        if (ordersAsync is AsyncData<List<OrderItem>>) {
+          for (final order in ordersAsync.value) {
+            if (order.id == widget.serviceRequestId) {
+              return order;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
 
   void _onRatingChanged(int rating) {
     setState(() {
@@ -196,6 +213,7 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
   }
 
   Widget _buildTechnicianInfo() {
+    final order = _findOrder();
     return Column(
       children: [
         Container(
@@ -203,17 +221,23 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
           height: 72,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
+            color: AppColors.inputBgSecondary,
             border: Border.all(color: AppColors.inputBorder, width: 2.16),
-            image: const DecorationImage(
-              image: NetworkImage("https://placehold.co/72x72"),
-              fit: BoxFit.cover,
-            ),
+            image: order?.technicianImageUrl != null
+                ? DecorationImage(
+                    image: NetworkImage(order!.technicianImageUrl!),
+                    fit: BoxFit.cover,
+                  )
+                : null,
           ),
+          child: order?.technicianImageUrl == null
+              ? const Icon(Icons.person, size: 36, color: AppColors.textSecondary)
+              : null,
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Arjun Kumar',
-          style: TextStyle(
+        Text(
+          order?.technicianName ?? 'Arjun Kumar',
+          style: const TextStyle(
             color: AppColors.onLight,
             fontSize: 18,
             fontFamily: AppTextStyles.fontFamily,
@@ -239,9 +263,9 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
               }),
             ),
             const SizedBox(width: 6),
-            const Text(
-              '4.9',
-              style: TextStyle(
+            Text(
+              (order?.rating ?? 4.9).toString(),
+              style: const TextStyle(
                 color: AppColors.onLight,
                 fontSize: 12,
                 fontFamily: AppTextStyles.fontFamilyPoppins,
@@ -262,9 +286,9 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
             ),
           ],
         ),
-        const Text(
-          'AC Regular Service',
-          style: TextStyle(
+        Text(
+          order?.serviceName ?? 'AC Regular Service',
+          style: const TextStyle(
             color: AppColors.textSecondary,
             fontSize: 12,
             fontFamily: AppTextStyles.fontFamilyPoppins,

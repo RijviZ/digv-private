@@ -1,6 +1,6 @@
 enum OrderTab { active, upcoming, past, cancelled }
 
-enum OrderBadgeStatus { active, upcoming, completed, inProgress, cancelled }
+enum OrderBadgeStatus { active, upcoming, completed, cancelled }
 
 extension OrderBadgeStatusLabel on OrderBadgeStatus {
   String get label {
@@ -11,8 +11,6 @@ extension OrderBadgeStatusLabel on OrderBadgeStatus {
         return 'Upcoming';
       case OrderBadgeStatus.completed:
         return 'Completed';
-      case OrderBadgeStatus.inProgress:
-        return 'In Progress';
       case OrderBadgeStatus.cancelled:
         return 'Cancelled';
     }
@@ -32,6 +30,9 @@ class OrderItem {
   final String price;
   final double? rating;
   final String? cancelReason;
+  final String? paymentStatus;
+  final String? paymentMethod;
+  final String? providerPhoneNumber;
 
   const OrderItem({
     required this.id,
@@ -46,5 +47,8 @@ class OrderItem {
     required this.price,
     this.rating,
     this.cancelReason,
+    this.paymentStatus,
+    this.paymentMethod,
+    this.providerPhoneNumber,
   });
 }

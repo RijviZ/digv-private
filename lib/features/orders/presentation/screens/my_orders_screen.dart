@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MyOrdersScreen extends ConsumerStatefulWidget {
   const MyOrdersScreen({super.key});
@@ -20,17 +21,15 @@ class MyOrdersScreen extends ConsumerStatefulWidget {
 class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
   OrderTab _selectedTab = OrderTab.active;
 
-  OrderTab _mapStatusToTab(OrderBadgeStatus status) {
-    switch (status) {
-      case OrderBadgeStatus.active:
-      case OrderBadgeStatus.inProgress:
-        return OrderTab.active;
-      case OrderBadgeStatus.upcoming:
-        return OrderTab.upcoming;
-      case OrderBadgeStatus.completed:
-        return OrderTab.past;
-      case OrderBadgeStatus.cancelled:
-        return OrderTab.cancelled;
+  Future<void> _makeCall(String phoneNumber) async {
+    final Uri launchUri = Uri.parse('tel:${phoneNumber.replaceAll(' ', '')}');
+    try {
+      await launchUrl(
+        launchUri,
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      debugPrint('Could not launch phone call: $e');
     }
   }
 
@@ -38,12 +37,12 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
     switch (tab) {
       case OrderTab.active:
         return 'Active';
-      case OrderTab.upcoming:
-        return 'Upcoming';
       case OrderTab.past:
         return 'Past';
       case OrderTab.cancelled:
         return 'Cancelled';
+      case OrderTab.upcoming:
+        return 'Upcoming';
     }
   }
 
@@ -83,17 +82,31 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
     );
   }
 
+  String? _tabToStatus(OrderTab tab) {
+    switch (tab) {
+      case OrderTab.active:
+        return 'ACTIVE';
+      case OrderTab.upcoming:
+        return 'UPCOMING';
+      case OrderTab.past:
+        return 'PAST';
+      case OrderTab.cancelled:
+        return 'CANCELLED';
+    }
+  }
+
   Widget _buildTabBar() {
-    final ordersAsync = ref.watch(ordersProvider);
+    final activeAsync = ref.watch(ordersProvider('ACTIVE'));
+    final upcomingAsync = ref.watch(ordersProvider('UPCOMING'));
+    final pastAsync = ref.watch(ordersProvider('PAST'));
+    final cancelledAsync = ref.watch(ordersProvider('CANCELLED'));
+
     final counts = {
-      for (var tab in OrderTab.values) tab: 0,
+      OrderTab.active: activeAsync.value?.length ?? 0,
+      OrderTab.upcoming: upcomingAsync.value?.length ?? 0,
+      OrderTab.past: pastAsync.value?.length ?? 0,
+      OrderTab.cancelled: cancelledAsync.value?.length ?? 0,
     };
-    ordersAsync.whenData((allOrders) {
-      for (var order in allOrders) {
-        final tab = _mapStatusToTab(order.status);
-        counts[tab] = (counts[tab] ?? 0) + 1;
-      }
-    });
 
     return Container(
       width: double.infinity,
@@ -106,12 +119,11 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: OrderTab.values.map((tab) {
-            final isSelected = tab == _selectedTab;
+             final isSelected = tab == _selectedTab;
             final count = counts[tab] ?? 0;
             return GestureDetector(
               onTap: () {
                 setState(() => _selectedTab = tab);
-                //ref.read(ordersProvider.notifier).refresh();
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -145,19 +157,11 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
   }
 
   Widget _buildOrderList() {
-    final ordersAsync = ref.watch(ordersProvider);
+    final statusStr = _tabToStatus(_selectedTab);
+    final ordersAsync = ref.watch(ordersProvider(statusStr));
 
     return ordersAsync.when(
-      data: (allOrders) {
-        final ordersByTab = {
-          for (var tab in OrderTab.values) tab: <OrderItem>[],
-        };
-        for (var order in allOrders) {
-          final tab = _mapStatusToTab(order.status);
-          ordersByTab[tab]!.add(order);
-        }
-
-        final orders = ordersByTab[_selectedTab] ?? [];
+      data: (orders) {
         final Widget childWidget;
         
         if (orders.isEmpty) {
@@ -200,7 +204,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
         return RefreshIndicator(
           color: Theme.of(context).primaryColor,
           backgroundColor: Colors.white,
-          onRefresh: () => ref.read(ordersProvider.notifier).refresh(),
+          onRefresh: () => ref.read(ordersProvider(statusStr).notifier).refresh(),
           child: childWidget,
         );
       },
@@ -208,7 +212,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
       error: (error, _) => RefreshIndicator(
         color: Theme.of(context).primaryColor,
         backgroundColor: Colors.white,
-        onRefresh: () => ref.read(ordersProvider.notifier).refresh(),
+        onRefresh: () => ref.read(ordersProvider(statusStr).notifier).refresh(),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Container(
@@ -220,7 +224,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                 Text('Failed to load orders: $error', style: const TextStyle(color: AppColors.error)),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: () => ref.read(ordersProvider.notifier).refresh(),
+                  onPressed: () => ref.read(ordersProvider(statusStr).notifier).refresh(),
                   child: const Text('Retry'),
                 ),
               ],
@@ -322,10 +326,6 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
       case OrderBadgeStatus.completed:
         bgColor = AppColors.successSecondaryBg;
         textColor = AppColors.successText;
-        break;
-      case OrderBadgeStatus.inProgress:
-        bgColor = const Color(0xFFEDE9FE);
-        textColor = const Color(0xFF7C3AED);
         break;
       case OrderBadgeStatus.cancelled:
         bgColor = const Color(0xFFFEE2E2);
@@ -485,7 +485,6 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
     print(order.status);
     switch (order.status) {
       case OrderBadgeStatus.active:
-      case OrderBadgeStatus.inProgress:
         return _buildActiveActions(order);
       case OrderBadgeStatus.upcoming:
         return _buildUpcomingActions(order);
@@ -509,7 +508,10 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
         const SizedBox(width: 8),
         _buildIconButton(
           icon: 'assets/images/phone.svg',
-          onTap: () {},
+          onTap: () {
+            final phone = order.providerPhoneNumber ?? '+919876543216';
+            _makeCall(phone);
+          },
         ),
       ],
     );
@@ -547,7 +549,9 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
         const SizedBox(width: 8),
         _buildIconButton(
           icon: 'assets/images/document.svg',
-          onTap: () {},
+          onTap: () {
+            context.push('/postpaid_payment_success', extra: order.id);
+          },
         ),
       ],
     );

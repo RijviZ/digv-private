@@ -12,11 +12,21 @@ class OrderDetailsCard extends StatelessWidget {
 
   bool get _isPrepaid {
     if (order != null) {
-      final priceLower = order!.price.toLowerCase();
-      final isPostpaid = priceLower.contains('postpaid') || order!.status == OrderBadgeStatus.completed;
+      final isPostpaid = order!.paymentStatus == 'UNPAID' ||
+          order!.price.toLowerCase().contains('postpaid');
       return !isPostpaid;
     }
     return paymentType == PaymentType.prepaid;
+  }
+
+  String _getPaymentMethodLabel() {
+    if (order == null) return 'Google Pay';
+    final method = order!.paymentMethod;
+    if (method == 'CARD') return 'Card';
+    if (method == 'UPI') return 'Google Pay';
+    if (method == 'BANK_ACCOUNT') return 'Net Banking';
+    if (method == 'CASH') return 'Cash';
+    return method ?? 'Google Pay';
   }
 
   @override
@@ -53,7 +63,7 @@ class OrderDetailsCard extends StatelessWidget {
           DetailRow(
             label: 'Payment',
             value: _isPrepaid
-                ? '$price · Paid'
+                ? '$price · ${_getPaymentMethodLabel()} · Paid'
                 : '$price · Postpaid (Pay after service)',
             valueColor: _isPrepaid ? null : AppColors.alertText,
           ),

@@ -10,15 +10,16 @@ import 'package:digv/features/orders/presentation/providers/orders_provider.dart
 
 class CancelBottomSheet extends ConsumerStatefulWidget {
   final OrderItem order;
+  final VoidCallback? onCancelSuccess;
 
-  const CancelBottomSheet({super.key, required this.order});
+  const CancelBottomSheet({super.key, required this.order, this.onCancelSuccess});
 
-  static void show(BuildContext context, OrderItem order) {
+  static void show(BuildContext context, OrderItem order, {VoidCallback? onCancelSuccess}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => CancelBottomSheet(order: order),
+      builder: (context) => CancelBottomSheet(order: order, onCancelSuccess: onCancelSuccess),
     );
   }
 
@@ -57,13 +58,19 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
 
     setState(() => _isSubmitting = true);
     try {
-      await ref.read(ordersProvider.notifier).cancelServiceRequest(
+      await ref.read(ordersProvider('ACTIVE').notifier).cancelServiceRequest(
         id: widget.order.id,
         reason: finalReason,
       );
+      ref.invalidate(ordersProvider('ACTIVE'));
+      ref.invalidate(ordersProvider('UPCOMING'));
+      ref.invalidate(ordersProvider('CANCELLED'));
       if (mounted) {
         SnackBarUtils.showSuccess(context, 'Order cancelled successfully.');
         Navigator.of(context).pop();
+        if (widget.onCancelSuccess != null) {
+          widget.onCancelSuccess!();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -90,6 +97,9 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -97,25 +107,22 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
           topRight: Radius.circular(24),
         ),
       ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
       child: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-              Center(child: _buildDragHandle()),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _buildHeader(context),
-              ),
-              const Divider(color: AppColors.dropDownBorder, height: 24),
-              Padding(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Center(child: _buildDragHandle()),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _buildHeader(context),
+            ),
+            const Divider(color: AppColors.dropDownBorder, height: 24),
+            Expanded(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,31 +142,32 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
-                ),
-                child: _isSubmitting
-                    ? Container(
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withAlpha(128),
-                          borderRadius: BorderRadius.circular(36),
-                        ),
-                        child: const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        ),
-                      )
-                    : AppPrimaryButton(
-                        text: 'Cancel Request',
-                        onTap: _submitCancel,
-                      ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
               ),
-            ],
-          ),
+              child: _isSubmitting
+                  ? Container(
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withAlpha(128),
+                        borderRadius: BorderRadius.circular(36),
+                      ),
+                      child: const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
+                    )
+                  : AppPrimaryButton(
+                      text: 'Cancel Request',
+                      onTap: _submitCancel,
+                    ),
+            ),
+            SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+          ],
         ),
       ),
     );

@@ -537,9 +537,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ),
       ),
     );
-  }
+ } 
+ Widget _buildServicesForYouSection() {
+    final searchAsync = ref.watch(searchResultsProvider(const SearchFilters()));
+    final allServicesWithProviders = searchAsync.maybeWhen(
+      data: (searchResponse) => searchResponse.providers
+          .expand((provider) => provider.services.map((service) => (provider, service)))
+          .toList(),
+      orElse: () => <(SearchProviderEntity, SearchServiceEntity)>[],
+    );
+    final firstPair = allServicesWithProviders.isNotEmpty ? allServicesWithProviders.first : null;
+    final allProviders = searchAsync.maybeWhen(
+      data: (searchResponse) => searchResponse.providers,
+      orElse: () => null,
+    );
 
-  Widget _buildServicesForYouSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -568,6 +580,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               return _buildPromoBanner(
                 _promoBanners[index]['title']!,
                 _promoBanners[index]['subtitle']!,
+                firstPair,
+                allProviders,
               );
             },
           ),
@@ -595,8 +609,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildPromoBanner(String title, String subTitle) {
-    return Container(
+  Widget _buildPromoBanner(
+    String title,
+    String subTitle,
+    (SearchProviderEntity, SearchServiceEntity)? firstPair,
+    List<SearchProviderEntity>? allProviders,
+  ) {
+    final hasService = firstPair != null && allProviders != null;
+
+    Widget bannerContent = Container(
       margin: const EdgeInsetsGeometry.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -629,7 +650,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             Row(
               children: [
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    if (hasService) {
+                      context.push(
+                        '/service_details',
+                        extra: (firstPair.$1, firstPair.$2, allProviders),
+                      );
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
@@ -649,113 +677,153 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ),
       ),
     );
+
+    if (hasService) {
+      return GestureDetector(
+        onTap: () {
+          context.push(
+            '/service_details',
+            extra: (firstPair.$1, firstPair.$2, allProviders),
+          );
+        },
+        child: bannerContent,
+      );
+    }
+    return bannerContent;
   }
 
   Widget _buildQuickServicesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 32, 16, 0),
-          child: Text('Service for you', style: AppTextStyles.h3),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Text(
-            'Verified technicians, guaranteed quality',
-            style: AppTextStyles.labelMedium.copyWith(
-              color: Theme.of(context).colorScheme.secondary,
+    final searchAsync = ref.watch(searchResultsProvider(const SearchFilters()));
+
+    return searchAsync.when(
+      data: (searchResponse) {
+        final allServicesWithProviders = searchResponse.providers
+            .expand((provider) => provider.services.map((service) => (provider, service)))
+            .toList();
+
+        if (allServicesWithProviders.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 32, 16, 0),
+              child: Text('Service for you', style: AppTextStyles.h3),
             ),
-          ),
-        ),
-        SizedBox(
-          height: 127,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _quickServices.length,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemBuilder: (context, index) {
-              final item = _quickServices[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Container(
-                  width: 160,
-                  decoration: BoxDecoration(
-                    image: const DecorationImage(
-                      image: AssetImage('assets/images/quick.jpg'),
-                      fit: BoxFit.cover,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Stack(
-                    children: [
-                      Container(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Text(
+                'Verified technicians, guaranteed quality',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 127,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: allServicesWithProviders.length,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemBuilder: (context, index) {
+                  final pair = allServicesWithProviders[index];
+                  final provider = pair.$1;
+                  final service = pair.$2;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: GestureDetector(
+                      onTap: () {
+                        context.push(
+                          '/service_details',
+                          extra: (provider, service, searchResponse.providers),
+                        );
+                      },
+                      child: Container(
+                        width: 160,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: const Alignment(0.50, -0.00),
-                            end: const Alignment(0.50, 1.00),
-                            colors: [
-                              Colors.black.withValues(alpha: 0.20),
-                              Colors.black,
-                            ],
+                          image: DecorationImage(
+                            image: service.serviceImageUrl != null && service.serviceImageUrl!.isNotEmpty
+                                ? NetworkImage(service.serviceImageUrl!)
+                                : const AssetImage('assets/images/quick.jpg') as ImageProvider,
+                            fit: BoxFit.cover,
                           ),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                      ),
-                      Positioned(
-                        top: 16,
-                        right: 16,
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          padding: const EdgeInsets.all(9),
-                          clipBehavior: Clip.antiAlias,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            color: Theme.of(context).colorScheme.surface,
-                          ),
-                          child: SvgPicture.asset(
-                            'assets/images/arrow-up-right.svg',
-                            height: 18,
-                            width: 18,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 16,
-                        bottom: 16,
-                        right: 4,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Stack(
                           children: [
-                            Text(
-                              item.label,
-                              style: AppTextStyles.h6.copyWith(
-                                color: Colors.white,
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: const Alignment(0.50, -0.00),
+                                  end: const Alignment(0.50, 1.00),
+                                  colors: [
+                                    Colors.black.withValues(alpha: 0.20),
+                                    Colors.black,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'from ${item.price}',
-                              style: AppTextStyles.labelMedium.copyWith(
-                                color: Colors.white,
+                            Positioned(
+                              top: 16,
+                              right: 16,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                padding: const EdgeInsets.all(9),
+                                clipBehavior: Clip.antiAlias,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(18),
+                                  color: Theme.of(context).colorScheme.surface,
+                                ),
+                                child: SvgPicture.asset(
+                                  'assets/images/arrow-up-right.svg',
+                                  height: 18,
+                                  width: 18,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: 16,
+                              bottom: 16,
+                              right: 4,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    service.title,
+                                    style: AppTextStyles.h6.copyWith(
+                                      color: Colors.white,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'from ${provider.currency} ${service.priceOverride}',
+                                    style: AppTextStyles.labelMedium.copyWith(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (e, s) => const SizedBox.shrink(),
     );
   }
-
 }

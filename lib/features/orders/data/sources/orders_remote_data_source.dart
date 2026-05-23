@@ -31,20 +31,17 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
 
   @override
   Future<List<Map<String, dynamic>>> getServiceRequests({String? status, int page = 1, int limit = 100}) async {
-    final queryParameters = <String, dynamic>{
-      'page': page,
-      'limit': limit,
-    };
-    if (status != null) {
-      queryParameters['status'] = status;
+    final queryParameters = <String, dynamic>{};
+    if (status != null && status.isNotEmpty) {
+      queryParameters['filter'] = status.toUpperCase();
     }
 
-    final response = await _dio.get('/users/serviceRequests', queryParameters: queryParameters);
+    final response = await _dio.get('/users/serviceRequest', queryParameters: queryParameters);
     
     // Parse response
     final data = response.data;
     if (data is Map<String, dynamic> && data['data'] != null) {
-      final items = data['data']['items'] as List?;
+      final items = data['data'] as List?;
       if (items != null) {
         return items.cast<Map<String, dynamic>>();
       }
@@ -59,7 +56,7 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     required List<String> availabilitySlotIds,
   }) async {
     final response = await _dio.patch(
-      '/users/serviceRequests/$id/reschedule',
+      '/users/serviceRequest/$id/reschedule',
       data: {
         'scheduledDate': scheduledDate,
         'availabilitySlotIds': availabilitySlotIds,
@@ -74,7 +71,7 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     required String reason,
   }) async {
     final response = await _dio.patch(
-      '/users/serviceRequests/$id/cancel',
+      '/users/serviceRequest/$id/cancel',
       data: {
         'reason': reason,
       },
@@ -86,7 +83,7 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
   Future<Map<String, dynamic>> getOrderTracking({
     required String id,
   }) async {
-    final response = await _dio.get('/service-requests/$id/tracking');
+    final response = await _dio.get('/service-request-logs/$id/tracking');
     return response.data as Map<String, dynamic>;
   }
 
@@ -100,7 +97,7 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     required List<String> photos,
   }) async {
     final response = await _dio.post(
-      '/reviews',
+      '/users/review',
       data: {
         'serviceRequestId': serviceRequestId,
         'targetType': targetType,

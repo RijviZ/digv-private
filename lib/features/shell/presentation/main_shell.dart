@@ -1,3 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/home_discovery/presentation/screens/home_screen.dart';
 import 'package:digv/features/more/presentation/screens/more_screen.dart';
@@ -18,17 +20,17 @@ const int kMoreTab = 2;
 /// [HomeScreen], [MyOrdersScreen] and [MoreScreen] using an [IndexedStack].
 /// No individual screen should define its own bottom nav bar.
 /// ─────────────────────────────────────────────────────────────────────────
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerStatefulWidget {
   /// Which tab to activate on first render. Defaults to [kHomeTab].
   final int initialTab;
 
   const MainShell({super.key, this.initialTab = kHomeTab});
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends ConsumerState<MainShell> {
   late int _tab;
 
   @override
@@ -37,7 +39,15 @@ class _MainShellState extends State<MainShell> {
     _tab = widget.initialTab;
   }
 
-  void _switchTab(int index) => setState(() => _tab = index);
+  void _switchTab(int index) {
+    if (index == kOrdersTab) {
+      ref.invalidate(ordersProvider('ACTIVE'));
+      ref.invalidate(ordersProvider('UPCOMING'));
+      ref.invalidate(ordersProvider('PAST'));
+      ref.invalidate(ordersProvider('CANCELLED'));
+    }
+    setState(() => _tab = index);
+  }
 
   @override
   Widget build(BuildContext context) {

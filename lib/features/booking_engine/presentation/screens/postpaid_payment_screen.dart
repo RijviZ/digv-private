@@ -75,6 +75,18 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
     super.dispose();
   }
 
+  String get _serviceTitle {
+    final service = widget.bookingDetails['service'] as SearchServiceEntity?;
+    if (service != null) return service.title;
+    return widget.bookingDetails['serviceName'] as String? ?? 'AC Regular Service';
+  }
+
+  String get _technicianName {
+    final technician = widget.bookingDetails['technician'] as Technician?;
+    if (technician != null) return technician.name;
+    return widget.bookingDetails['technicianName'] as String? ?? 'Arjun Kumar';
+  }
+
   String _formatScheduledDate(DateItem dateItem) {
     final now = DateTime.now();
     final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -126,17 +138,6 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
           throw Exception('Failed to get payment ID from server.');
         }
 
-        // 2. Confirm the payment
-        await ref.read(paymentsNotifierProvider.notifier).confirmPayment(
-          paymentId: paymentId,
-          gatewayTransactionId: 'TXN-${DateTime.now().millisecondsSinceEpoch}',
-          gatewayResponse: {
-            'provider': 'MANUAL',
-            'status': 'SUCCESS',
-            'paidAt': DateTime.now().toUtc().toIso8601String(),
-          },
-        );
-
         if (mounted) {
           context.push('/postpaid_payment_success', extra: serviceRequestId);
         }
@@ -162,6 +163,10 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
           gatewayRef = 'UPI-REF-${_upiCtrl.text.isEmpty ? "GUEST" : _upiCtrl.text.toUpperCase()}';
         }
 
+        final baseAmount = widget.bookingDetails['amount'] as int? ?? 0;
+        final quantity = widget.bookingDetails['quantity'] as int? ?? 1;
+        final realAmount = baseAmount * quantity;
+
         final payload = {
           'providerId': technician?.providerId ?? '2f4a8f15-3c10-4d1a-9821-111111111111',
           'serviceId': service?.serviceId ?? '7a8b9c10-1111-4d1a-9821-222222222222',
@@ -169,12 +174,12 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
           'availabilitySlotIds': [
             slotId
           ],
-          'quantity': widget.bookingDetails['quantity'] as int? ?? 1,
+          'quantity': quantity,
           'description': 'Need service booking for ${service?.title ?? "Regular Service"}.',
           'paymentMethod': widget.bookingDetails['paymentMethod'] as String? ?? 'CASH',
           'collectionType': widget.bookingDetails['collectionType'] as String? ?? 'POSTPAID',
           'gatewayReference': gatewayRef,
-          'paymentAmount': '0.00',
+          'paymentAmount': realAmount.toDouble().toStringAsFixed(2),
           'addressLabel': address?.label ?? 'Home',
           'addressLine': address?.addressLine ?? 'House 12, Road 5, Dhanmondi',
           'city': address?.city ?? 'Dhaka',
@@ -268,7 +273,10 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      context.go('/home');
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.onLight,
                       foregroundColor: Colors.white,
@@ -367,7 +375,7 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'AC Regular Service by Arjun Kumar',
+                  '$_serviceTitle by $_technicianName',
                   style: AppTextStyles.caption.copyWith(
                     color: AppColors.successText,
                   ),

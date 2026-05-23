@@ -16,6 +16,7 @@ import 'package:digv/features/address/domain/entities/address.dart';
 import 'package:digv/features/booking_engine/presentation/providers/booking_provider.dart';
 import '../../../payments/presentation/providers/payments_provider.dart';
 
+import 'package:digv/features/orders/domain/models/order_item.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 
 class PaymentGatewayScreen extends ConsumerStatefulWidget {
@@ -38,6 +39,14 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
   @override
   void initState() {
     super.initState();
+    final method = widget.bookingDetails['paymentMethod'] as String? ?? 'UPI';
+    if (method == 'CARD') {
+      _tab = PayTab.credit;
+    } else if (method == 'BANK_ACCOUNT') {
+      _tab = PayTab.bank;
+    } else {
+      _tab = PayTab.upi;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final methodsAsync = ref.read(paymentMethodsProvider);
       methodsAsync.whenData((methods) {
@@ -55,7 +64,9 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
               _nameCtrl.text = promoCard.cardHolderName;
               _cardNumCtrl.text = '•••• •••• •••• ${promoCard.cardLast4}';
               _expiryCtrl.text = '${promoCard.expiryMonth.toString().padLeft(2, '0')}/${promoCard.expiryYear.toString().substring(2)}';
-              _tab = PayTab.credit;
+              if (method == 'CARD') {
+                _tab = PayTab.credit;
+              }
             });
           }
         }
@@ -195,19 +206,22 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
         throw Exception('Failed to initiate prepaid payment.');
       }
 
-      // 7. Confirm the prepaid payment third to mark it as PAID on the server
-      await ref.read(paymentsNotifierProvider.notifier).confirmPayment(
-        paymentId: paymentId,
-        gatewayTransactionId: 'TXN-${DateTime.now().millisecondsSinceEpoch}',
-        gatewayResponse: {
-          'provider': 'MANUAL',
-          'status': 'SUCCESS',
-          'paidAt': DateTime.now().toUtc().toIso8601String(),
-        },
-      );
-
       if (mounted) {
-        context.push('/booking_requested');
+        final orderItem = OrderItem(
+          id: serviceRequestId,
+          providerId: technician?.providerId,
+          serviceName: service?.title ?? 'Regular Service',
+          orderId: 'ORD-${serviceRequestId.substring(0, 4).toUpperCase()}',
+          status: OrderBadgeStatus.active,
+          scheduledTime: '${date?.date ?? ""} ${date?.month ?? ""} · ${timeStr.split("|")[0]}',
+          location: address?.label ?? 'Home',
+          technicianName: technician?.name ?? 'Arjun Kumar',
+          technicianImageUrl: technician?.avatarUrl,
+          price: '₹$baseAmount',
+          paymentStatus: 'PAID',
+          paymentMethod: _tab == PayTab.upi ? 'UPI' : 'CARD',
+        );
+        context.push('/booking_requested', extra: orderItem);
       }
     } catch (e) {
       if (mounted) {
@@ -285,7 +299,10 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      context.go('/home');
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.onLight,
                       foregroundColor: Colors.white,
@@ -348,6 +365,7 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final method = widget.bookingDetails['paymentMethod'] as String? ?? 'UPI';
     ref.listen<AsyncValue<List<PaymentMethod>>>(paymentMethodsProvider, (prev, next) {
       next.whenData((methods) {
         if (_cardNumCtrl.text.isEmpty && _nameCtrl.text.isEmpty && _expiryCtrl.text.isEmpty) {
@@ -364,7 +382,9 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
               _nameCtrl.text = promoCard.cardHolderName;
               _cardNumCtrl.text = '•••• •••• •••• ${promoCard.cardLast4}';
               _expiryCtrl.text = '${promoCard.expiryMonth.toString().padLeft(2, '0')}/${promoCard.expiryYear.toString().substring(2)}';
-              _tab = PayTab.credit;
+              if (method == 'CARD') {
+                _tab = PayTab.credit;
+              }
             });
           }
         }

@@ -5,10 +5,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class TrackingAppBar extends StatelessWidget {
   final String statusLabel;
+  final String orderId;
 
   const TrackingAppBar({
     super.key,
     required this.statusLabel,
+    required this.orderId,
   });
 
   @override
@@ -35,7 +37,7 @@ class TrackingAppBar extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'ORD-7845 • $statusLabel',
+                  '$orderId • $statusLabel',
                   style: AppTextStyles.captionMedium.copyWith(
                     color: Theme.of(context).colorScheme.secondary,
                   ),

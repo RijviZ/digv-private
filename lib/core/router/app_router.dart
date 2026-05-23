@@ -171,7 +171,10 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/booking_requested',
-      builder: (context, state) => const BookingRequestedScreen(),
+      builder: (context, state) {
+        final order = state.extra as OrderItem?;
+        return BookingRequestedScreen(order: order);
+      },
     ),
     GoRoute(
       path: '/booking_confirmed',

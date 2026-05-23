@@ -12,7 +12,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
 
   @override
   Future<Map<String, dynamic>> createServiceRequest(Map<String, dynamic> payload) async {
-    final response = await _dio.post('/users/serviceRequests', data: payload);
+    final response = await _dio.post('/users/serviceRequest', data: payload);
     return response.data as Map<String, dynamic>;
   }
 

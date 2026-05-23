@@ -4,7 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class PostpaidWarningBanner extends StatelessWidget {
-  const PostpaidWarningBanner({super.key});
+  final String price;
+
+  const PostpaidWarningBanner({
+    super.key,
+    this.price = '₹500',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +38,7 @@ class PostpaidWarningBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Payment of ₹500 will be collected after service completion. Please keep cash or UPI ready.',
+                  'Payment of $price will be collected after service completion. Please keep cash or UPI ready.',
                   style: AppTextStyles.caption.copyWith(color: AppColors.alertText),
                 ),
               ],

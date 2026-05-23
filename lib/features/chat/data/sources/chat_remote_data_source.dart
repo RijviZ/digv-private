@@ -64,7 +64,6 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     String? olderThan,
   }) async {
     final res = await _dio.get('/chat/messages', queryParameters: {
-      'userId': userId,
       'chatId': chatId,
       'limit': limit,
       if (olderThan != null) 'olderThan': olderThan,
@@ -82,7 +81,6 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   }) async {
     final res = await _dio.post(
       '/chat/messages',
-      queryParameters: {'userId': userId},
       data: {
         'peerUserId': peerUserId,
         if (content != null) 'content': content,

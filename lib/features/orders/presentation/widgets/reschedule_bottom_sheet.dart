@@ -91,11 +91,13 @@ class _RescheduleBottomSheetState extends ConsumerState<RescheduleBottomSheet> {
   Future<void> _submitReschedule(String slotId, String dateStr) async {
     setState(() => _isSubmitting = true);
     try {
-      await ref.read(ordersProvider.notifier).rescheduleServiceRequest(
+      await ref.read(ordersProvider('ACTIVE').notifier).rescheduleServiceRequest(
         id: widget.order.id,
         scheduledDate: dateStr,
         availabilitySlotIds: [slotId],
       );
+      ref.invalidate(ordersProvider('ACTIVE'));
+      ref.invalidate(ordersProvider('UPCOMING'));
       if (mounted) {
         SnackBarUtils.showSuccess(context, 'Order rescheduled successfully!');
         Navigator.of(context).pop();

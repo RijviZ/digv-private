@@ -1,7 +1,7 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
-import 'package:digv/core/widgets/app_primary_button.dart';
-import 'package:digv/features/booking_engine/domain/models/order_status.dart';
+import 'package:digv/features/orders/domain/models/order_item.dart';
+import 'package:digv/features/orders/presentation/widgets/cancel_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -10,10 +10,19 @@ import '../widgets/booking_detail_item.dart';
 import '../widgets/booking_details_card.dart';
 
 class BookingRequestedScreen extends StatelessWidget {
-  const BookingRequestedScreen({super.key});
+  final OrderItem? order;
+
+  const BookingRequestedScreen({super.key, this.order});
 
   @override
   Widget build(BuildContext context) {
+    final String name = order?.technicianName ?? 'Arjun Kumar';
+    final String orderId = order?.orderId ?? 'ORD-8063';
+    final String service = order?.serviceName ?? 'Regular Service';
+    final String schedule = order?.scheduledTime ?? 'Tomorrow · 10:00 AM';
+    final String location = order?.location ?? 'Home — Jl. Ngagelrejo No.34';
+    final String price = order?.price ?? '₹199';
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
@@ -36,10 +45,9 @@ class BookingRequestedScreen extends StatelessWidget {
                         border: Border.all(color: AppColors.dropDownBorder),
                       ),
                       child: Center(
-                        child: Container(
+                        child: SizedBox(
                           width: 32,
                           height: 32,
-                          
                           child: SvgPicture.asset(
                             'assets/images/ClockRed.svg',
                           ),
@@ -50,7 +58,7 @@ class BookingRequestedScreen extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // Title 
-                     Text(
+                    Text(
                       'Booking Requested!',
                       style: AppTextStyles.h3.copyWith(
                         color: Theme.of(context).colorScheme.onSurface,
@@ -58,8 +66,8 @@ class BookingRequestedScreen extends StatelessWidget {
                         height: 1.75,
                       ),
                     ),
-                     Text(
-                      'Arjun Kumar is reviewing your booking request.',
+                    Text(
+                      '$name is reviewing your booking request.',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: Theme.of(context).colorScheme.onSurface,
@@ -78,8 +86,8 @@ class BookingRequestedScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: AppColors.inputBorder)),
 
-                      child:  Text(
-                        'Order ID: ORD-8063',
+                      child: Text(
+                        'Order ID: $orderId',
                         style: AppTextStyles.captionMedium.copyWith(
                           color: AppColors.textDark,
                           fontWeight: FontWeight.w700,
@@ -92,31 +100,31 @@ class BookingRequestedScreen extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // Details card
-                    const BookingDetailsCard(
+                    BookingDetailsCard(
                       items: [
                         BookingDetailItem(
                           icon: 'assets/images/checkmark.svg',
-                          iconColor: Color(0xFF22C55E),
+                          iconColor: const Color(0xFF22C55E),
                           label: 'Service',
-                          value: 'Regular Service',
+                          value: service,
                         ),
                         BookingDetailItem(
                           icon: 'assets/images/CalendarBlank.svg',
-                          iconColor: Color(0xFF3B82F6),
+                          iconColor: const Color(0xFF3B82F6),
                           label: 'Schedule',
-                          value: 'Tomorrow · 10:00 AM',
+                          value: schedule,
                         ),
                         BookingDetailItem(
                           icon: 'assets/images/pin_g.svg',
-                          iconColor: Color(0xFF6B7280),
+                          iconColor: const Color(0xFF6B7280),
                           label: 'Address',
-                          value: 'Home — Jl. Ngagelrejo No.34',
+                          value: location,
                         ),
                         BookingDetailItem(
                           icon: 'assets/images/card.svg',
-                          iconColor: Color(0xFF6B7280),
+                          iconColor: const Color(0xFF6B7280),
                           label: 'Payment',
-                          value: '₹199 · UPI Paid',
+                          value: '$price · UPI Paid',
                         ),
                       ],
                     ),
@@ -126,15 +134,67 @@ class BookingRequestedScreen extends StatelessWidget {
               ),
             ),
 
-            // Bottom button
+            // Bottom buttons matching booking confirmed screen format
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: AppPrimaryButton(
-                  text: 'Cancel Booking',
-                  onTap: () {
-                    context.push('/booking_confirmed', extra: PaymentType.prepaid);
-                  },
-                ),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final dummyOrder = order ?? OrderItem(
+                          id: '9091cadf-1a03-48df-a449-ccc15e133939',
+                          providerId: 'fce1b6ae-5fb8-45d4-a353-476e1b7cbd76',
+                          serviceName: service,
+                          orderId: orderId,
+                          status: OrderBadgeStatus.active,
+                          scheduledTime: schedule,
+                          location: location,
+                          technicianName: name,
+                          price: price,
+                        );
+                        CancelBottomSheet.show(
+                          context,
+                          dummyOrder,
+                          onCancelSuccess: () {
+                            context.push('/orders');
+                          },
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                        elevation: 0,
+                      ),
+                      child: Text('Cancel Booking', style: AppTextStyles.button),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton(
+                      onPressed: () => context.push('/home'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                        side: BorderSide(color: Theme.of(context).dividerColor),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'Go to home',
+                        style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.primary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ],
         ),

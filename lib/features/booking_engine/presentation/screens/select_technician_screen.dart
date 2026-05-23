@@ -32,10 +32,16 @@ class _SelectTechnicianScreenState extends State<SelectTechnicianScreen> {
  
   List<Technician> get _allTechnicians {
     return widget.providers.map((p) {
-      // Find the specific service offered by this provider that matches our current service's subcategory
+      // Find the specific service offered by this provider that matches our current service
       final providerService = p.services.cast<SearchServiceEntity>().firstWhere(
-        (s) => s.serviceType == widget.service.serviceType,
-        orElse: () => widget.service,
+        (s) => s.serviceId == widget.service.serviceId,
+        orElse: () => p.services.cast<SearchServiceEntity>().firstWhere(
+          (s) => s.title == widget.service.title,
+          orElse: () => p.services.cast<SearchServiceEntity>().firstWhere(
+            (s) => s.serviceType == widget.service.serviceType,
+            orElse: () => widget.service,
+          ),
+        ),
       );
 
       final distanceKm = double.tryParse(p.distanceKm) ?? 0.0;

@@ -2,86 +2,137 @@ import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/core/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../domain/entities/faq.dart';
+import '../providers/faq_provider.dart';
 
-class FaqsScreen extends StatefulWidget {
+class FaqsScreen extends ConsumerStatefulWidget {
   const FaqsScreen({super.key});
 
   @override
-  State<FaqsScreen> createState() => _FaqsScreenState();
+  ConsumerState<FaqsScreen> createState() => _FaqsScreenState();
 }
 
-class _FaqsScreenState extends State<FaqsScreen> {
-  int _selectedCategoryIndex = 0;
-  int? _expandedFaqIndex = 0;
+class _FaqsScreenState extends ConsumerState<FaqsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedCategoryKey = 'ALL';
+  int? _expandedFaqIndex;
 
-  final List<String> _categories = [
-    'All (19)',
-    'Booking (5)',
-    'Payment (4)',
-    'Service (4)',
-  ];
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
-  final List<Map<String, String>> _faqs = [
-    {
-      'question': 'How do I book a home service?',
-      'answer':
-          'Simply open the app, browse service categories (AC, Electrical, Plumbing, Cleaning etc.), choose a service, select an available technician based on ratings and reviews, pick your preferred time slot, and confirm your booking. You\'ll receive an instant confirmation notification.',
-      'category': 'Booking',
-    },
-    {
-      'question': 'Can I book for someone else\'s address?',
-      'answer': '',
-      'category': 'Booking',
-    },
-    {
-      'question': 'How far in advance can I schedule a booking?',
-      'answer': '',
-      'category': 'Booking',
-    },
-    {
-      'question': 'What is the cancellation policy?',
-      'answer': '',
-      'category': 'Booking',
-    },
-    {
-      'question': 'Can I reschedule a confirmed booking?',
-      'answer': '',
-      'category': 'Booking',
-    },
-    {
-      'question': 'What payment options are available?',
-      'answer': '',
-      'category': 'Payment',
-    },
-  ];
+  String _formatCategoryName(String key) {
+    if (key == 'ALL') return 'All';
+    if (key.isEmpty) return '';
+    return key[0].toUpperCase() + key.substring(1).toLowerCase();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final faqAsync = ref.watch(faqProvider);
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(
           children: [
-            const AppTopBar(
-              title: 'FAQS',
-              subtitle: '19 questions answered',
+            faqAsync.when(
+              data: (faqData) => AppTopBar(
+                title: 'FAQS',
+                subtitle: '${faqData.items.length} questions answered',
+              ),
+              loading: () => const AppTopBar(
+                title: 'FAQS',
+                subtitle: 'Loading questions...',
+              ),
+              error: (_, __) => const AppTopBar(
+                title: 'FAQS',
+                subtitle: 'Error loading FAQs',
+              ),
             ),
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildSearchBar(),
+              child: faqAsync.when(
+                data: (faqData) {
+                  // Filter items locally by search query and tab selection
+                  final filteredFaqs = faqData.items.where((item) {
+                    // Category filter
+                    if (_selectedCategoryKey != 'ALL') {
+                      if (item.type.toUpperCase() != _selectedCategoryKey.toUpperCase()) {
+                        return false;
+                      }
+                    }
+                    // Search filter
+                    final query = _searchController.text.trim().toLowerCase();
+                    if (query.isNotEmpty) {
+                      final questionMatch = item.question.toLowerCase().contains(query);
+                      final answerMatch = item.answer.toLowerCase().contains(query);
+                      if (!questionMatch && !answerMatch) {
+                        return false;
+                      }
+                    }
+                    return true;
+                  }).toList();
+
+                  return SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: _buildSearchBar(),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildCategoriesTab(faqData.tabs),
+                        const SizedBox(height: 16),
+                        _buildFaqList(filteredFaqs),
+                        const SizedBox(height: 24),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    _buildCategoriesTab(),
-                    const SizedBox(height: 16),
-                    _buildFaqList(),
-                    const SizedBox(height: 24),
-                  ],
+                  );
+                },
+                loading: () => const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.onLight,
+                  ),
+                ),
+                error: (err, stack) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: AppColors.error,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Failed to load FAQs: $err',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppColors.textDark,
+                            fontSize: 14,
+                            fontFamily: AppTextStyles.fontFamily,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => ref.invalidate(faqProvider),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.onLight,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -91,9 +142,37 @@ class _FaqsScreenState extends State<FaqsScreen> {
     );
   }
 
+  Future<void> _handleFeedback(String faqId, bool isHelpful) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Submitting feedback...'),
+          duration: Duration(milliseconds: 500),
+        ),
+      );
+      
+      await ref.read(faqProvider.notifier).submitFeedback(faqId: faqId, isHelpful: isHelpful);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isHelpful ? 'Thank you for your helpful feedback!' : 'Feedback submitted successfully.'),
+          backgroundColor: AppColors.onLight,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit feedback: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: AppColors.dropDownBorder),
@@ -108,13 +187,30 @@ class _FaqsScreenState extends State<FaqsScreen> {
             colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'Search frequently asked questions...',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-              fontFamily: AppTextStyles.fontFamily,
-              fontWeight: FontWeight.w400,
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() {
+                _expandedFaqIndex = null; // Collapse active item on search changes
+              }),
+              decoration: const InputDecoration(
+                hintText: 'Search frequently asked questions...',
+                hintStyle: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  fontFamily: AppTextStyles.fontFamily,
+                  fontWeight: FontWeight.w400,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              style: const TextStyle(
+                color: AppColors.textDark,
+                fontSize: 14,
+                fontFamily: AppTextStyles.fontFamily,
+                fontWeight: FontWeight.w400,
+              ),
             ),
           ),
         ],
@@ -122,7 +218,8 @@ class _FaqsScreenState extends State<FaqsScreen> {
     );
   }
 
-  Widget _buildCategoriesTab() {
+  Widget _buildCategoriesTab(Map<String, int> tabs) {
+    final keys = tabs.keys.toList();
     return Container(
       decoration: const BoxDecoration(
         border: Border(
@@ -133,11 +230,17 @@ class _FaqsScreenState extends State<FaqsScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
-          children: _categories.asMap().entries.map((entry) {
-            final index = entry.key;
-            final isSelected = index == _selectedCategoryIndex;
+          children: keys.asMap().entries.map((entry) {
+            final key = entry.value;
+            final isSelected = key == _selectedCategoryKey;
+            final label = '${_formatCategoryName(key)} (${tabs[key] ?? 0})';
             return GestureDetector(
-              onTap: () => setState(() => _selectedCategoryIndex = index),
+              onTap: () {
+                setState(() {
+                  _selectedCategoryKey = key;
+                  _expandedFaqIndex = null;
+                });
+              },
               child: Container(
                 padding: const EdgeInsets.only(bottom: 8, right: 24),
                 decoration: isSelected
@@ -148,7 +251,7 @@ class _FaqsScreenState extends State<FaqsScreen> {
                       )
                     : null,
                 child: Text(
-                  entry.value,
+                  label,
                   style: TextStyle(
                     color: isSelected ? AppColors.onLight : AppColors.textSecondary,
                     fontSize: 14,
@@ -164,11 +267,40 @@ class _FaqsScreenState extends State<FaqsScreen> {
     );
   }
 
-  Widget _buildFaqList() {
+  Widget _buildFaqList(List<FaqItem> items) {
+    if (items.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.search_off_rounded,
+                size: 48,
+                color: AppColors.textSecondary.withOpacity(0.5),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'No FAQs found matching your filters.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  fontFamily: AppTextStyles.fontFamily,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
-        children: _faqs.asMap().entries.map((entry) {
+        children: items.asMap().entries.map((entry) {
           final index = entry.key;
           final isExpanded = index == _expandedFaqIndex;
           return Padding(
@@ -180,7 +312,7 @@ class _FaqsScreenState extends State<FaqsScreen> {
     );
   }
 
-  Widget _buildFaqItem(Map<String, String> item, bool isExpanded, int index) {
+  Widget _buildFaqItem(FaqItem item, bool isExpanded, int index) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -227,7 +359,7 @@ class _FaqsScreenState extends State<FaqsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item['question']!,
+                          item.question,
                           style: TextStyle(
                             color: AppColors.textDark,
                             fontSize: 14,
@@ -239,8 +371,8 @@ class _FaqsScreenState extends State<FaqsScreen> {
                         if (!isExpanded) ...[
                           const SizedBox(height: 4),
                           Text(
-                            item['category']!,
-                            style: TextStyle(
+                            _formatCategoryName(item.type),
+                            style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 11,
                               fontFamily: AppTextStyles.fontFamilyPoppins,
@@ -263,7 +395,7 @@ class _FaqsScreenState extends State<FaqsScreen> {
               ),
             ),
           ),
-          if (isExpanded && item['answer']!.isNotEmpty) ...[
+          if (isExpanded && item.answer.isNotEmpty) ...[
             const Divider(height: 1, color: AppColors.inputBorder),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -287,10 +419,10 @@ class _FaqsScreenState extends State<FaqsScreen> {
                           ),
                         ),
                         alignment: Alignment.center,
-                        child: Text(
+                        child: const Text(
                           'A',
                           style: TextStyle(
-                            color: const Color(0xFF1E40AF),
+                            color: Color(0xFF1E40AF),
                             fontSize: 10,
                             fontFamily: AppTextStyles.fontFamilyPoppins,
                             fontWeight: FontWeight.w900,
@@ -301,8 +433,8 @@ class _FaqsScreenState extends State<FaqsScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          item['answer']!,
-                          style: TextStyle(
+                          item.answer,
+                          style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 13,
                             fontFamily: AppTextStyles.fontFamilyPoppins,
@@ -316,9 +448,19 @@ class _FaqsScreenState extends State<FaqsScreen> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      _buildFeedbackButton('assets/images/ThumbsUp.svg', 'Helpful', color: AppColors.textDark),
+                      _buildFeedbackButton(
+                        'assets/images/ThumbsUp.svg',
+                        'Helpful (${item.helpfulCount})',
+                        color: AppColors.textDark,
+                        onTap: () => _handleFeedback(item.faqId, true),
+                      ),
                       const SizedBox(width: 8),
-                      _buildFeedbackButton('assets/images/ThumbsDown.svg', 'Not helpful', color: AppColors.error),
+                      _buildFeedbackButton(
+                        'assets/images/ThumbsDown.svg',
+                        'Not helpful (${item.notHelpfulCount})',
+                        color: AppColors.error,
+                        onTap: () => _handleFeedback(item.faqId, false),
+                      ),
                     ],
                   ),
                 ],
@@ -330,30 +472,34 @@ class _FaqsScreenState extends State<FaqsScreen> {
     );
   }
 
-  Widget _buildFeedbackButton(String svgPath, String label, {required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.bg,
-        border: Border.all(color: AppColors.inputBorder),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SvgPicture.asset(svgPath, width: 14, height: 14, colorFilter: ColorFilter.mode(color, BlendMode.srcIn)),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              fontFamily: AppTextStyles.fontFamilyPoppins,
-              fontWeight: FontWeight.w500,
-              height: 1.50,
+  Widget _buildFeedbackButton(String svgPath, String label, {required Color color, VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          border: Border.all(color: AppColors.inputBorder),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SvgPicture.asset(svgPath, width: 14, height: 14, colorFilter: ColorFilter.mode(color, BlendMode.srcIn)),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontFamily: AppTextStyles.fontFamilyPoppins,
+                fontWeight: FontWeight.w500,
+                height: 1.50,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

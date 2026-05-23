@@ -160,24 +160,20 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
       },
     );
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          )
+        ],
       ),
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.75,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
-            )
-          ],
-        ),
-        child: Column(
+      child: Column(
           children: [
             // Header Handler bar
             const SizedBox(height: 8),
@@ -412,11 +408,11 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                 ],
               ),
             ),
+            SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
           ],  
         ),
-      ),
-    );
-  } 
+      );
+    } 
 }
 
 class _ChatBubble extends StatelessWidget {

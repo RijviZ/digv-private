@@ -14,27 +14,56 @@ class MoreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileProvider);
+    final statsAsync = ref.watch(userStatsProvider);
     return SafeArea(
       bottom: false,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(28, 16, 28, 0),
-              child: profileAsync.when(
-                data: (user) => ProfileHeader(user: user),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, stack) => const Text('Failed to load profile'),
+      child: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(profileProvider);
+          ref.invalidate(userStatsProvider);
+          try {
+            await Future.wait([
+              ref.read(profileProvider.future),
+              ref.read(userStatsProvider.future),
+            ]);
+          } catch (_) {}
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(28, 16, 28, 0),
+                child: profileAsync.when(
+                  data: (user) => ProfileHeader(user: user),
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => const Text('Failed to load profile'),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 28),
-              child: StatsBar(),
-            ),
-
-            const SizedBox(height: 28),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: statsAsync.when(
+                  data: (stats) => StatsBar(
+                    bookings: stats.totalBookings.toString(),
+                    avgRating: stats.avgRating.toStringAsFixed(1),
+                    spent: '₹${stats.totalSpent.toStringAsFixed(0)}',
+                  ),
+                  loading: () => const StatsBar(
+                    bookings: '...',
+                    avgRating: '...',
+                    spent: '...',
+                  ),
+                  error: (_, __) => const StatsBar(
+                    bookings: '0',
+                    avgRating: '0.0',
+                    spent: '₹0',
+                  ),
+                ),
+              ),
+  
+              const SizedBox(height: 28),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -94,6 +123,7 @@ class MoreScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

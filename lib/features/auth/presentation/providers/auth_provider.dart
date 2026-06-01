@@ -1,14 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 import '../../../../core/network/file_upload_service.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../../address/domain/entities/address.dart';
 import '../../../address/presentation/providers/address_provider.dart';
 import '../../../bank_account/presentation/providers/bank_account_provider.dart';
 import '../../../notifications/presentation/providers/notification_settings_provider.dart';
+
+import '../../domain/entities/user_stats.dart';
 
 final authProvider = AsyncNotifierProvider<AuthNotifier, void>(() {
   return AuthNotifier();
@@ -16,6 +20,19 @@ final authProvider = AsyncNotifierProvider<AuthNotifier, void>(() {
 
 final profileProvider = FutureProvider<User>((ref) async {
   return ref.watch(authRepositoryProvider).getProfile();
+});
+
+final locationHistoryProvider = FutureProvider<List<Address>>((ref) async {
+  return ref.watch(authRepositoryProvider).getLocationHistory();
+});
+
+final userStatsProvider = FutureProvider<UserStats>((ref) async {
+  return ref.watch(authRepositoryProvider).getUserStats();
+});
+
+final selectedLocationProvider = StateProvider<Address?>((ref) {
+  final profile = ref.watch(profileProvider).value;
+  return profile?.latestLocation;
 });
 
 class AuthNotifier extends AsyncNotifier<void> {
@@ -97,6 +114,7 @@ class AuthNotifier extends AsyncNotifier<void> {
       await _repository.updateLocation(data);
       state = const AsyncValue.data(null);
       ref.invalidate(profileProvider);
+      ref.invalidate(locationHistoryProvider);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       rethrow;
@@ -121,6 +139,7 @@ class AuthNotifier extends AsyncNotifier<void> {
       await _repository.logout();
       state = const AsyncValue.data(null);
       ref.invalidate(profileProvider);
+      ref.invalidate(userStatsProvider);
       ref.invalidate(addressListProvider);
       ref.invalidate(bankAccountsProvider);
       ref.invalidate(notificationSettingsProvider);

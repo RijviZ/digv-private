@@ -23,4 +23,12 @@ abstract class OrdersRepository {
     required List<String> tags,
     required List<String> photos,
   });
+  Future<Map<String, dynamic>?> getGivenReviewByServiceRequestId({required String serviceRequestId});
+  Future<void> updateReview({
+    required String id,
+    required int rating,
+    required String comment,
+    required List<String> tags,
+    required List<String> photos,
+  });
 }

@@ -24,6 +24,41 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
   final List<String> _photos = [];
   bool _isUploadingPhoto = false;
   bool _isSubmitting = false;
+  bool _isLoadingReview = true;
+  String? _existingReviewId;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchExistingReview();
+  }
+
+  Future<void> _fetchExistingReview() async {
+    try {
+      final repository = ref.read(ordersRepositoryProvider);
+      final review = await repository.getGivenReviewByServiceRequestId(
+        serviceRequestId: widget.serviceRequestId,
+      );
+      if (review != null && mounted) {
+        setState(() {
+          _existingReviewId = review['id'] as String?;
+          _rating = review['rating'] as int? ?? 0;
+          _reviewController.text = review['comment'] as String? ?? '';
+          _photos.clear();
+          if (review['photos'] != null) {
+            _photos.addAll(List<String>.from(review['photos'] as List));
+          }
+        });
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingReview = false;
+        });
+      }
+    }
+  }
 
   OrderItem? _findOrder() {
     for (final status in [null, 'ACTIVE', 'PAST', 'UPCOMING', 'CANCELLED']) {
@@ -86,19 +121,29 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
         tags.addAll(['Late', 'Poor Communication']);
       }
 
-      await repository.submitReview(
-        serviceRequestId: widget.serviceRequestId,
-        targetType: 'PROVIDER',
-        rating: _rating,
-        comment: _reviewController.text.trim(),
-        tags: tags,
-        photos: _photos,
-      );
+      if (_existingReviewId != null) {
+        await repository.updateReview(
+          id: _existingReviewId!,
+          rating: _rating,
+          comment: _reviewController.text.trim(),
+          tags: tags,
+          photos: _photos,
+        );
+      } else {
+        await repository.submitReview(
+          serviceRequestId: widget.serviceRequestId,
+          targetType: 'PROVIDER',
+          rating: _rating,
+          comment: _reviewController.text.trim(),
+          tags: tags,
+          photos: _photos,
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Review submitted successfully!'),
+          SnackBar(
+            content: Text(_existingReviewId != null ? 'Review updated successfully!' : 'Review submitted successfully!'),
             backgroundColor: AppColors.successText,
           ),
         );
@@ -108,7 +153,7 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit review: $e'),
+            content: Text('Failed to save review: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -137,34 +182,36 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
             _buildAppBar(context),
             
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    // Technician Info
-                    _buildTechnicianInfo(),
-                    
-                    const SizedBox(height: 16),
-                    // Rating Info Box
-                    _buildRatingInfoBox(),
-                    
-                    const SizedBox(height: 24),
-                    // Star Rating
-                    _buildStarRating(),
-                    
-                    const SizedBox(height: 28),
-                    // Review Section
-                    _buildReviewSection(),
-                    
-                    const SizedBox(height: 24),
-                    // Photo Section
-                    _buildPhotoSection(),
-                    
-                    const SizedBox(height: 44), // Buffer for bottom buttons
-                  ],
-                ),
-              ),
+              child: _isLoadingReview
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          // Technician Info
+                          _buildTechnicianInfo(),
+                          
+                          const SizedBox(height: 16),
+                          // Rating Info Box
+                          _buildRatingInfoBox(),
+                          
+                          const SizedBox(height: 24),
+                          // Star Rating
+                          _buildStarRating(),
+                          
+                          const SizedBox(height: 28),
+                          // Review Section
+                          _buildReviewSection(),
+                          
+                          const SizedBox(height: 24),
+                          // Photo Section
+                          _buildPhotoSection(),
+                          
+                          const SizedBox(height: 44), // Buffer for bottom buttons
+                        ],
+                      ),
+                    ),
             ),
             
             // Bottom Action Buttons
@@ -589,7 +636,9 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
                         ),
                       )
                     : Text(
-                        _rating > 0 ? 'Submit Review' : 'Tap a star to rate',
+                        _rating > 0
+                            ? (_existingReviewId != null ? 'Update Review' : 'Submit Review')
+                            : 'Tap a star to rate',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: AppColors.onDark,

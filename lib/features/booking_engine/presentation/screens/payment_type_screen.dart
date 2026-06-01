@@ -193,7 +193,7 @@ class _PaymentTypeScreenState extends State<PaymentTypeScreen> {
             ),
             SizedBox(height: 2),
             Text(
-              '${widget.quantity} unit${widget.quantity > 1 ? 's' : ''} × ₹${widget.serviceCharge} + ₹${widget.fee} fee',
+              '${widget.quantity} unit${widget.quantity > 1 ? 's' : ''} × ₹${widget.quantity > 0 ? (widget.serviceCharge / widget.quantity).round() : widget.serviceCharge} - ₹${widget.fee} fee',
               style: AppTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.secondary),
             ),
           ],

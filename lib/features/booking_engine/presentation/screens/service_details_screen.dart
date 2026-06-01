@@ -174,7 +174,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
           child: AppPrimaryButton(
             text: 'Continue to select technician',
             onTap: () {
-              context.push('/select_technician', extra: (widget.allProviders, widget.service));
+              context.push('/select_technician', extra: (widget.allProviders, widget.service, _quantity));
             },
           ),
         ),

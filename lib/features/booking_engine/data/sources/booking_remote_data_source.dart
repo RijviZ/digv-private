@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 abstract class BookingRemoteDataSource {
   Future<Map<String, dynamic>> createServiceRequest(Map<String, dynamic> payload);
   Future<List<Map<String, dynamic>>> getAvailableSlots(String providerId, String scheduledDate);
+  Future<List<Map<String, dynamic>>> getProviderAvailabilityDates(String providerId);
 }
 
 class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
@@ -23,6 +24,24 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       queryParameters: {
         'providerId': providerId,
         'scheduledDate': scheduledDate,
+      },
+    );
+    final data = response.data;
+    if (data is Map<String, dynamic> && data['data'] != null) {
+      final list = data['data'] as List?;
+      if (list != null) {
+        return list.cast<Map<String, dynamic>>();
+      }
+    }
+    return [];
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getProviderAvailabilityDates(String providerId) async {
+    final response = await _dio.get(
+      '/users/getProvider/availability-dates',
+      queryParameters: {
+        'providerId': providerId,
       },
     );
     final data = response.data;

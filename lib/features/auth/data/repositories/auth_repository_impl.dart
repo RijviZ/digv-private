@@ -3,7 +3,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/network/dio_provider.dart';
 import '../../../../core/storage/secure_storage_provider.dart';
+import '../../../address/domain/entities/address.dart';
+import '../../../address/data/models/address_model.dart';
 import '../../domain/entities/user.dart';
+import '../../domain/entities/user_stats.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../data_sources/auth_remote_data_source.dart';
 import '../models/user_model.dart';
@@ -83,6 +86,18 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> updateLocation(Map<String, dynamic> data) async {
     await remoteDataSource.updateLocation(data);
+  }
+
+  @override
+  Future<List<Address>> getLocationHistory() async {
+    final list = await remoteDataSource.getLocationHistory();
+    return list.map((e) => AddressModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<UserStats> getUserStats() async {
+    final data = await remoteDataSource.getUserStats();
+    return UserStats.fromJson(data);
   }
 
   @override

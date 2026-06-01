@@ -236,6 +236,40 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
   }
 
   Widget _buildOrderCard(OrderItem order) {
+    final OrderBadgeStatus badgeStatus;
+    switch (_selectedTab) {
+      case OrderTab.active:
+        badgeStatus = OrderBadgeStatus.active;
+        break;
+      case OrderTab.upcoming:
+        badgeStatus = OrderBadgeStatus.upcoming;
+        break;
+      case OrderTab.past:
+        badgeStatus = OrderBadgeStatus.completed;
+        break;
+      case OrderTab.cancelled:
+        badgeStatus = OrderBadgeStatus.cancelled;
+        break;
+    }
+
+    final orderWithTabStatus = OrderItem(
+      id: order.id,
+      providerId: order.providerId,
+      serviceName: order.serviceName,
+      orderId: order.orderId,
+      status: badgeStatus,
+      scheduledTime: order.scheduledTime,
+      location: order.location,
+      technicianName: order.technicianName,
+      technicianImageUrl: order.technicianImageUrl,
+      price: order.price,
+      rating: order.rating,
+      cancelReason: order.cancelReason,
+      paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod,
+      providerPhoneNumber: order.providerPhoneNumber,
+    );
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -259,17 +293,17 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardHeader(order),
+          _buildCardHeader(orderWithTabStatus),
           const SizedBox(height: 12),
-          _buildCardMeta(order),
+          _buildCardMeta(orderWithTabStatus),
           const SizedBox(height: 12),
-          _buildCardTechnicianRow(order),
+          _buildCardTechnicianRow(orderWithTabStatus),
           const SizedBox(height: 12),
-          if (order.rating != null) ...[
-            _buildStarRating(order.rating!),
+          if (orderWithTabStatus.rating != null) ...[
+            _buildStarRating(orderWithTabStatus.rating!),
             const SizedBox(height: 12),
           ],
-          _buildCardActions(order),
+          _buildCardActions(orderWithTabStatus),
         ],
       ),
     );

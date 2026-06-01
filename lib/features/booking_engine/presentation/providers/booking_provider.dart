@@ -28,6 +28,11 @@ final availableSlotsProvider = FutureProvider.family<List<Map<String, dynamic>>,
   return await repository.getAvailableSlots(providerId, scheduledDate);
 });
 
+final providerAvailabilityDatesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, providerId) async {
+  final repository = ref.watch(bookingRepositoryProvider);
+  return await repository.getProviderAvailabilityDates(providerId);
+});
+
 class CreateBookingNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>>> {
   final BookingRepository _repository;
 

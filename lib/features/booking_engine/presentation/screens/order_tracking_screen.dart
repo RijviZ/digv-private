@@ -6,17 +6,17 @@ import 'package:digv/features/booking_engine/presentation/widgets/order_tracking
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/order_details_card.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/order_progress_card.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/postpaid_warning_banner.dart';
-import 'package:digv/features/orders/presentation/widgets/cancel_bottom_sheet.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/sheets/chat_sheet.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/sheets/otp_sheet.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/technician_card.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/tracking_app_bar.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/tracking_bottom_bars.dart';
-import 'package:flutter/material.dart';
 import 'package:digv/features/orders/domain/models/order_item.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
 import 'package:digv/features/orders/domain/models/order_tracking_data.dart';
+import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
+import 'package:digv/features/orders/presentation/widgets/cancel_bottom_sheet.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -99,34 +99,45 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   void _resolveStatusFromLogs(List<OrderTrackingLog> logs) {
     if (widget.order == null) return;
     
-    // Check if any log is COMPLETED or if the order badge status is completed
+    // 1. Completed
     if (widget.order!.status == OrderBadgeStatus.completed || 
-        logs.any((l) => l.newStatus == 'COMPLETED')) {
+        logs.any((l) => l.newStatus == 'COMPLETED' || l.action == 'COMPLETED')) {
       _status = OrderStatus.completed;
       return;
     }
     
-    // Check for work done OTP
-    if (logs.any((l) => l.newStatus == 'WORK_DONE' || l.newStatus == 'OTP_REQUIRED' || l.newStatus == 'WORK_DONE_OTP')) {
+    // 2. Work Done OTP Needed
+    if (logs.any((l) => l.newStatus == 'OTP_REQUIRED' || l.action == 'OTP_REQUIRED' || 
+                    l.newStatus == 'WORK_DONE' || l.newStatus == 'WORK_DONE_OTP')) {
       _status = OrderStatus.workDoneOtp;
       return;
     }
     
-    // Check for work started
-    if (logs.any((l) => l.newStatus == 'WORK_STARTED')) {
+    // 3. Work Started
+    if (logs.any((l) => l.newStatus == 'WORK_STARTED' || l.action == 'WORK_STARTED' ||
+                    l.newStatus == 'OTP_VERIFIED' || l.action == 'OTP_VERIFIED' ||
+                    l.newStatus == 'WORK_PROGRESS_UPDATED' || l.action == 'WORK_PROGRESS_UPDATED')) {
       _status = OrderStatus.workStarted;
       return;
     }
     
-    // Check for arrived
-    if (logs.any((l) => l.newStatus == 'ARRIVED')) {
+    // 4. Arrived
+    if (logs.any((l) => l.newStatus == 'ARRIVED' || l.action == 'ARRIVED')) {
       _status = OrderStatus.arrived;
       return;
     }
     
-    // Check for on the way
-    if (logs.any((l) => l.newStatus == 'ON_THE_WAY')) {
+    // 5. On the Way
+    if (logs.any((l) => l.newStatus == 'ON_THE_WAY' || l.action == 'ON_THE_WAY')) {
       _status = OrderStatus.onTheWay;
+      return;
+    }
+
+    // 6. Assigned (Technician Assigned)
+    if (logs.any((l) => l.newStatus == 'PROVIDER_ASSIGN' || l.action == 'PROVIDER_ASSIGN' ||
+                    l.newStatus == 'PROVIDER_ASIGN' || l.action == 'PROVIDER_ASIGN' ||
+                    l.newStatus == 'ACCEPTED' || l.action == 'ACCEPTED')) {
+      _status = OrderStatus.assigned;
       return;
     }
     

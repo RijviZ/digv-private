@@ -25,6 +25,10 @@ abstract class AuthRemoteDataSource {
   Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data);
 
   Future<Map<String, dynamic>> updateLocation(Map<String, dynamic> data);
+
+  Future<List<dynamic>> getLocationHistory();
+
+  Future<Map<String, dynamic>> getUserStats();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -163,6 +167,40 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on DioException catch (e) {
       if (e.response != null && e.response?.data != null) {
          throw ApiException(_extractErrorMessage(e.response?.data, 'Failed to update location'));
+      }
+      throw ApiException(e.message ?? 'An unknown error occurred');
+    }
+  }
+
+  @override
+  Future<List<dynamic>> getLocationHistory() async {
+    try {
+      final response = await dio.get('/users/location/history');
+      if (response.data['success'] == true) {
+        return response.data['data'] as List<dynamic>;
+      } else {
+        throw ApiException(response.data['message'] ?? 'Failed to fetch location history');
+      }
+    } on DioException catch (e) {
+      if (e.response != null && e.response?.data != null) {
+         throw ApiException(_extractErrorMessage(e.response?.data, 'Failed to fetch location history'));
+      }
+      throw ApiException(e.message ?? 'An unknown error occurred');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getUserStats() async {
+    try {
+      final response = await dio.get('/users/stats');
+      if (response.data['success'] == true) {
+        return response.data['data'] as Map<String, dynamic>;
+      } else {
+        throw ApiException(response.data['message'] ?? 'Failed to fetch user stats');
+      }
+    } on DioException catch (e) {
+      if (e.response != null && e.response?.data != null) {
+         throw ApiException(_extractErrorMessage(e.response?.data, 'Failed to fetch user stats'));
       }
       throw ApiException(e.message ?? 'An unknown error occurred');
     }

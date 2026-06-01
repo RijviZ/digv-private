@@ -1,5 +1,7 @@
 
+import '../../../address/domain/entities/address.dart';
 import '../entities/user.dart';
+import '../entities/user_stats.dart';
 
 abstract class AuthRepository {
   Future<Map<String, dynamic>> sendOtp({
@@ -18,5 +20,7 @@ abstract class AuthRepository {
   Future<User> updateProfile(Map<String, dynamic> data);
 
   Future<void> updateLocation(Map<String, dynamic> data);
+  Future<List<Address>> getLocationHistory();
+  Future<UserStats> getUserStats();
   Future<void> logout();
 }

@@ -112,26 +112,45 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/select_technician',
       builder: (context, state) {
+        if (state.extra is (List<SearchProviderEntity>, SearchServiceEntity, int)) {
+          final (providers, service, quantity) = state.extra as (List<SearchProviderEntity>, SearchServiceEntity, int);
+          return SelectTechnicianScreen(providers: providers, service: service, quantity: quantity);
+        }
         final (providers, service) = state.extra as (List<SearchProviderEntity>, SearchServiceEntity);
-        return SelectTechnicianScreen(providers: providers, service: service);
+        return SelectTechnicianScreen(providers: providers, service: service, quantity: 1);
       },
     ),
     GoRoute(
       path: '/select_date_and_time',
       builder: (context, state) {
+        if (state.extra is (SearchServiceEntity, Technician, int)) {
+          final (service, technician, quantity) = state.extra as (SearchServiceEntity, Technician, int);
+          return SelectDateTimeScreen(service: service, technician: technician, quantity: quantity);
+        }
         final (service, technician) = state.extra as (SearchServiceEntity, Technician);
-        return SelectDateTimeScreen(service: service, technician: technician);
+        return SelectDateTimeScreen(service: service, technician: technician, quantity: 1);
       },
     ),
     GoRoute(
       path: '/review_booking',
       builder: (context, state) {
+        if (state.extra is (SearchServiceEntity, Technician, DateItem, String, int)) {
+          final (service, technician, date, time, quantity) = state.extra as (SearchServiceEntity, Technician, DateItem, String, int);
+          return ReviewBookingScreen(
+            service: service,
+            technician: technician,
+            selectedDate: date,
+            selectedTime: time,
+            quantity: quantity,
+          );
+        }
         final (service, technician, date, time) = state.extra as (SearchServiceEntity, Technician, DateItem, String);
         return ReviewBookingScreen(
           service: service,
           technician: technician,
           selectedDate: date,
           selectedTime: time,
+          quantity: 1,
         );
       },
     ),

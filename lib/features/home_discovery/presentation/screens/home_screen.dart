@@ -1,7 +1,9 @@
+import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
 import 'package:digv/features/home_discovery/presentation/domain/quick_service_item.dart';
 import 'package:digv/features/home_discovery/presentation/providers/service_categories_provider.dart';
+import 'package:digv/features/home_discovery/presentation/widgets/location_dropdown_bottom_sheet.dart';
 import 'package:digv/features/search/domain/entities/search_result.dart';
 import 'package:digv/features/search/presentation/providers/search_provider.dart';
 import 'package:flutter/material.dart';
@@ -36,6 +38,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   // _serviceCards removed to use live data from searchResultsProvider
 
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   final List<QuickServiceItem> _quickServices = [
     const QuickServiceItem(label: 'AC Regular Service', price: '₹199'),
     const QuickServiceItem(label: 'Electrical Wiring', price: '₹199'),
@@ -52,6 +57,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void dispose() {
     _promoBannerController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -69,6 +75,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         child: Column(
           children: [
             _buildHeader(context),
+            _buildSearchBox(),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
@@ -87,9 +94,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     children: [
-                      _buildExploreSection(),
-                      _buildServicesForYouSection(),
-                      _buildQuickServicesSection(),
+                      if (_searchQuery.isNotEmpty)
+                        _buildSearchResults()
+                      else ...[
+                        _buildExploreSection(),
+                        _buildServicesForYouSection(),
+                        _buildQuickServicesSection(),
+                      ],
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -113,18 +124,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       error: (_, __) => "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
     );
 
-    final locationText = profileAsync.when(
-      data: (user) {
-        final locationData = user.latestLocation;
-        if (locationData != null) {
-          final address = locationData.addressLine ?? locationData.city;
-          return (address != null && address.isNotEmpty) ? address : 'Location not set';
-        }
-        return 'Location not set';
-      },
-      loading: () => 'Loading...',
-      error: (_, __) => 'Error loading',
-    );
+    final selectedLocation = ref.watch(selectedLocationProvider);
+
+    final locationText = selectedLocation != null
+        ? ((selectedLocation.addressLine != null && selectedLocation.addressLine!.isNotEmpty)
+            ? selectedLocation.addressLine!
+            : (selectedLocation.city ?? 'Location not set'))
+        : profileAsync.when(
+            data: (_) => 'Location not set',
+            loading: () => 'Loading...',
+            error: (_, __) => 'Error loading',
+          );
 
     return Container(
       color: Theme.of(context).colorScheme.surface,
@@ -147,52 +157,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Container(
-              width: double.infinity,
-              height: 40,
-              padding: const EdgeInsets.all(10),
-              clipBehavior: Clip.antiAlias,
-              decoration: ShapeDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                shape: RoundedRectangleBorder(
-                  side: BorderSide(
-                    width: 1,
-                    color: Theme.of(context).dividerColor,
+            child: GestureDetector(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (context) => const SafeArea(
+                    child: LocationDropdownBottomSheet(),
                   ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: SvgPicture.asset('assets/images/location.svg'),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      locationText,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 14,
-                        fontFamily: 'Inter Display',
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                );
+              },
+              child: Container(
+                width: double.infinity,
+                height: 40,
+                padding: const EdgeInsets.all(10),
+                clipBehavior: Clip.antiAlias,
+                decoration: ShapeDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(
+                      width: 1,
+                      color: Theme.of(context).dividerColor,
                     ),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: SvgPicture.asset('assets/images/arrow-down.svg'),
-                  ),
-                ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: SvgPicture.asset('assets/images/location.svg'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        locationText,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 14,
+                          fontFamily: 'Inter Display',
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: SvgPicture.asset('assets/images/arrow-down.svg'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -824,6 +846,408 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       },
       loading: () => const SizedBox.shrink(),
       error: (e, s) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildSearchBox() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Theme.of(context).colorScheme.surface,
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6), // premium light grey slate
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFFE5E7EB),
+            width: 1,
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.search,
+              color: AppColors.textSecondary,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(
+                  color: AppColors.textDark,
+                  fontSize: 15,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                ),
+                decoration: const InputDecoration(
+                  hintText: 'Search services, providers...',
+                  hintStyle: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 15,
+                    fontFamily: 'Inter',
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 12),
+                ),
+                textInputAction: TextInputAction.search,
+                onSubmitted: (value) {
+                  setState(() {
+                    _searchQuery = value.trim();
+                  });
+                },
+                onChanged: (value) {
+                  if (value.trim().isEmpty && _searchQuery.isNotEmpty) {
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  }
+                },
+              ),
+            ),
+            if (_searchController.text.isNotEmpty)
+              GestureDetector(
+                onTap: () {
+                  _searchController.clear();
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                },
+                child: const Icon(
+                  Icons.clear,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchResults() {
+    final searchAsync = ref.watch(searchResultsProvider(SearchFilters(q: _searchQuery)));
+
+    return searchAsync.when(
+      data: (searchResponse) {
+        final providers = searchResponse.providers;
+        if (providers.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.search_off,
+                    size: 64,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No results found for "$_searchQuery"',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Try checking spelling or using more general terms',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          itemCount: providers.length,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          itemBuilder: (context, index) {
+            final provider = providers[index];
+            return _buildProviderSearchResultCard(provider, providers);
+          },
+        );
+      },
+      loading: () => const Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40.0),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (err, stack) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Text(
+            'Error fetching results: $err',
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProviderSearchResultCard(SearchProviderEntity provider, List<SearchProviderEntity> allProviders) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x05000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Provider Header Details
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Avatar
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFF3F4F6),
+                    image: (provider.avatarUrl != null && provider.avatarUrl!.isNotEmpty)
+                        ? DecorationImage(
+                            image: NetworkImage(provider.avatarUrl!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: (provider.avatarUrl == null || provider.avatarUrl!.isEmpty)
+                      ? const Icon(Icons.person, size: 28, color: Colors.grey)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                // Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              provider.fullName,
+                              style: AppTextStyles.bodyMediumBold.copyWith(
+                                fontSize: 16,
+                                color: AppColors.textDark,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Availability Tag
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: provider.isAvailableNow 
+                                  ? const Color(0xFFDCFCE7) 
+                                  : const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: provider.isAvailableNow 
+                                        ? const Color(0xFF22C55E) 
+                                        : Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  provider.isAvailableNow ? 'Available' : 'Offline',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: provider.isAvailableNow 
+                                        ? const Color(0xFF166534) 
+                                        : Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            double.tryParse(provider.averageRating ?? '0.0')?.toStringAsFixed(1) ?? '0.0',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '(${provider.reviewCount ?? 0} reviews) · ${provider.completedServiceRequestCount ?? 0} bookings',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (provider.bio != null && provider.bio!.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          provider.bio!,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                            height: 1.4,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          
+          // Services Offered List
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Services Offered',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...provider.services.map((service) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFF3F4F6)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Service Icon or Image
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: const Color(0xFFE5E7EB),
+                            image: (service.serviceImageUrl != null && service.serviceImageUrl!.isNotEmpty)
+                                ? DecorationImage(
+                                    image: NetworkImage(service.serviceImageUrl!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                          ),
+                          child: (service.serviceImageUrl == null || service.serviceImageUrl!.isEmpty)
+                              ? const Icon(Icons.build, size: 20, color: Colors.grey)
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        // Service Info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                service.title,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${provider.currency} ${service.priceOverride} · ${service.durationMinutes ?? 30} mins',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Book Button
+                        ElevatedButton(
+                          onPressed: () {
+                            context.push(
+                              '/service_details',
+                              extra: (provider, service, allProviders),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Book',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

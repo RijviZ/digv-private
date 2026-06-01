@@ -18,6 +18,7 @@ class ReviewBookingScreen extends ConsumerStatefulWidget {
   final Technician technician;
   final DateItem selectedDate;
   final String selectedTime;
+  final int quantity;
 
   const ReviewBookingScreen({
     super.key,
@@ -25,6 +26,7 @@ class ReviewBookingScreen extends ConsumerStatefulWidget {
     required this.technician,
     required this.selectedDate,
     required this.selectedTime,
+    this.quantity = 1,
   });
 
   @override
@@ -32,9 +34,15 @@ class ReviewBookingScreen extends ConsumerStatefulWidget {
 }
 
 class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
-  int _quantity = 1;
+  late int _quantity;
   int _selectedAddress = 0;
   bool _agreedToTerms = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _quantity = widget.quantity;
+  }
 
   int get _totalPrice => widget.technician.pricePerVisit * _quantity;
 

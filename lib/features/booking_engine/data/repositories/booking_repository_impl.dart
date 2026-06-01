@@ -15,4 +15,9 @@ class BookingRepositoryImpl implements BookingRepository {
   Future<List<Map<String, dynamic>>> getAvailableSlots(String providerId, String scheduledDate) async {
     return await remoteDataSource.getAvailableSlots(providerId, scheduledDate);
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> getProviderAvailabilityDates(String providerId) async {
+    return await remoteDataSource.getProviderAvailabilityDates(providerId);
+  }
 }

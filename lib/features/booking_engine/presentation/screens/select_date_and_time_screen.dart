@@ -14,11 +14,13 @@ import 'package:go_router/go_router.dart';
 class SelectDateTimeScreen extends ConsumerStatefulWidget {
   final SearchServiceEntity service;
   final Technician technician;
+  final int quantity;
 
   const SelectDateTimeScreen({
     super.key,
     required this.service,
     required this.technician,
+    this.quantity = 1,
   });
 
   @override
@@ -86,6 +88,7 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final availabilityAsync = ref.watch(providerAvailabilityDatesProvider(widget.technician.providerId ?? ''));
     final selectedDate = _dates[_selectedDateIndex];
     final dateStr = _formatScheduledDate(selectedDate);
 
@@ -100,37 +103,92 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
           children: [
             const AppTopBar(title: 'Select a Date & Time'),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionLabel('Select Date'),
-                    const SizedBox(height: 12),
-                    _buildDateSelector(),
-                    const SizedBox(height: 20),
-                    _buildSectionLabel('Select Time Slot'),
-                    const SizedBox(height: 12),
-                    slotsAsync.when(
-                      data: (slots) => _buildTimeGrid(slots),
-                      loading: () => const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
-                      error: (err, _) => Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24),
-                          child: Text(
-                            'Failed to load slots: $err',
-                            style: const TextStyle(color: AppColors.error),
+              child: availabilityAsync.when(
+                data: (availabilityList) {
+                  // Run safe state updates post-frame
+                  bool isCurrentAvailable = true;
+                  if (_dates.isNotEmpty && _selectedDateIndex < _dates.length) {
+                    final currentFormatted = _formatScheduledDate(_dates[_selectedDateIndex]);
+                    final currentData = availabilityList.firstWhere(
+                      (d) => d['date'] == currentFormatted,
+                      orElse: () => <String, dynamic>{},
+                    );
+                    isCurrentAvailable = currentData['isAvailable'] as bool? ?? false;
+                  }
+
+                  if (!isCurrentAvailable) {
+                    int firstAvailableIdx = -1;
+                    for (int i = 0; i < _dates.length; i++) {
+                      final formatted = _formatScheduledDate(_dates[i]);
+                      final data = availabilityList.firstWhere(
+                        (d) => d['date'] == formatted,
+                        orElse: () => <String, dynamic>{},
+                      );
+                      if (data['isAvailable'] as bool? ?? false) {
+                        firstAvailableIdx = i;
+                        break;
+                      }
+                    }
+                    if (firstAvailableIdx != -1) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          setState(() {
+                            _selectedDateIndex = firstAvailableIdx;
+                          });
+                        }
+                      });
+                    }
+                  }
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionLabel('Select Date'),
+                        const SizedBox(height: 12),
+                        _buildDateSelector(availabilityList),
+                        const SizedBox(height: 20),
+                        _buildSectionLabel('Select Time Slot'),
+                        const SizedBox(height: 12),
+                        slotsAsync.when(
+                          data: (slots) => _buildTimeGrid(slots),
+                          loading: () => const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                          error: (err, _) => Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Text(
+                                'Failed to load slots: $err',
+                                style: const TextStyle(color: AppColors.error),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                  ],
+                  );
+                },
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 100),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+                error: (err, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 100, left: 16, right: 16),
+                    child: Text(
+                      'Failed to load provider availability: $err',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.error),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -162,6 +220,7 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
                     widget.technician,
                     selectedDate,
                     selectedTimeEncoded,
+                    widget.quantity,
                   ));
                 } : null,
               );
@@ -184,7 +243,7 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
     );
   }
 
-  Widget _buildDateSelector() {
+  Widget _buildDateSelector(List<Map<String, dynamic>> availabilityList) {
     return SizedBox(
       height: 84,
       child: ListView.separated(
@@ -194,19 +253,50 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
         itemBuilder: (context, i) {
           final selected = _selectedDateIndex == i;
           final item = _dates[i];
+          final formattedDate = _formatScheduledDate(item);
+          final availabilityData = availabilityList.firstWhere(
+            (d) => d['date'] == formattedDate,
+            orElse: () => <String, dynamic>{},
+          );
+          final bool isAvailable = availabilityData['isAvailable'] as bool? ?? false;
+
+          Color bgColor;
+          Color borderColor;
+          Color textColor;
+          Color monthColor;
+
+          if (selected) {
+            bgColor = Theme.of(context).colorScheme.primary;
+            borderColor = Theme.of(context).colorScheme.primary;
+            textColor = Theme.of(context).colorScheme.onPrimary;
+            monthColor = AppColors.textGray;
+          } else if (!isAvailable) {
+            bgColor = AppColors.inputBgSecondary;
+            borderColor = AppColors.inputBorder;
+            textColor = AppColors.textGray;
+            monthColor = AppColors.textGray;
+          } else {
+            bgColor = Colors.white;
+            borderColor = AppColors.dropDownBorder;
+            textColor = Theme.of(context).colorScheme.primary;
+            monthColor = Theme.of(context).colorScheme.secondary;
+          }
+
           return GestureDetector(
-            onTap: () => setState(() {
-              _selectedDateIndex = i;
-              _selectedTimeIndex = null;
-            }),
+            onTap: !isAvailable
+                ? null
+                : () => setState(() {
+                      _selectedDateIndex = i;
+                      _selectedTimeIndex = null;
+                    }),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 68,
               decoration: BoxDecoration(
-                color: selected ? Theme.of(context).colorScheme.primary : Colors.white,
+                color: bgColor,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: selected ? Theme.of(context).colorScheme.primary : AppColors.dropDownBorder,
+                  color: borderColor,
                   width: 1,
                 ),
               ),
@@ -217,14 +307,14 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
                     item.day,
                     style: AppTextStyles.captionSmall.copyWith(
                       height: 1.4,
-                      color: selected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.primary,
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${item.date}',
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: selected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.primary,
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -232,7 +322,7 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
                     item.month,
                     style: AppTextStyles.captionSmall.copyWith(
                       height: 1.4,
-                      color: selected ? AppColors.textGray : Theme.of(context).colorScheme.secondary,
+                      color: monthColor,
                     ),
                   ),
                 ],

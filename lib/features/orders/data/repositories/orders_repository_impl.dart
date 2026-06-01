@@ -22,12 +22,12 @@ class OrdersRepositoryImpl implements OrdersRepository {
     OrderBadgeStatus badgeStatus = OrderBadgeStatus.upcoming;
     switch (statusStr) {
       case 'ACCEPTED':
-        badgeStatus = OrderBadgeStatus.active;
+      case 'PENDING':
+        badgeStatus = OrderBadgeStatus.upcoming;
         break;
       case 'ON_THE_WAY':
       case 'ARRIVED':
       case 'WORK_STARTED':
-      case 'PENDING':
       case 'IN_PROGRESS':
         badgeStatus = OrderBadgeStatus.active;
         break;
@@ -123,6 +123,28 @@ class OrdersRepositoryImpl implements OrdersRepository {
     await remoteDataSource.submitReview(
       serviceRequestId: serviceRequestId,
       targetType: targetType,
+      rating: rating,
+      comment: comment,
+      tags: tags,
+      photos: photos,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getGivenReviewByServiceRequestId({required String serviceRequestId}) async {
+    return await remoteDataSource.getGivenReviewByServiceRequestId(serviceRequestId: serviceRequestId);
+  }
+
+  @override
+  Future<void> updateReview({
+    required String id,
+    required int rating,
+    required String comment,
+    required List<String> tags,
+    required List<String> photos,
+  }) async {
+    await remoteDataSource.updateReview(
+      id: id,
       rating: rating,
       comment: comment,
       tags: tags,

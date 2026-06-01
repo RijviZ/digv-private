@@ -14,11 +14,13 @@ import '../../../../core/widgets/technician_card.dart';
 class SelectTechnicianScreen extends StatefulWidget {
   final List<SearchProviderEntity> providers;
   final SearchServiceEntity service;
+  final int quantity;
 
   const SelectTechnicianScreen({
     super.key,
     required this.providers,
     required this.service,
+    this.quantity = 1,
   });
  
   @override
@@ -143,7 +145,7 @@ class _SelectTechnicianScreenState extends State<SelectTechnicianScreen> {
             onTap: _selectedTechnician == null
                 ? null
                 : () {
-                    context.push('/select_date_and_time', extra: (widget.service, _selectedTechnician!));
+                    context.push('/select_date_and_time', extra: (widget.service, _selectedTechnician!, widget.quantity));
                   },
           ),
         ),

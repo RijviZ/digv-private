@@ -22,6 +22,14 @@ abstract class OrdersRemoteDataSource {
     required List<String> tags,
     required List<String> photos,
   });
+  Future<Map<String, dynamic>?> getGivenReviewByServiceRequestId({required String serviceRequestId});
+  Future<Map<String, dynamic>> updateReview({
+    required String id,
+    required int rating,
+    required String comment,
+    required List<String> tags,
+    required List<String> photos,
+  });
 }
 
 class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
@@ -101,6 +109,47 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
       data: {
         'serviceRequestId': serviceRequestId,
         'targetType': targetType,
+        'rating': rating,
+        'comment': comment,
+        'tags': tags,
+        'photos': photos,
+      },
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getGivenReviewByServiceRequestId({required String serviceRequestId}) async {
+    final response = await _dio.get(
+      '/users/review/given',
+      queryParameters: {
+        'page': 1,
+        'limit': 20,
+        'filter': 'ALL',
+        'serviceRequestId': serviceRequestId,
+      },
+    );
+    final data = response.data;
+    if (data is Map<String, dynamic> && data['data'] != null) {
+      final items = data['data']['items'] as List?;
+      if (items != null && items.isNotEmpty) {
+        return items.first as Map<String, dynamic>;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateReview({
+    required String id,
+    required int rating,
+    required String comment,
+    required List<String> tags,
+    required List<String> photos,
+  }) async {
+    final response = await _dio.patch(
+      '/users/review/$id',
+      data: {
         'rating': rating,
         'comment': comment,
         'tags': tags,

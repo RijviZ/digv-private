@@ -37,7 +37,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
 
   @override
   Future<List<Map<String, dynamic>>> getMyChats({required String userId}) async {
-    final res = await _dio.get('/chat/my', queryParameters: {
+    final res = await _dio.get('/messages/my', queryParameters: {
       'userId': userId,
     });
     return (res.data as List).cast<Map<String, dynamic>>();
@@ -49,7 +49,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     required String peerUserId,
   }) async {
     final res = await _dio.post(
-      '/chat/personal',
+      '/messages/personal',
       queryParameters: {'userId': userId},
       data: {'peerUserId': peerUserId},
     );
@@ -63,7 +63,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     int limit = 30,
     String? olderThan,
   }) async {
-    final res = await _dio.get('/chat/messages', queryParameters: {
+    final res = await _dio.get('/messages/all', queryParameters: {
       'chatId': chatId,
       'limit': limit,
       if (olderThan != null) 'olderThan': olderThan,
@@ -80,7 +80,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     List<String>? attachmentUrls,
   }) async {
     final res = await _dio.post(
-      '/chat/messages',
+      '/messages/send-message',
       data: {
         'peerUserId': peerUserId,
         if (content != null) 'content': content,
@@ -98,7 +98,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     required String messageId,
   }) async {
     final res = await _dio.post(
-      '/chat/read',
+      '/messages/read',
       queryParameters: {'userId': userId},
       data: {
         'chatId': chatId,

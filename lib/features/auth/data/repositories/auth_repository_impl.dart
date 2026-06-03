@@ -52,10 +52,16 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Map<String, dynamic>> verifyOtp({
     required String phoneNumber,
     required String otp,
+    String? deviceToken,
+    String? platform,
+    String? appVersion,
   }) async {
     final data = await remoteDataSource.verifyOtp(
       phoneNumber: phoneNumber,
       otp: otp,
+      deviceToken: deviceToken,
+      platform: platform,
+      appVersion: appVersion,
     );
 
     final String accessToken = data['accessToken'] as String;

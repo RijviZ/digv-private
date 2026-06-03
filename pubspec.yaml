@@ -33,6 +33,11 @@ dependencies:
   geolocator: 14.0.2
   url_launcher: ^6.3.2
 
+  # Firebase & Device Info
+  firebase_core: any
+  firebase_messaging: any
+  package_info_plus: any
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

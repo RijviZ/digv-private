@@ -1,10 +1,13 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/core/utils/snackbar_utils.dart';
+import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class ShareAppBottomSheet extends StatelessWidget {
+class ShareAppBottomSheet extends ConsumerWidget {
   const ShareAppBottomSheet({super.key});
 
   static void show(BuildContext context) {
@@ -17,41 +20,70 @@ class ShareAppBottomSheet extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _buildDragHandle(),
-              const SizedBox(height: 24),
-              _buildHeader(context),
-              const SizedBox(height: 24),
-              _buildReferralCodeSection(),
-              const SizedBox(height: 16),
-              _buildReferralLinkSection(),
-              const SizedBox(height: 24),
-              _buildHowItWorksSection(),
-              const SizedBox(height: 24),
-              _buildShareButton(context),
-              const SizedBox(height: 8),
-            ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(profileProvider);
+
+    return profileAsync.when(
+      data: (user) {
+        final referralCode = user.userOwnReferralCode ?? 'HOMESERV50';
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _buildDragHandle(),
+                  const SizedBox(height: 24),
+                  _buildHeader(context),
+                  const SizedBox(height: 24),
+                  _buildReferralCodeSection(context, referralCode),
+                  const SizedBox(height: 16),
+                  _buildReferralLinkSection(context, referralCode),
+                  const SizedBox(height: 24),
+                  _buildHowItWorksSection(),
+                  const SizedBox(height: 24),
+                  _buildShareButton(context, referralCode),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      loading: () => Container(
+        height: 200,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
           ),
         ),
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, stack) => Container(
+        height: 200,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: const Center(child: Text('Failed to load profile')),
       ),
     );
   }
@@ -133,7 +165,8 @@ class ShareAppBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildReferralCodeSection() {
+  Widget _buildReferralCodeSection(BuildContext context, String referralCode) {
+    final spacedCode = referralCode.split('').join(' ');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -167,7 +200,7 @@ class ShareAppBottomSheet extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'R A H U L D 5 0',
+                    spacedCode,
                     style: TextStyle(
                       color: AppColors.textDark,
                       fontSize: 22,
@@ -189,7 +222,8 @@ class ShareAppBottomSheet extends StatelessWidget {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () {
-                      Clipboard.setData(const ClipboardData(text: 'RAHULD50'));
+                      Clipboard.setData(ClipboardData(text: referralCode));
+                      SnackBarUtils.showSuccess(context, 'Referral code copied!');
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
@@ -226,7 +260,8 @@ class ShareAppBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildReferralLinkSection() {
+  Widget _buildReferralLinkSection(BuildContext context, String referralCode) {
+    final link = 'https://homeserv.app/join?ref=$referralCode';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -240,7 +275,7 @@ class ShareAppBottomSheet extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              'https://homeserv.app/join?ref=RAHULD50',
+              link,
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 13,
@@ -253,7 +288,8 @@ class ShareAppBottomSheet extends StatelessWidget {
           const SizedBox(width: 12),
           GestureDetector(
             onTap: () {
-              Clipboard.setData(const ClipboardData(text: 'https://homeserv.app/join?ref=RAHULD50'));
+              Clipboard.setData(ClipboardData(text: link));
+              SnackBarUtils.showSuccess(context, 'Referral link copied!');
             },
             child: Row(
               children: [
@@ -363,13 +399,15 @@ class ShareAppBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildShareButton(BuildContext context) {
+  Widget _buildShareButton(BuildContext context, String referralCode) {
     return SizedBox(
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
         onPressed: () {
-          // Implement share functionality
+          final inviteText = 'Hey! Use my referral code $referralCode to get amazing services on HomeServ. Download the app now: https://homeserv.app/join?ref=$referralCode';
+          Clipboard.setData(ClipboardData(text: inviteText));
+          SnackBarUtils.showSuccess(context, 'Invite message copied to clipboard!');
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.onLight,

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:digv/features/profile_settings/presentation/providers/theme_provider.dart';
 import 'package:digv/features/profile_settings/presentation/providers/locale_provider.dart';
 import 'package:digv/core/theme/app_theme.dart';
+import 'package:digv/core/notifications/push_notification_service.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -16,9 +17,10 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
-void main() {
+Future<void> main() async {
   HttpOverrides.global = MyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
+  await PushNotificationService().initialize();
   runApp(const ProviderScope(child: DigV()));
 }
 

@@ -13,6 +13,9 @@ abstract class AuthRepository {
   Future<Map<String, dynamic>> verifyOtp({
     required String phoneNumber,
     required String otp,
+    String? deviceToken,
+    String? platform,
+    String? appVersion,
   });
 
   Future<User> getProfile();

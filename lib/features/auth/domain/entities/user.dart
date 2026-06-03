@@ -11,6 +11,7 @@ class User {
   final String? dateOfBirth;
   final String? avatarUrl;
   final String? referredByCode;
+  final String? userOwnReferralCode;
   final String role;
   final bool isPhoneVerified;
   final bool isEmailVerified;
@@ -31,6 +32,7 @@ class User {
     this.dateOfBirth,
     this.avatarUrl,
     this.referredByCode,
+    this.userOwnReferralCode,
     required this.role,
     required this.isPhoneVerified,
     required this.isEmailVerified,

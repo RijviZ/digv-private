@@ -18,6 +18,9 @@ abstract class AuthRemoteDataSource {
   Future<Map<String, dynamic>> verifyOtp({
     required String phoneNumber,
     required String otp,
+    String? deviceToken,
+    String? platform,
+    String? appVersion,
   });
 
   Future<Map<String, dynamic>> getProfile();
@@ -89,6 +92,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<Map<String, dynamic>> verifyOtp({
     required String phoneNumber,
     required String otp,
+    String? deviceToken,
+    String? platform,
+    String? appVersion,
   }) async {
     try {
       final response = await dio.post(
@@ -96,6 +102,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         data: {
           "phoneNumber": phoneNumber,
           "otp": otp,
+          if (deviceToken != null) "deviceToken": deviceToken,
+          if (platform != null) "platform": platform,
+          if (appVersion != null) "appVersion": appVersion,
         },
       );
       

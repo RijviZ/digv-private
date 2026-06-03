@@ -13,6 +13,7 @@ import '../../../bank_account/presentation/providers/bank_account_provider.dart'
 import '../../../notifications/presentation/providers/notification_settings_provider.dart';
 
 import '../../domain/entities/user_stats.dart';
+import '../../../../core/notifications/push_notification_service.dart';
 
 final authProvider = AsyncNotifierProvider<AuthNotifier, void>(() {
   return AuthNotifier();
@@ -71,9 +72,17 @@ class AuthNotifier extends AsyncNotifier<void> {
   }) async {
     state = const AsyncValue.loading();
     try {
+      final notificationService = PushNotificationService();
+      final deviceToken = await notificationService.getDeviceToken();
+      final platform = notificationService.getPlatform();
+      final appVersion = await notificationService.getAppVersion();
+
       final result = await _repository.verifyOtp(
         phoneNumber: phoneNumber,
         otp: otp,
+        deviceToken: deviceToken,
+        platform: platform,
+        appVersion: appVersion,
       );
       state = const AsyncValue.data(null);
       return result;

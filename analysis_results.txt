@@ -1,0 +1,16 @@
+Analyzing 4 items...                                            
+
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:14:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:17:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:18:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:20:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:25:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:26:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\widgets\app_top_bar.dart:3:1 - directives_ordering
+   info - Use 'const' with the constructor to improve performance - lib\features\more\presentation\screens\faqs_screen.dart:223:36 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\more\presentation\screens\faqs_screen.dart:259:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\more\presentation\screens\faqs_screen.dart:261:34 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\more\presentation\screens\faqs_screen.dart:273:34 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\more\presentation\screens\faqs_screen.dart:316:20 - prefer_const_constructors
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\more\presentation\widgets\support_section.dart:31:50 - deprecated_member_use
+

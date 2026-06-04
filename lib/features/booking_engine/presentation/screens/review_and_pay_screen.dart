@@ -1,0 +1,411 @@
+import 'package:digv/features/address/domain/entities/address.dart';
+import 'package:digv/features/booking_engine/domain/date_item.dart';
+import 'package:digv/features/booking_engine/domain/technician.dart';
+import 'package:digv/features/search/domain/entities/search_result.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_primary_button.dart';
+import '../../../../core/widgets/app_top_bar.dart';
+import '../widgets/section_card.dart';
+
+class ReviewPayScreen extends StatefulWidget {
+  final SearchServiceEntity service;
+  final Technician technician;
+  final DateItem date;
+  final String time;
+  final int quantity;
+  final Address address;
+
+  const ReviewPayScreen({
+    super.key,
+    required this.service,
+    required this.technician,
+    required this.date,
+    required this.time,
+    required this.quantity,
+    required this.address,
+  });
+
+  @override
+  State<ReviewPayScreen> createState() => _ReviewPayScreenState();
+}
+
+class _ReviewPayScreenState extends State<ReviewPayScreen> {
+  final TextEditingController _promoController = TextEditingController();
+  final FocusNode _promoFocus = FocusNode();
+
+  bool _promoApplied = false;
+  bool _promoError = false;
+
+  final Map<String, int> _validCodes = {'FIRST10': 10};
+
+  int get _serviceCharge => widget.technician.pricePerVisit * widget.quantity;
+  int get _platformFee => (_serviceCharge * 0.10).round();
+
+  int get _discountPercent => _promoApplied ? (_validCodes[_promoController.text.trim().toUpperCase()] ?? 0) : 0;
+
+  int get _discountAmount => ((_serviceCharge - _platformFee) * _discountPercent / 100).round();
+
+  int get _total => _serviceCharge - _platformFee - _discountAmount;
+
+  void _applyPromo() {
+    final code = _promoController.text.trim().toUpperCase();
+    if (_validCodes.containsKey(code)) {
+      setState(() {
+        _promoApplied = true;
+        _promoError = false;
+      });
+      _promoFocus.unfocus();
+    } else {
+      setState(() {
+        _promoApplied = false;
+        _promoError = true;
+      });
+    }
+  }
+
+  void _removePromo() {
+    setState(() {
+      _promoApplied = false;
+      _promoError = false;
+      _promoController.clear();
+    });
+  }
+
+  @override
+  void dispose() {
+    _promoController.dispose();
+    _promoFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: SafeArea(
+        child: Column(
+          children: [
+            const AppTopBar(title: 'Review Booking'),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildServiceSummaryCard(),
+                    const SizedBox(height: 20),
+                    _buildPromoCard(),
+                    const SizedBox(height: 20),
+                    _buildPriceBreakdownCard(),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: const Border(top: BorderSide(color: AppColors.dropDownBorder)),
+          ),
+          child: AppPrimaryButton(
+            text: 'Confirm & Pay',
+            onTap: () {
+              context.push('/payment_type', extra: {
+                'amount': _total,
+                'quantity': widget.quantity,
+                'serviceCharge': _serviceCharge,
+                'fee': _platformFee,
+                'service': widget.service,
+                'technician': widget.technician,
+                'date': widget.date,
+                'time': widget.time,
+                'address': widget.address,
+              });
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServiceSummaryCard() {
+    return SectionCard(
+      label: 'SERVICE SUMMARY',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 2),
+          Text(
+            widget.service.categoryName,
+            style: AppTextStyles.titleLight.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '${widget.service.title} • ${widget.quantity} unit${widget.quantity > 1 ? 's' : ''}',
+            style: AppTextStyles.labelMedium.copyWith(color: Theme.of(context).colorScheme.secondary),
+          ),
+
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.dropDownBorder, thickness: 1, height: 1),
+          const SizedBox(height: 14),
+          _buildInfoRow(icon: 'assets/images/person.svg', label: 'Technician', value: widget.technician.name),
+          const SizedBox(height: 14),
+          _buildInfoRow(icon: 'assets/images/CalendarBlank.svg', label: 'Schedule', value: '${widget.date.date} ${widget.date.month} · ${widget.time.split('|')[0]}'),
+          const SizedBox(height: 14),
+          _buildInfoRow(icon: 'assets/images/pin_g.svg', label: 'Address', value: '${widget.address.label ?? 'Address'} — ${widget.address.addressLine}'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow({required String icon, required String label, required String value}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          child: SizedBox(
+            width: 14,
+            height: 14,
+            child: SvgPicture.asset(
+              icon,
+              width: 14,
+              height: 14,
+              colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.secondary, BlendMode.srcIn),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: AppTextStyles.labelMedium.copyWith(color: Theme.of(context).colorScheme.secondary)),
+            Text(value, style: AppTextStyles.captionMedium.copyWith(color: Theme.of(context).colorScheme.primary)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPromoCard() {
+    return SectionCard(
+      label: 'PROMO CODE',
+      bg: AppColors.inputBgSecondary,
+      titleColor: Theme.of(context).colorScheme.secondary,
+      titleBorder: false,
+      titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      childTopPadding: 0,
+      child: _promoApplied ? _buildAppliedPromo() : _buildPromoInput(),
+    );
+  }
+
+  Widget _buildPromoInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color:Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: _promoError ? AppColors.error : AppColors.dropDownBorder),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: SvgPicture.asset(
+                        'assets/images/promo.svg',
+                        width: 14,
+                        height: 14,
+                        colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.secondary, BlendMode.srcIn),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SizedBox(
+                        child: TextField(
+                          controller: _promoController,
+                          focusNode: _promoFocus,
+                          style: AppTextStyles.captionMedium.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Enter promo code',
+                            hintStyle: AppTextStyles.captionMedium.copyWith(color: AppColors.textGray),
+                            filled: true,
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          textCapitalization: TextCapitalization.characters,
+                          onSubmitted: (_) => _applyPromo(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _applyPromo,
+              child: Container(
+                height: 42,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                alignment: Alignment.center,
+                child: Text('Apply', style: AppTextStyles.captionMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.surface
+                )),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_promoError)
+          Text('Invalid promo code. Please try again.', style: AppTextStyles.caption.copyWith(color: AppColors.error))
+        else
+          RichText(
+            text: TextSpan(
+              style: AppTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.secondary),
+              children: [
+                const TextSpan(text: 'Try code '),
+                TextSpan(
+                  text: 'FIRST10',
+                  style: AppTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w700),
+                ),
+                const TextSpan(text: ' for 10% off'),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAppliedPromo() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.successBg,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppColors.successBorder),
+      ),
+      child: Row(
+        children: [
+          SvgPicture.asset(
+            'assets/images/promo.svg',
+            width: 14,
+            height: 14,
+            colorFilter: const ColorFilter.mode(AppColors.successText, BlendMode.srcIn),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '✓ ${_promoController.text.trim().toUpperCase()} Applied!',
+              style: AppTextStyles.captionMedium.copyWith(color: AppColors.successText),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceBreakdownCard() {
+    return SectionCard(
+      label: 'PRICE BREAKDOWN',
+      bg: AppColors.inputBgSecondary,
+      titleColor: Theme.of(context).colorScheme.secondary,
+      titleBorder: false,
+      titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      childTopPadding: 0,
+      child: Column(
+        children: [
+          const SizedBox(height: 8),
+          _buildPriceRow(
+            label: 'Service charges',
+            value: '₹$_serviceCharge',
+            labelStyle: AppTextStyles.captionMedium.copyWith(color: Theme.of(context).colorScheme.secondary),
+            valueStyle: AppTextStyles.captionMedium.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildPriceRow(
+            label: 'Platform fee (10%)',
+            value: '₹$_platformFee',
+            labelStyle: AppTextStyles.captionMedium.copyWith(color: Theme.of(context).colorScheme.secondary),
+            valueStyle: AppTextStyles.captionMedium.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          if (_promoApplied) ...[
+            const SizedBox(height: 10),
+            _buildPriceRow(
+              label: 'Promo discount ($_discountPercent%)',
+              value: '–₹$_discountAmount',
+              labelStyle: AppTextStyles.captionMedium.copyWith(color: Theme.of(context).colorScheme.secondary),
+              valueStyle: AppTextStyles.captionMedium.copyWith(
+                color: AppColors.successText,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 8),
+          const Divider(color: AppColors.inputBorder, thickness: 1, height: 1),
+          const SizedBox(height: 8),
+          _buildPriceRow(
+            label: 'Total',
+            value: '₹$_total',
+            labelStyle: AppTextStyles.bodyMediumBold.copyWith(fontWeight: FontWeight.w800),
+            valueStyle: AppTextStyles.h4.copyWith(color: Theme.of(context).colorScheme.primary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceRow({
+    required String label,
+    required String value,
+    required TextStyle labelStyle,
+    required TextStyle valueStyle,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: labelStyle),
+        Text(value, style: valueStyle),
+      ],
+    );
+  }
+}

@@ -1,0 +1,36 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  # Stricter type checks
+  # strong-mode:
+  #   implicit-casts: false
+  #   implicit-dynamic: false
+
+  errors:
+    # Treat common warnings as errors
+    unused_import: error
+    unused_local_variable: error
+    dead_code: error
+    override_on_non_overriding_member: error
+    missing_required_param: error
+    missing_return: error
+    file_names: error
+    camel_case_types: error
+    
+  exclude:
+    - "bin/**"
+    - "lib/generated_plugin_registrant.dart"
+
+linter:
+  rules:
+    - directives_ordering
+    - prefer_const_constructors
+    - prefer_const_literals_to_create_immutables
+    - prefer_const_declarations
+    - prefer_final_locals
+    - avoid_unnecessary_containers
+    - prefer_is_empty
+    - prefer_is_not_empty
+    - annotate_overrides
+    - avoid_print
+    - curly_braces_in_flow_control_structures

@@ -44,7 +44,7 @@ class UserModel extends User {
     return UserModel(
       userId: json['userId'] as String,
       phoneNumber: json['phoneNumber'] as String,
-      countryCode: json['countryCode'] as String,
+      countryCode: json['countryCode'] as String? ?? '',
       email: json['email'] as String?,
       fullName: json['fullName'] as String?,
       gender: json['gender'] as String?,
@@ -55,7 +55,11 @@ class UserModel extends User {
       role: json['role'] as String,
       isPhoneVerified: json['isPhoneVerified'] as bool? ?? false,
       isEmailVerified: json['isEmailVerified'] as bool? ?? false,
-      isProfileSetupCompleted: json['isProfileSetupCompleted'] as bool? ?? false,
+      isProfileSetupCompleted: json['isProfileSetupCompleted'] as bool? ??
+          (json['fullName'] != null &&
+              (json['fullName'] as String).trim().isNotEmpty &&
+              json['email'] != null &&
+              (json['email'] as String).trim().isNotEmpty),
       isLocationAccessSkipped: json['isLocationAccessSkipped'] as bool? ?? false,
       isOnboardingCompleted: json['isOnboardingCompleted'] as bool? ?? false,
       latestLocation: latestLocationJson != null ? AddressModel.fromJson(latestLocationJson) : null,

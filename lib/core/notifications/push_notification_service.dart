@@ -58,7 +58,7 @@ class PushNotificationService {
   Future<String> getDeviceToken() async {
     if (!_isFirebaseInitialized) {
       developer.log('Firebase not initialized. Returning mock device token.', name: 'PushNotificationService');
-      return 'mock_device_token_ রাহুল_দাস_9876543211';
+      return 'e1F_A4xWRQe7d-V8G9H0I1J2K3L4M5N6O7P8Q9R0S1T2U3V4W5X6Y7Z8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z4A5B6C7D8E9F0G1H2I3J4K5L6M7N8O9P';
     }
 
     try {
@@ -75,7 +75,7 @@ class PushNotificationService {
       );
     }
 
-    return 'mock_device_token_RahulDas9876543211';
+    return 'f3JpA4xWRQe7d-V8G9H0I1J2K3L4M5N6O7P8Q9R0S1T2U3V4W5X6Y7Z8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z4A5B6C7D8E9F0G1H2I3J4K5L6M7N8O9P';
   }
 
   /// Gets the current operating system platform.

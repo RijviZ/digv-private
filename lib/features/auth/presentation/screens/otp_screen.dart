@@ -196,6 +196,22 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                       );
                                   if (context.mounted) {
                                     final user = result['user'];
+                                    final nextStep = result['nextStep'] as String?;
+
+                                    if (nextStep != null && nextStep.isNotEmpty) {
+                                      final step = nextStep.toUpperCase();
+                                      if (step == 'HOME') {
+                                        context.go('/home');
+                                        return;
+                                      } else if (step == 'PROFILE_SETUP' || step == 'PROFILE') {
+                                        context.go('/setup_welcome', extra: widget.phoneNumber);
+                                        return;
+                                      } else if (step == 'LOCATION_ACCESS' || step == 'LOCATION') {
+                                        context.go('/enable_location_access');
+                                        return;
+                                      }
+                                    }
+
                                     if (user != null) {
                                       if (user.isOnboardingCompleted == true) {
                                         context.go('/home');

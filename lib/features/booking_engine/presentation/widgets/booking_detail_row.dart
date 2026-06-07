@@ -15,22 +15,24 @@ class BookingDetailRow extends StatelessWidget {
       children: [
         SvgPicture.asset(item.icon, height: 14, width: 14, colorFilter: ColorFilter.mode(item.iconColor, BlendMode.srcIn),),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              item.label,
-              style: AppTextStyles.labelMedium.copyWith(
-                color: Theme.of(context).colorScheme.secondary,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.label,
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
               ),
-            ),
-            Text(
-              item.value,
-              style: AppTextStyles.h6.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
+              Text(
+                item.value,
+                style: AppTextStyles.h6.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

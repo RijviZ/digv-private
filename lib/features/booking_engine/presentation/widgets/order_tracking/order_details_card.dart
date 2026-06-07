@@ -24,7 +24,7 @@ class OrderDetailsCard extends StatelessWidget {
     final method = order!.paymentMethod;
     if (method == 'CARD') return 'Card';
     if (method == 'UPI') return 'Google Pay';
-    if (method == 'BANK_ACCOUNT') return 'Net Banking';
+    if (method == 'BANK_ACCOUNT' || method == 'NET_BANKING') return 'Net Banking';
     if (method == 'CASH') return 'Cash';
     return method ?? 'Google Pay';
   }

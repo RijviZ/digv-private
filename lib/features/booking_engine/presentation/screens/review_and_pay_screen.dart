@@ -188,12 +188,14 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
           ),
         ),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: AppTextStyles.labelMedium.copyWith(color: Theme.of(context).colorScheme.secondary)),
-            Text(value, style: AppTextStyles.captionMedium.copyWith(color: Theme.of(context).colorScheme.primary)),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: AppTextStyles.labelMedium.copyWith(color: Theme.of(context).colorScheme.secondary)),
+              Text(value, style: AppTextStyles.captionMedium.copyWith(color: Theme.of(context).colorScheme.primary)),
+            ],
+          ),
         ),
       ],
     );

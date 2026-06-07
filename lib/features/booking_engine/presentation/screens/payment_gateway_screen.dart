@@ -42,7 +42,7 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
     final method = widget.bookingDetails['paymentMethod'] as String? ?? 'UPI';
     if (method == 'CARD') {
       _tab = PayTab.credit;
-    } else if (method == 'BANK_ACCOUNT') {
+    } else if (method == 'BANK_ACCOUNT' || method == 'NET_BANKING') {
       _tab = PayTab.bank;
     } else {
       _tab = PayTab.upi;
@@ -187,7 +187,7 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
       if (_tab == PayTab.upi) {
         method = 'UPI';
       } else if (_tab == PayTab.bank) {
-        method = 'BANK_ACCOUNT';
+        method = 'NET_BANKING';
       }
 
       final paymentRes = await ref.read(paymentsNotifierProvider.notifier).createPendingPayment(
@@ -422,18 +422,23 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      SvgPicture.asset('assets/images/lock.svg', width: 24, height: 24),
-                      const SizedBox(width: 8),
-                      Text(
-                        _footerLabel,
-                        style: AppTextStyles.button.copyWith(color: Theme
-                            .of(context)
-                            .colorScheme
-                            .secondary),
-                      ),
-                    ],
+                  Expanded(
+                    child: Row(
+                      children: [
+                        SvgPicture.asset('assets/images/lock.svg', width: 24, height: 24),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _footerLabel,
+                            style: AppTextStyles.button.copyWith(
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -488,34 +493,37 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
                         .colorScheme
                         .primary : Colors.transparent, width: 1)),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SvgPicture.asset(
-                        tab.svgPath,
-                        height: 20,
-                        width: 20,
-                        colorFilter:
-                        ColorFilter.mode(active ? AppColors.onLight : Theme
-                            .of(context)
-                            .colorScheme
-                            .secondary, BlendMode.srcIn),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        tab.label,
-                        style: AppTextStyles.labelMedium.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: active ? Theme
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SvgPicture.asset(
+                          tab.svgPath,
+                          height: 20,
+                          width: 20,
+                          colorFilter:
+                          ColorFilter.mode(active ? AppColors.onLight : Theme
                               .of(context)
                               .colorScheme
-                              .primary : Theme
-                              .of(context)
-                              .colorScheme
-                              .secondary,
+                              .secondary, BlendMode.srcIn),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Text(
+                          tab.label,
+                          style: AppTextStyles.labelMedium.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: active ? Theme
+                                .of(context)
+                                .colorScheme
+                                .primary : Theme
+                                .of(context)
+                                .colorScheme
+                                .secondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -37,6 +37,13 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
   void initState() {
     super.initState();
     _dates = _generateDates();
+    Future.microtask(() {
+      if (mounted) {
+        ref.invalidate(providerAvailabilityDatesProvider(widget.technician.providerId ?? ''));
+        final dateStr = _formatScheduledDate(_dates[_selectedDateIndex]);
+        ref.invalidate(availableSlotsProvider('${widget.technician.providerId ?? ''}|$dateStr'));
+      }
+    });
   }
 
   List<DateItem> _generateDates() {

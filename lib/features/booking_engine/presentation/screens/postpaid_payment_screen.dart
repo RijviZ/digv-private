@@ -109,7 +109,7 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
         if (_selectedTab == _PayTab.card) {
           method = 'CARD';
         } else if (_selectedTab == _PayTab.netBanking) {
-          method = 'BANK_ACCOUNT';
+          method = 'NET_BANKING';
         } else if (_selectedTab == _PayTab.upi) {
           method = 'UPI';
         }
@@ -527,7 +527,9 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     PaymentMethodChip(
                       icon: SvgPicture.asset(_PayTab.upi.svgPath),
@@ -536,7 +538,6 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
                       onTap: () =>
                           setState(() => _selectedTab = _PayTab.upi),
                     ),
-                    const SizedBox(width: 8),
                     PaymentMethodChip(
                       icon: SvgPicture.asset(_PayTab.card.svgPath),
                       label: 'Card',
@@ -544,7 +545,6 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
                       onTap: () =>
                           setState(() => _selectedTab = _PayTab.card),
                     ),
-                    const SizedBox(width: 8),
                     PaymentMethodChip(
                       icon: SvgPicture.asset(_PayTab.netBanking.svgPath),
                       label: 'Net Banking',

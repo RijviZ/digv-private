@@ -28,7 +28,7 @@ class UserProfileModel extends UserProfile {
       profileVerificationStatus: json['profileVerificationStatus'] as String,
       verificationNote: json['verificationNote'] as String?,
       basePrice: json['basePrice'] as String? ?? "0.00",
-      currency: json['currency'] as String? ?? "BDT",
+      currency: json['currency'] as String? ?? "INR",
       isWeeklyPayoutEnabled: json['isWeeklyPayoutEnabled'] as bool? ?? false,
       payoutDisabledAt: json['payoutDisabledAt'] as String?,
       isActive: json['isActive'] as bool? ?? false,

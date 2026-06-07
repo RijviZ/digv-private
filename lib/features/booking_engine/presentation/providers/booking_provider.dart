@@ -20,7 +20,7 @@ final createBookingProvider = StateNotifierProvider<CreateBookingNotifier, Async
   return CreateBookingNotifier(repository: repository);
 });
 
-final availableSlotsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, arg) async {
+final availableSlotsProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, arg) async {
   final repository = ref.watch(bookingRepositoryProvider);
   final parts = arg.split('|');
   final providerId = parts[0];
@@ -28,7 +28,7 @@ final availableSlotsProvider = FutureProvider.family<List<Map<String, dynamic>>,
   return await repository.getAvailableSlots(providerId, scheduledDate);
 });
 
-final providerAvailabilityDatesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, providerId) async {
+final providerAvailabilityDatesProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, providerId) async {
   final repository = ref.watch(bookingRepositoryProvider);
   return await repository.getProviderAvailabilityDates(providerId);
 });

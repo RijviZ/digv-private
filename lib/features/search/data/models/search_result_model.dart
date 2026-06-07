@@ -31,13 +31,16 @@ class SearchProviderModel extends SearchProviderEntity {
       bio: json['bio'],
       isAvailableNow: json['isAvailableNow'] ?? false,
       basePrice: json['basePrice'] ?? '0.00',
-      currency: json['currency'] ?? 'BDT',
+      currency: json['currency'] ?? 'INR',
       verificationStatus: json['verificationStatus'] ?? '',
       addressLine: json['addressLine'] ?? '',
       city: json['city'] ?? '',
       distanceKm: json['distanceKm'] ?? '0.00',
-      services: (json['services'] as List<dynamic>?)
-              ?.map((s) => SearchServiceModel.fromJson(s as Map<String, dynamic>))
+      services:
+          (json['services'] as List<dynamic>?)
+              ?.map(
+                (s) => SearchServiceModel.fromJson(s as Map<String, dynamic>),
+              )
               .toList() ??
           [],
       averageRating: json['averageRating']?.toString(),
@@ -80,9 +83,13 @@ class SearchServiceModel extends SearchServiceEntity {
       categoryIconUrl: json['categoryIconUrl'],
       serviceImageUrl: json['serviceImageUrl'],
       durationMinutes: json['durationMinutes'],
-      serviceFeatures: (json['serviceFeatures'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      serviceFeatures: (json['serviceFeatures'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
       serviceDescription: json['serviceDescription'],
-      serviceItems: (json['serviceItems'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      serviceItems: (json['serviceItems'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
     );
   }
 }
@@ -104,8 +111,11 @@ class SearchResponseModel extends SearchResponseEntity {
     final pagination = data['pagination'];
 
     return SearchResponseModel(
-      providers: providers
-              ?.map((p) => SearchProviderModel.fromJson(p as Map<String, dynamic>))
+      providers:
+          providers
+              ?.map(
+                (p) => SearchProviderModel.fromJson(p as Map<String, dynamic>),
+              )
               .toList() ??
           [],
       total: pagination?['total'] ?? 0,

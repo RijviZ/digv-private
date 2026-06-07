@@ -17,7 +17,7 @@ class OrdersRepositoryImpl implements OrdersRepository {
 
   OrderItem _mapToOrderItem(Map<String, dynamic> map) {
     final statusStr = map['status'] as String? ?? 'PENDING';
-    
+
     // Map API status to OrderBadgeStatus
     OrderBadgeStatus badgeStatus = OrderBadgeStatus.upcoming;
     switch (statusStr) {
@@ -53,20 +53,23 @@ class OrdersRepositoryImpl implements OrdersRepository {
     // Price formatting
     final subtotalAmount = map['subtotalAmount'] as String? ?? '0.00';
     final doubleAmount = double.tryParse(subtotalAmount) ?? 0.0;
-    final currencyStr = map['currency'] as String? ?? 'BDT';
-    final symbol = currencyStr == 'BDT' ? '৳' : '₹';
+    final currencyStr = map['currency'] as String? ?? 'INR';
+    final symbol = currencyStr == 'INR' ? '₹' : '₹';
     final priceStr = '$symbol${doubleAmount.toStringAsFixed(0)}';
 
     return OrderItem(
       id: map['serviceRequestId'] as String? ?? '',
       providerId: map['providerId'] as String?,
       serviceName: map['serviceTitle'] as String? ?? 'Service Request',
-      orderId: 'ORD-${(map['serviceRequestId'] as String? ?? '').substring(0, 4).toUpperCase()}',
+      orderId:
+          'ORD-${(map['serviceRequestId'] as String? ?? '').substring(0, 4).toUpperCase()}',
       status: badgeStatus,
       scheduledTime: scheduledTime,
       location: map['addressLabel'] as String? ?? 'Home',
       technicianName: map['providerName'] as String? ?? 'Assigned Professional',
-      technicianImageUrl: map['providerAvatarUrl'] as String? ?? map['providerImageUrl'] as String?,
+      technicianImageUrl:
+          map['providerAvatarUrl'] as String? ??
+          map['providerImageUrl'] as String?,
       price: priceStr,
       rating: map['rating'] != null ? (map['rating'] as num).toDouble() : null,
       cancelReason: map['cancelReason'] as String? ?? map['reason'] as String?,
@@ -94,16 +97,11 @@ class OrdersRepositoryImpl implements OrdersRepository {
     required String id,
     required String reason,
   }) async {
-    await remoteDataSource.cancelServiceRequest(
-      id: id,
-      reason: reason,
-    );
+    await remoteDataSource.cancelServiceRequest(id: id, reason: reason);
   }
 
   @override
-  Future<OrderTrackingData> getOrderTracking({
-    required String id,
-  }) async {
+  Future<OrderTrackingData> getOrderTracking({required String id}) async {
     final map = await remoteDataSource.getOrderTracking(id: id);
     if (map['data'] != null) {
       return OrderTrackingData.fromJson(map['data'] as Map<String, dynamic>);
@@ -131,8 +129,12 @@ class OrdersRepositoryImpl implements OrdersRepository {
   }
 
   @override
-  Future<Map<String, dynamic>?> getGivenReviewByServiceRequestId({required String serviceRequestId}) async {
-    return await remoteDataSource.getGivenReviewByServiceRequestId(serviceRequestId: serviceRequestId);
+  Future<Map<String, dynamic>?> getGivenReviewByServiceRequestId({
+    required String serviceRequestId,
+  }) async {
+    return await remoteDataSource.getGivenReviewByServiceRequestId(
+      serviceRequestId: serviceRequestId,
+    );
   }
 
   @override

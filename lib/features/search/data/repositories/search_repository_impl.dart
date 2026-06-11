@@ -23,7 +23,7 @@ class SearchRepositoryImpl implements SearchRepository {
   Future<SearchResponseEntity> globalSearch({
     String? q,
     String? categoryId,
-    String? serviceType,
+    String? serviceTypeId,
     bool? isAvailableNow,
     int page = 1,
     int limit = 10,
@@ -31,8 +31,28 @@ class SearchRepositoryImpl implements SearchRepository {
     return await remoteDataSource.globalSearch(
       q: q,
       categoryId: categoryId,
-      serviceType: serviceType,
+      serviceTypeId: serviceTypeId,
       isAvailableNow: isAvailableNow,
+      page: page,
+      limit: limit,
+    );
+  }
+
+  @override
+  Future<ServiceDetailsEntity> getServiceDetails(String serviceItemId) async {
+    return await remoteDataSource.getServiceDetails(serviceItemId);
+  }
+
+  @override
+  Future<List<SearchTechnicianEntity>> getServiceProviders(
+    String serviceItemId, {
+    String filterType = 'ALL',
+    int page = 1,
+    int limit = 10,
+  }) async {
+    return await remoteDataSource.getServiceProviders(
+      serviceItemId,
+      filterType: filterType,
       page: page,
       limit: limit,
     );

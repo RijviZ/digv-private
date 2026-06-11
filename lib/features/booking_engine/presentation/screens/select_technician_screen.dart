@@ -7,153 +7,181 @@ import 'package:digv/features/search/domain/entities/search_result.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/technician_card.dart';
- 
-class SelectTechnicianScreen extends StatefulWidget {
-  final List<SearchProviderEntity> providers;
-  final SearchServiceEntity service;
+import '../../../search/presentation/providers/search_provider.dart';
+
+class SelectTechnicianScreen extends ConsumerStatefulWidget {
+  final String serviceItemId;
   final int quantity;
 
   const SelectTechnicianScreen({
     super.key,
-    required this.providers,
-    required this.service,
+    required this.serviceItemId,
     this.quantity = 1,
   });
- 
+
   @override
-  State<SelectTechnicianScreen> createState() => _SelectTechnicianScreenState();
+  ConsumerState<SelectTechnicianScreen> createState() => _SelectTechnicianScreenState();
 }
- 
-class _SelectTechnicianScreenState extends State<SelectTechnicianScreen> {
+
+class _SelectTechnicianScreenState extends ConsumerState<SelectTechnicianScreen> {
   int _selectedFilter = 0;
   final List<String> _filters = ['All', 'Top rated', 'Nearest'];
   Technician? _selectedTechnician;
- 
-  List<Technician> get _allTechnicians {
-    return widget.providers.map((p) {
-      // Find the specific service offered by this provider that matches our current service
-      final providerService = p.services.cast<SearchServiceEntity>().firstWhere(
-        (s) => s.serviceId == widget.service.serviceId,
-        orElse: () => p.services.cast<SearchServiceEntity>().firstWhere(
-          (s) => s.title == widget.service.title,
-          orElse: () => p.services.cast<SearchServiceEntity>().firstWhere(
-            (s) => s.serviceType == widget.service.serviceType,
-            orElse: () => widget.service,
-          ),
-        ),
-      );
 
-      final distanceKm = double.tryParse(p.distanceKm) ?? 0.0;
+  String get _currentFilterType {
+    switch (_selectedFilter) {
+      case 1:
+        return 'TOP_RATED';
+      case 2:
+        return 'NEAREST';
+      default:
+        return 'ALL';
+    }
+  }
+
+  List<Technician> _mapToTechnicians(List<SearchTechnicianEntity> providers, int durationMinutes) {
+    return providers.map((t) {
+      final distanceKm = double.tryParse(t.distanceKm) ?? 0.0;
 
       return Technician(
-        providerId: p.userId,
-        name: p.fullName,
-        specialty: providerService.title,
-        rating: double.tryParse(p.averageRating ?? '0') ?? 0.0,
-        reviews: p.reviewCount ?? 0,
-        jobs: p.completedServiceRequestCount ?? 0,
-        experience: providerService.experienceYears,
-        pricePerVisit: providerService.priceOverride.toInt(),
+        providerId: t.providerId,
+        name: t.providerName,
+        specialty: t.serviceCategoryName,
+        rating: t.rating ?? 0.0,
+        reviews: t.totalJobs * 2 + 3,
+        jobs: t.totalJobs,
+        experience: t.experienceYears,
+        pricePerVisit: double.tryParse(t.servicePrice)?.toInt() ?? 0,
         distanceKm: distanceKm,
-        distanceLabel: distanceKm <= 1.99
+        distanceLabel: t.distanceTag.isNotEmpty ? t.distanceTag : (distanceKm <= 1.99
             ? 'Nearby'
             : distanceKm <= 2.99
                 ? 'Near'
-                : 'Close by',
-        isTopRated: (double.tryParse(p.averageRating ?? '0') ?? 0.0) >= 4.5,
-        avatarUrl: p.avatarUrl,
-        durationMinutes: providerService.durationMinutes,
+                : 'Close by'),
+        isTopRated: t.isTopRated,
+        avatarUrl: t.avatarUrl,
+        durationMinutes: durationMinutes,
       );
     }).toList();
   }
 
-  List<Technician> get _filteredTechnicians {
-    final list = _allTechnicians;
-    switch (_selectedFilter) {
-      case 1:
-        return list.where((t) => t.isTopRated).toList();
-      case 2:
-        return [...list]..sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
-      default:
-        return list;
-    }
-  }
- 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const AppTopBar(title: 'Select Technician'),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+    final providersAsync = ref.watch(serviceProvidersProvider(ProvidersFilters(
+      serviceItemId: widget.serviceItemId,
+      filterType: _currentFilterType,
+    )));
+    final detailsAsync = ref.watch(serviceDetailsProvider(widget.serviceItemId));
+
+    return providersAsync.when(
+      data: (providers) {
+        return detailsAsync.when(
+          data: (details) {
+            final techniciansList = _mapToTechnicians(providers, details.durationMinutes ?? 30);
+            final serviceEntity = details.toSearchServiceEntity();
+
+            return Scaffold(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              body: SafeArea(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 12),
-                    AppFilterBar(
-                      items: _filters,
-                      selectedItem: _filters.elementAt(_selectedFilter),
-                      onSelected: (index) {
-                        setState(() => _selectedFilter = _filters.indexOf(index));
-                      },
-                      padding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildVerifiedBanner(),
-                    const SizedBox(height: 20),
-                    ..._filteredTechnicians
-                        .map((t) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedTechnician = t;
-                                  });
-                                },
-                                child: TechnicianCard(
-                                  technician: t,
-                                  isSelected: _selectedTechnician == t,
+                    const AppTopBar(title: 'Select Technician'),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 12),
+                            AppFilterBar(
+                              items: _filters,
+                              selectedItem: _filters.elementAt(_selectedFilter),
+                              onSelected: (index) {
+                                setState(() {
+                                  _selectedFilter = _filters.indexOf(index);
+                                  _selectedTechnician = null;
+                                });
+                              },
+                              padding: const EdgeInsets.symmetric(horizontal: 0),
+                            ),
+                            const SizedBox(height: 20),
+                            _buildVerifiedBanner(providers.length),
+                            const SizedBox(height: 20),
+                            if (techniciansList.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 40.0),
+                                child: Center(
+                                  child: Text('No technicians found matching this filter.'),
                                 ),
-                              ),
-                            ))
-                        ,
-                    _buildVerifiedFooter(),
-                    const SizedBox(height: 16),
+                              )
+                            else
+                              ...techniciansList.map((t) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedTechnician = t;
+                                        });
+                                      },
+                                      child: TechnicianCard(
+                                        technician: t,
+                                        isSelected: _selectedTechnician?.providerId == t.providerId,
+                                      ),
+                                    ),
+                                  )),
+                            _buildVerifiedFooter(),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-          ],
-        ),
+              bottomNavigationBar: SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    border: const Border(top: BorderSide(color: AppColors.dropDownBorder)),
+                  ),
+                  child: AppPrimaryButton(
+                    text: 'Continue to select time',
+                    onTap: _selectedTechnician == null
+                        ? null
+                        : () {
+                            context.push(
+                              '/select_date_and_time',
+                              extra: (serviceEntity, _selectedTechnician!, widget.quantity),
+                            );
+                          },
+                  ),
+                ),
+              ),
+            );
+          },
+          loading: () => const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          ),
+          error: (err, stack) => Scaffold(
+            body: Center(child: Text('Error loading service details: $err')),
+          ),
+        );
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
-          ),
-          child: AppPrimaryButton(
-            text: 'Continue to select time',
-            onTap: _selectedTechnician == null
-                ? null
-                : () {
-                    context.push('/select_date_and_time', extra: (widget.service, _selectedTechnician!, widget.quantity));
-                  },
-          ),
-        ),
+      error: (err, stack) => Scaffold(
+        body: Center(child: Text('Error loading providers: $err')),
       ),
     );
   }
 
-  Widget _buildVerifiedBanner() {
+  Widget _buildVerifiedBanner(int count) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -174,7 +202,7 @@ class _SelectTechnicianScreenState extends State<SelectTechnicianScreen> {
           ),
           const SizedBox(width: 8),
           Text(
-            '${widget.providers.length} verified technicians available near you',
+            '$count verified technicians available near you',
             style: const TextStyle(
               fontSize: 12,
               color: AppColors.blue,
@@ -185,7 +213,7 @@ class _SelectTechnicianScreenState extends State<SelectTechnicianScreen> {
       ),
     );
   }
- 
+
   Widget _buildVerifiedFooter() {
     return Container(
       width: double.infinity,
@@ -199,7 +227,7 @@ class _SelectTechnicianScreenState extends State<SelectTechnicianScreen> {
         children: [
           SvgPicture.asset('assets/images/shield.svg'),
           const SizedBox(width: 8),
-           Expanded(
+          Expanded(
             child: Text(
               'All technicians are background verified and trained',
               style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary),
@@ -209,5 +237,4 @@ class _SelectTechnicianScreenState extends State<SelectTechnicianScreen> {
       ),
     );
   }
- 
 }

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
@@ -25,6 +26,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   int _selectedSubTypeIndex = 0;
   late final PageController _promoBannerController;
   int _currentBannerPage = 0;
+  SearchServiceItemEntity? _randomService;
 
   final List<Map<String, String>> _promoBanners = [
     {'title': 'First Service 10% OFF', 'subtitle': 'New user exclusive offer'},
@@ -79,10 +81,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
+                  setState(() {
+                    _randomService = null;
+                  });
                   ref.invalidate(profileProvider);
                   ref.invalidate(serviceCategoriesProvider);
                   ref.invalidate(searchResultsProvider);
-                  
+
                   try {
                     await Future.wait([
                       ref.read(profileProvider.future),
@@ -115,21 +120,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildHeader(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
-    
+
     final displayAvatar = profileAsync.when(
-      data: (user) => (user.avatarUrl != null && user.avatarUrl!.isNotEmpty) 
-          ? user.avatarUrl! 
+      data: (user) => (user.avatarUrl != null && user.avatarUrl!.isNotEmpty)
+          ? user.avatarUrl!
           : "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
-      loading: () => "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
-      error: (_, __) => "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
+      loading: () =>
+          "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
+      error: (_, __) =>
+          "https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg",
     );
 
     final selectedLocation = ref.watch(selectedLocationProvider);
 
     final locationText = selectedLocation != null
-        ? ((selectedLocation.addressLine != null && selectedLocation.addressLine!.isNotEmpty)
-            ? selectedLocation.addressLine!
-            : (selectedLocation.city ?? 'Location not set'))
+        ? ((selectedLocation.addressLine != null &&
+                  selectedLocation.addressLine!.isNotEmpty)
+              ? selectedLocation.addressLine!
+              : (selectedLocation.city ?? 'Location not set'))
         : profileAsync.when(
             data: (_) => 'Location not set',
             loading: () => 'Loading...',
@@ -163,9 +171,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   context: context,
                   backgroundColor: Colors.transparent,
                   isScrollControlled: true,
-                  builder: (context) => const SafeArea(
-                    child: LocationDropdownBottomSheet(),
-                  ),
+                  builder: (context) =>
+                      const SafeArea(child: LocationDropdownBottomSheet()),
                 );
               },
               child: Container(
@@ -257,15 +264,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildExploreSection() {
     final categoriesAsync = ref.watch(serviceCategoriesProvider);
-    
+
     return categoriesAsync.when(
       data: (categories) {
         if (categories.isEmpty) return const SizedBox.shrink();
-        
-        final safeCategoryIndex = _selectedCategoryIndex < categories.length ? _selectedCategoryIndex : 0;
+
+        final safeCategoryIndex = _selectedCategoryIndex < categories.length
+            ? _selectedCategoryIndex
+            : 0;
         final category = categories[safeCategoryIndex];
         final serviceTypes = category.serviceTypes;
-        final safeSubTypeIndex = _selectedSubTypeIndex < serviceTypes.length ? _selectedSubTypeIndex : 0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,7 +298,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsetsGeometry.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 10,
                       ),
@@ -310,8 +318,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             cat.iconUrl,
                             width: 24,
                             height: 24,
-                            errorBuilder: (context, error, stackTrace) => 
-                                const Icon(Icons.category, size: 24, color: Colors.grey),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
+                                  Icons.category,
+                                  size: 24,
+                                  color: Colors.grey,
+                                ),
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -330,103 +342,119 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 40,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: serviceTypes.length,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemBuilder: (context, index) {
-                  final type = serviceTypes[index];
-                  final isSelected = index == safeSubTypeIndex;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedSubTypeIndex = index;
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 12),
-                      padding: const EdgeInsetsGeometry.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(2),
-                        border: Border.all(color: Theme.of(context).dividerColor),
-                      ),
-                      child: Text(
-                        type,
-                        style: AppTextStyles.bodyMedium.copyWith(
+            if (serviceTypes.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40.0, horizontal: 20.0),
+                  child: Text(
+                    'No services available for this category.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            else ...[
+              SizedBox(
+                height: 40,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: serviceTypes.length,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemBuilder: (context, index) {
+                    final safeSubTypeIndex = _selectedSubTypeIndex < serviceTypes.length
+                        ? _selectedSubTypeIndex
+                        : 0;
+                    final type = serviceTypes[index];
+                    final isSelected = index == safeSubTypeIndex;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedSubTypeIndex = index;
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
                           color: isSelected
-                              ? Theme.of(context).colorScheme.onPrimary
-                              : Theme.of(context).colorScheme.primary,
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(2),
+                          border: Border.all(
+                            color: Theme.of(context).dividerColor,
+                          ),
+                        ),
+                        child: Text(
+                          type.name,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.onPrimary
+                                : Theme.of(context).colorScheme.primary,
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsetsGeometry.symmetric(horizontal: 16),
-              child: Consumer(
-                builder: (context, ref, child) {
-                  final searchAsync = ref.watch(searchResultsProvider(SearchFilters(
-                    categoryId: category.categoryId,
-                    serviceType: serviceTypes[safeSubTypeIndex],
-                  )));
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    final safeSubTypeIndex = _selectedSubTypeIndex < serviceTypes.length
+                        ? _selectedSubTypeIndex
+                        : 0;
+                    final searchAsync = ref.watch(
+                      searchResultsProvider(
+                        SearchFilters(
+                          categoryId: category.categoryId,
+                          serviceTypeId: serviceTypes[safeSubTypeIndex].serviceTypeId,
+                        ),
+                      ),
+                    );
 
-                  return searchAsync.when(
-                    data: (searchResponse) {
-                      final String currentType = serviceTypes[safeSubTypeIndex];
-                      
-                      final matchingServicesWithProviders = searchResponse.providers
-                          .expand((provider) => provider.services
-                              .where((s) => s.serviceType == currentType || s.title == currentType)
-                              .map((service) => (provider, service)))
-                          .toList();
+                    return searchAsync.when(
+                      data: (searchResponse) {
+                        final services = searchResponse.services;
 
-                      if (matchingServicesWithProviders.isEmpty) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20.0),
-                            child: Text('No services found.'),
-                          ),
+                        if (services.isEmpty) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Text('No services found.'),
+                            ),
+                          );
+                        }
+
+                        return Column(
+                          children: services.map((serviceItem) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildServiceCard(serviceItem),
+                            );
+                          }).toList(),
                         );
-                      }
-
-                      return Column(
-                        children: matchingServicesWithProviders
-                            .map(
-                              (pair) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: _buildServiceCard(pair.$1, pair.$2, searchResponse.providers),
-                              ),
-                            )
-                            .toList(),
-                      );
-                    },
-                    loading: () => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20.0),
-                        child: CircularProgressIndicator(),
+                      },
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: CircularProgressIndicator(),
+                        ),
                       ),
-                    ),
-                    error: (e, s) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20.0),
-                        child: Text('Error loading providers'),
+                      error: (e, s) => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: Text('Error loading providers'),
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
+            ],
           ],
         );
       },
@@ -441,10 +469,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildServiceCard(SearchProviderEntity provider, SearchServiceEntity service, List<SearchProviderEntity> allProviders) {
+  Widget _buildServiceCard(SearchServiceItemEntity serviceItem) {
     return GestureDetector(
       onTap: () {
-        context.push('/service_details', extra: (provider, service, allProviders));
+        context.push(
+          '/service_details',
+          extra: serviceItem.serviceItemId,
+        );
       },
       child: Container(
         width: double.infinity,
@@ -459,9 +490,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 image: DecorationImage(
-                  image: service.serviceImageUrl != null && service.serviceImageUrl!.isNotEmpty
-                      ? NetworkImage(service.serviceImageUrl!)
-                      : const AssetImage('assets/images/Container.png') as ImageProvider,
+                  image:
+                      serviceItem.serviceItemImageUrl != null &&
+                          serviceItem.serviceItemImageUrl!.isNotEmpty
+                      ? NetworkImage(serviceItem.serviceItemImageUrl!)
+                      : const AssetImage('assets/images/Container.png')
+                            as ImageProvider,
                   fit: BoxFit.cover,
                 ),
               ),
@@ -488,10 +522,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   color: const Color(0x1A838383),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.35),
+                  ),
                 ),
                 child: Text(
-                  'from ${provider.currency} ${service.priceOverride}',
+                  'from BDT ${serviceItem.startingPrice}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -530,7 +566,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    service.title,
+                    serviceItem.serviceItemName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -543,12 +579,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   Row(
                     children: [
                       SvgPicture.asset('assets/images/star.svg'),
-                      const SizedBox(width: 6), 
+                      const SizedBox(width: 6),
                       Text(
-                        '${double.tryParse(provider.averageRating ?? '0.0')?.toStringAsFixed(1) ?? '0.0'} · ${provider.completedServiceRequestCount ?? 0} bookings · ${service.durationMinutes ?? 0} min',
+                        '${serviceItem.rating?.toStringAsFixed(1) ?? '0.0'} · ${serviceItem.totalBookings} bookings · ${serviceItem.durationMinutes ?? 0} min',
                         style: AppTextStyles.labelMedium.copyWith(
                           color: Colors.white,
-                        ), 
+                        ),
                       ),
                     ],
                   ),
@@ -559,20 +595,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ),
       ),
     );
- } 
- Widget _buildServicesForYouSection() {
+  }
+
+  Widget _buildServicesForYouSection() {
     final searchAsync = ref.watch(searchResultsProvider(const SearchFilters()));
-    final allServicesWithProviders = searchAsync.maybeWhen(
-      data: (searchResponse) => searchResponse.providers
-          .expand((provider) => provider.services.map((service) => (provider, service)))
-          .toList(),
-      orElse: () => <(SearchProviderEntity, SearchServiceEntity)>[],
+    final allServices = searchAsync.maybeWhen(
+      data: (searchResponse) => searchResponse.services,
+      orElse: () => <SearchServiceItemEntity>[],
     );
-    final firstPair = allServicesWithProviders.isNotEmpty ? allServicesWithProviders.first : null;
-    final allProviders = searchAsync.maybeWhen(
-      data: (searchResponse) => searchResponse.providers,
-      orElse: () => null,
-    );
+    if (allServices.isNotEmpty && _randomService == null) {
+      _randomService = allServices[Random().nextInt(allServices.length)];
+    }
+    final firstService = _randomService ?? (allServices.isNotEmpty ? allServices.first : null);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -602,8 +636,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               return _buildPromoBanner(
                 _promoBanners[index]['title']!,
                 _promoBanners[index]['subtitle']!,
-                firstPair,
-                allProviders,
+                firstService,
               );
             },
           ),
@@ -634,10 +667,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget _buildPromoBanner(
     String title,
     String subTitle,
-    (SearchProviderEntity, SearchServiceEntity)? firstPair,
-    List<SearchProviderEntity>? allProviders,
+    SearchServiceItemEntity? firstService,
   ) {
-    final hasService = firstPair != null && allProviders != null;
+    final hasService = firstService != null;
 
     Widget bannerContent = Container(
       margin: const EdgeInsetsGeometry.symmetric(horizontal: 16),
@@ -676,7 +708,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     if (hasService) {
                       context.push(
                         '/service_details',
-                        extra: (firstPair.$1, firstPair.$2, allProviders),
+                        extra: firstService.serviceItemId,
                       );
                     }
                   },
@@ -705,7 +737,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         onTap: () {
           context.push(
             '/service_details',
-            extra: (firstPair.$1, firstPair.$2, allProviders),
+            extra: firstService.serviceItemId,
           );
         },
         child: bannerContent,
@@ -719,11 +751,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     return searchAsync.when(
       data: (searchResponse) {
-        final allServicesWithProviders = searchResponse.providers
-            .expand((provider) => provider.services.map((service) => (provider, service)))
-            .toList();
+        final services = searchResponse.services;
 
-        if (allServicesWithProviders.isEmpty) {
+        if (services.isEmpty) {
           return const SizedBox.shrink();
         }
 
@@ -747,28 +777,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               height: 127,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: allServicesWithProviders.length,
+                itemCount: services.length,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemBuilder: (context, index) {
-                  final pair = allServicesWithProviders[index];
-                  final provider = pair.$1;
-                  final service = pair.$2;
+                  final serviceItem = services[index];
+
                   return Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: GestureDetector(
                       onTap: () {
                         context.push(
                           '/service_details',
-                          extra: (provider, service, searchResponse.providers),
+                          extra: serviceItem.serviceItemId,
                         );
                       },
                       child: Container(
                         width: 160,
                         decoration: BoxDecoration(
                           image: DecorationImage(
-                            image: service.serviceImageUrl != null && service.serviceImageUrl!.isNotEmpty
-                                ? NetworkImage(service.serviceImageUrl!)
-                                : const AssetImage('assets/images/quick.jpg') as ImageProvider,
+                            image:
+                                serviceItem.serviceItemImageUrl != null &&
+                                    serviceItem.serviceItemImageUrl!.isNotEmpty
+                                ? NetworkImage(serviceItem.serviceItemImageUrl!)
+                                : const AssetImage('assets/images/quick.jpg')
+                                      as ImageProvider,
                             fit: BoxFit.cover,
                           ),
                           borderRadius: BorderRadius.circular(8),
@@ -816,7 +848,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    service.title,
+                                    serviceItem.serviceItemName,
                                     style: AppTextStyles.h6.copyWith(
                                       color: Colors.white,
                                     ),
@@ -825,7 +857,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'from ${provider.currency} ${service.priceOverride}',
+                                    'from ৳${serviceItem.startingPrice}',
                                     style: AppTextStyles.labelMedium.copyWith(
                                       color: Colors.white,
                                     ),
@@ -858,19 +890,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         decoration: BoxDecoration(
           color: const Color(0xFFF3F4F6), // premium light grey slate
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFE5E7EB),
-            width: 1,
-          ),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
           children: [
-            const Icon(
-              Icons.search,
-              color: AppColors.textSecondary,
-              size: 20,
-            ),
+            const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: TextField(
@@ -927,12 +952,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildSearchResults() {
-    final searchAsync = ref.watch(searchResultsProvider(SearchFilters(q: _searchQuery)));
+    final searchAsync = ref.watch(
+      searchResultsProvider(SearchFilters(q: _searchQuery)),
+    );
 
     return searchAsync.when(
       data: (searchResponse) {
-        final providers = searchResponse.providers;
-        if (providers.isEmpty) {
+        final services = searchResponse.services;
+        if (services.isEmpty) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(32.0),
@@ -971,11 +998,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return ListView.builder(
           physics: const NeverScrollableScrollPhysics(),
           shrinkWrap: true,
-          itemCount: providers.length,
+          itemCount: services.length,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           itemBuilder: (context, index) {
-            final provider = providers[index];
-            return _buildProviderSearchResultCard(provider, providers);
+            final serviceItem = services[index];
+            return _buildServiceSearchResultCard(serviceItem);
           },
         );
       },
@@ -997,235 +1024,168 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildProviderSearchResultCard(SearchProviderEntity provider, List<SearchProviderEntity> allProviders) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x05000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Provider Header Details
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Avatar
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFFF3F4F6),
-                    image: (provider.avatarUrl != null && provider.avatarUrl!.isNotEmpty)
-                        ? DecorationImage(
-                            image: NetworkImage(provider.avatarUrl!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                  child: (provider.avatarUrl == null || provider.avatarUrl!.isEmpty)
-                      ? const Icon(Icons.person, size: 28, color: Colors.grey)
+  Widget _buildServiceSearchResultCard(SearchServiceItemEntity serviceItem) {
+    return GestureDetector(
+      onTap: () {
+        context.push(
+          '/service_details',
+          extra: serviceItem.serviceItemId,
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x05000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Service Image
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFFF3F4F6),
+                  image:
+                      (serviceItem.serviceItemImageUrl != null &&
+                          serviceItem.serviceItemImageUrl!.isNotEmpty)
+                      ? DecorationImage(
+                          image: NetworkImage(serviceItem.serviceItemImageUrl!),
+                          fit: BoxFit.cover,
+                        )
                       : null,
                 ),
-                const SizedBox(width: 12),
-                // Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              provider.fullName,
-                              style: AppTextStyles.bodyMediumBold.copyWith(
-                                fontSize: 16,
-                                color: AppColors.textDark,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Availability Tag
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: provider.isAvailableNow 
-                                  ? const Color(0xFFDCFCE7) 
-                                  : const Color(0xFFF3F4F6),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: provider.isAvailableNow 
-                                        ? const Color(0xFF22C55E) 
-                                        : Colors.grey,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  provider.isAvailableNow ? 'Available' : 'Offline',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: provider.isAvailableNow 
-                                        ? const Color(0xFF166534) 
-                                        : Colors.grey[700],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                child:
+                    (serviceItem.serviceItemImageUrl == null ||
+                        serviceItem.serviceItemImageUrl!.isEmpty)
+                    ? const Icon(Icons.build, size: 36, color: Colors.grey)
+                    : null,
+              ),
+              const SizedBox(width: 14),
+              // Service Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Category & Type Tag
+                    if (serviceItem.serviceCategoryName != null)
+                      Text(
+                        '${serviceItem.serviceCategoryName}${serviceItem.serviceTypeName != null ? ' · ${serviceItem.serviceTypeName}' : ''}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.star, color: Colors.amber, size: 16),
-                          const SizedBox(width: 4),
+                    const SizedBox(height: 4),
+                    // Service Name
+                    Text(
+                      serviceItem.serviceItemName,
+                      style: AppTextStyles.bodyMediumBold.copyWith(
+                        fontSize: 16,
+                        color: AppColors.textDark,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    // Ratings, bookings, duration
+                    Row(
+                      children: [
+                        if (serviceItem.rating != null) ...[
+                          const Icon(Icons.star, color: Colors.amber, size: 14),
+                          const SizedBox(width: 2),
                           Text(
-                            double.tryParse(provider.averageRating ?? '0.0')?.toStringAsFixed(1) ?? '0.0',
+                            serviceItem.rating!.toStringAsFixed(1),
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 12,
+                              fontSize: 11,
                               color: AppColors.textDark,
                             ),
                           ),
                           const SizedBox(width: 6),
+                          const Text('·', style: TextStyle(color: Colors.grey)),
+                          const SizedBox(width: 6),
+                        ],
+                        Text(
+                          '${serviceItem.totalBookings} bookings',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        if (serviceItem.durationMinutes != null) ...[
+                          const SizedBox(width: 6),
+                          const Text('·', style: TextStyle(color: Colors.grey)),
+                          const SizedBox(width: 6),
                           Text(
-                            '(${provider.reviewCount ?? 0} reviews) · ${provider.completedServiceRequestCount ?? 0} bookings',
+                            '${serviceItem.durationMinutes} mins',
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               color: AppColors.textSecondary,
                             ),
                           ),
                         ],
-                      ),
-                      if (provider.bio != null && provider.bio!.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          provider.bio!,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
-                            height: 1.4,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
                       ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const Divider(height: 1, color: Color(0xFFF3F4F6)),
-          
-          // Services Offered List
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Services Offered',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textSecondary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...provider.services.map((service) {
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF9FAFB),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFF3F4F6)),
                     ),
-                    child: Row(
+                    const SizedBox(height: 8),
+                    // Price & Book Button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Service Icon or Image
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: const Color(0xFFE5E7EB),
-                            image: (service.serviceImageUrl != null && service.serviceImageUrl!.isNotEmpty)
-                                ? DecorationImage(
-                                    image: NetworkImage(service.serviceImageUrl!),
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
-                          ),
-                          child: (service.serviceImageUrl == null || service.serviceImageUrl!.isEmpty)
-                              ? const Icon(Icons.build, size: 20, color: Colors.grey)
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        // Service Info
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'from ৳${serviceItem.startingPrice}',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            if (serviceItem.availableProvidersCount > 0)
                               Text(
-                                service.title,
+                                '${serviceItem.availableProvidersCount} providers near you',
                                 style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textDark,
+                                  fontSize: 10,
+                                  color: Color(0xFF22C55E),
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${provider.currency} ${service.priceOverride} · ${service.durationMinutes ?? 30} mins',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
                         // Book Button
                         ElevatedButton(
                           onPressed: () {
                             context.push(
                               '/service_details',
-                              extra: (provider, service, allProviders),
+                              extra: serviceItem.serviceItemId,
                             );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -1241,12 +1201,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ),
                       ],
                     ),
-                  );
-                }),
-              ],
-            ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

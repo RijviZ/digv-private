@@ -105,19 +105,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/service_details',
       builder: (context, state) {
-        final (provider, service, allProviders) = state.extra as (SearchProviderEntity, SearchServiceEntity, List<SearchProviderEntity>);
-        return ServiceDetailsScreen(provider: provider, service: service, allProviders: allProviders);
+        final serviceItemId = state.extra as String;
+        return ServiceDetailsScreen(serviceItemId: serviceItemId);
       },
     ),
     GoRoute(
       path: '/select_technician',
       builder: (context, state) {
-        if (state.extra is (List<SearchProviderEntity>, SearchServiceEntity, int)) {
-          final (providers, service, quantity) = state.extra as (List<SearchProviderEntity>, SearchServiceEntity, int);
-          return SelectTechnicianScreen(providers: providers, service: service, quantity: quantity);
-        }
-        final (providers, service) = state.extra as (List<SearchProviderEntity>, SearchServiceEntity);
-        return SelectTechnicianScreen(providers: providers, service: service, quantity: 1);
+        final (serviceItemId, quantity) = state.extra as (String, int);
+        return SelectTechnicianScreen(serviceItemId: serviceItemId, quantity: quantity);
       },
     ),
     GoRoute(

@@ -89,7 +89,7 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
     if (pickedFile != null) {
       setState(() => _isUploadingPhoto = true);
       try {
-        final url = await ref.read(fileUploadServiceProvider).uploadFile(pickedFile.path);
+        final url = await ref.read(fileUploadServiceProvider).uploadFile(pickedFile.path, category: 'reviews');
         setState(() {
           _photos.add(url);
         });

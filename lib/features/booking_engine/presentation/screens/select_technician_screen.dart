@@ -49,6 +49,7 @@ class _SelectTechnicianScreenState extends ConsumerState<SelectTechnicianScreen>
 
       return Technician(
         providerId: t.providerId,
+        providerServiceId: t.providerServiceId,
         name: t.providerName,
         specialty: t.serviceCategoryName,
         rating: t.rating ?? 0.0,

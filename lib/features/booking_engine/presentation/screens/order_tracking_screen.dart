@@ -84,6 +84,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       final isPostpaid = widget.order!.paymentStatus == 'UNPAID' ||
           widget.order!.price.toLowerCase().contains('postpaid');
       _paymentType = isPostpaid ? PaymentType.postpaid : PaymentType.prepaid;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.invalidate(orderTrackingProvider(widget.order!.id));
+      });
     }
   }
 
@@ -299,39 +302,50 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               ),
           ),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const MapSection(),
-                  const SizedBox(height: 20,),
-                  TechnicianCard(
-                    paymentType: _paymentType,
-                    order: widget.order,
-                    onChat: _showChatSheet,
-                    onCall: () {
-                      final phone = _findTechnicianPhoneNumber(_logs) ?? '+919876543210';
-                      _makeCall(phone);
-                    },
-                    onTogglePayment: () => setState(() {
-                      _paymentType = _isPrepaid
-                          ? PaymentType.postpaid
-                          : PaymentType.prepaid;
-                    }),
-                  ),
-                  const SizedBox(height: 20),
-                  OrderProgressCard(steps: _steps),
-                  const SizedBox(height: 10),
-                  OrderDetailsCard(
-                    paymentType: _paymentType,
-                    order: widget.order,
-                  ),
-                  if (!_isPrepaid) ...[
+            child: RefreshIndicator(
+              onRefresh: () async {
+                if (widget.order != null) {
+                  ref.invalidate(orderTrackingProvider(widget.order!.id));
+                  try {
+                    await ref.read(orderTrackingProvider(widget.order!.id).future);
+                  } catch (_) {}
+                }
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const MapSection(),
+                    const SizedBox(height: 20,),
+                    TechnicianCard(
+                      paymentType: _paymentType,
+                      order: widget.order,
+                      onChat: _showChatSheet,
+                      onCall: () {
+                        final phone = _findTechnicianPhoneNumber(_logs) ?? '+919876543210';
+                        _makeCall(phone);
+                      },
+                      onTogglePayment: () => setState(() {
+                        _paymentType = _isPrepaid
+                            ? PaymentType.postpaid
+                            : PaymentType.prepaid;
+                      }),
+                    ),
+                    const SizedBox(height: 20),
+                    OrderProgressCard(steps: _steps),
                     const SizedBox(height: 10),
-                    PostpaidWarningBanner(price: widget.order?.price ?? '₹500'),
+                    OrderDetailsCard(
+                      paymentType: _paymentType,
+                      order: widget.order,
+                    ),
+                    if (!_isPrepaid) ...[
+                      const SizedBox(height: 10),
+                      PostpaidWarningBanner(price: widget.order?.price ?? '₹500'),
+                    ],
+                    const SizedBox(height: 96),
                   ],
-                  const SizedBox(height: 96),
-                ],
+                ),
               ),
             ),
           ),

@@ -122,7 +122,7 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
 
     try {
       final uploadService = ref.read(fileUploadServiceProvider);
-      final url = await uploadService.uploadFile(image.path);
+      final url = await uploadService.uploadFile(image.path, category: 'message-files');
       
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 

@@ -68,7 +68,7 @@ class OrdersNotifier extends AsyncNotifier<List<OrderItem>> {
 }
 
 
-final orderTrackingProvider = FutureProvider.family<OrderTrackingData, String>((ref, id) async {
+final orderTrackingProvider = FutureProvider.autoDispose.family<OrderTrackingData, String>((ref, id) async {
   final repository = ref.watch(ordersRepositoryProvider);
   return await repository.getOrderTracking(id: id);
 });

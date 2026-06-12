@@ -1,5 +1,6 @@
 class Technician {
   final String? providerId;
+  final String? providerServiceId;
   final String name;
   final String specialty;
   final double rating;
@@ -15,6 +16,7 @@ class Technician {
 
   const Technician({
     this.providerId,
+    this.providerServiceId,
     required this.name,
     required this.specialty,
     required this.rating,
@@ -31,6 +33,7 @@ class Technician {
 
   Technician copyWith({
     String? providerId,
+    String? providerServiceId,
     String? name,
     String? specialty,
     double? rating,
@@ -46,6 +49,7 @@ class Technician {
   }) {
     return Technician(
       providerId: providerId ?? this.providerId,
+      providerServiceId: providerServiceId ?? this.providerServiceId,
       name: name ?? this.name,
       specialty: specialty ?? this.specialty,
       rating: rating ?? this.rating,
@@ -64,6 +68,7 @@ class Technician {
   Map<String, dynamic> toMap() {
     return {
       'providerId': providerId,
+      'providerServiceId': providerServiceId,
       'name': name,
       'specialty': specialty,
       'rating': rating,
@@ -82,6 +87,7 @@ class Technician {
   factory Technician.fromMap(Map<String, dynamic> map) {
     return Technician(
       providerId: map['providerId'] as String?,
+      providerServiceId: map['providerServiceId'] as String?,
       name: map['name'] as String,
       specialty: map['specialty'] as String,
       rating: map['rating'] as double,
@@ -99,13 +105,14 @@ class Technician {
 
   @override
   String toString() =>
-      'Technician(providerId: $providerId, name: $name, specialty: $specialty, rating: $rating, reviews: $reviews, jobs: $jobs, experience: $experience, pricePerVisit: $pricePerVisit, distanceKm: $distanceKm, distanceLabel: $distanceLabel, isTopRated: $isTopRated, durationMinutes: $durationMinutes)';
+      'Technician(providerId: $providerId, providerServiceId: $providerServiceId, name: $name, specialty: $specialty, rating: $rating, reviews: $reviews, jobs: $jobs, experience: $experience, pricePerVisit: $pricePerVisit, distanceKm: $distanceKm, distanceLabel: $distanceLabel, isTopRated: $isTopRated, durationMinutes: $durationMinutes)';
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is Technician &&
         other.providerId == providerId &&
+        other.providerServiceId == providerServiceId &&
         other.name == name &&
         other.specialty == specialty &&
         other.rating == rating &&
@@ -122,6 +129,7 @@ class Technician {
   @override
   int get hashCode =>
       providerId.hashCode ^
+      providerServiceId.hashCode ^
       name.hashCode ^
       specialty.hashCode ^
       rating.hashCode ^

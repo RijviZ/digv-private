@@ -8,7 +8,7 @@ final fileUploadServiceProvider = Provider<FileUploadService>((ref) {
 });
 
 abstract class FileUploadService {
-  Future<String> uploadFile(String filePath);
+  Future<String> uploadFile(String filePath, {required String category});
 }
 
 class FileUploadServiceImpl implements FileUploadService {
@@ -17,11 +17,12 @@ class FileUploadServiceImpl implements FileUploadService {
   FileUploadServiceImpl({required this.dio});
 
   @override
-  Future<String> uploadFile(String filePath) async {
+  Future<String> uploadFile(String filePath, {required String category}) async {
     try {
       final fileName = filePath.split('/').last;
 
       final FormData formData = FormData.fromMap({
+        "fileCategory": category,
         "files": await MultipartFile.fromFile(
           filePath,
           filename: fileName,

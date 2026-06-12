@@ -23,7 +23,6 @@ class ServiceDetailsScreen extends ConsumerStatefulWidget {
 }
 
 class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
-  String? _selectedService;
   int _quantity = 1;
 
   @override
@@ -33,9 +32,6 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
     return detailsAsync.when(
       data: (details) {
         final types = details.selectableTypes.map((t) => t.name).toList();
-        if (_selectedService == null && types.isNotEmpty) {
-          _selectedService = types.first;
-        }
 
         return Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
@@ -125,27 +121,7 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
                           _includedItem(text: 'Cooling Test'),
                           _includedItem(text: 'Performance Report'),
                         ],
-                        if (types.isNotEmpty) ...[
-                          const SizedBox(height: 17),
-                          Text(
-                            'Select Type',
-                            style: AppTextStyles.titleLight.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          AppFilterBar(
-                            items: types,
-                            selectedItem: _selectedService ?? types.first,
-                            padding: const EdgeInsets.all(0),
-                            onSelected: (item) {
-                              setState(() {
-                                _selectedService = item;
-                              });
-                            },
-                          ),
-                        ],
+
                         const SizedBox(height: 20),
                         Text(
                           'Quantity',

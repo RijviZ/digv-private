@@ -169,7 +169,7 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
 
         final payload = {
           'providerId': technician?.providerId ?? '2f4a8f15-3c10-4d1a-9821-111111111111',
-          'serviceId': service?.serviceId ?? '7a8b9c10-1111-4d1a-9821-222222222222',
+          'providerServiceId': technician?.providerServiceId ?? service?.serviceId ?? '7a8b9c10-1111-4d1a-9821-222222222222',
           'scheduledDate': scheduledDateStr,
           'availabilitySlotIds': [
             slotId

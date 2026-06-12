@@ -133,7 +133,7 @@ class AuthNotifier extends AsyncNotifier<void> {
   Future<String> uploadAvatar(String filePath) async {
     state = const AsyncValue.loading();
     try {
-      final url = await _fileService.uploadFile(filePath);
+      final url = await _fileService.uploadFile(filePath, category: 'user-profiles');
       state = const AsyncValue.data(null);
       return url;
     } catch (e, st) {

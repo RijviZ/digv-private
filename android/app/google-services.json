@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "940194987392",
+    "project_id": "notifications-8a4f2",
+    "storage_bucket": "notifications-8a4f2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:940194987392:android:ba453f7d85db7961309565",
+        "android_client_info": {
+          "package_name": "com.customer.digv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqtIfZGRC5gdOZ0qnFgE2BA5dQZ5gKCgY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,7 +2,14 @@ import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  developer.log('Handling a background message: ${message.messageId}', name: 'PushNotificationService');
+}
 
 class PushNotificationService {
   static final PushNotificationService _instance = PushNotificationService._internal();
@@ -10,6 +17,7 @@ class PushNotificationService {
   PushNotificationService._internal();
 
   bool _isFirebaseInitialized = false;
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   /// Initializes Firebase and Push Notification configurations.
   /// If native configuration files (google-services.json / GoogleService-Info.plist)
@@ -19,6 +27,29 @@ class PushNotificationService {
       await Firebase.initializeApp();
       _isFirebaseInitialized = true;
       developer.log('Firebase successfully initialized natively.', name: 'PushNotificationService');
+
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+      // Initialize local notifications for foreground messages
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+      const InitializationSettings initializationSettings = InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: initializationSettingsDarwin,
+      );
+
+      await _flutterLocalNotificationsPlugin.initialize(
+        settings: initializationSettings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          developer.log('Local notification tapped: ${response.payload}', name: 'PushNotificationService');
+          // Handle navigation here if payload contains route info
+        },
+      );
 
       // Request notification permission
       final messaging = FirebaseMessaging.instance;
@@ -34,9 +65,64 @@ class PushNotificationService {
 
       developer.log('User notification permission status: ${settings.authorizationStatus}', name: 'PushNotificationService');
 
+      if (Platform.isAndroid) {
+        // Create Android Notification Channel
+        const AndroidNotificationChannel channel = AndroidNotificationChannel(
+          'high_importance_channel', // id
+          'High Importance Notifications', // name
+          description: 'This channel is used for important notifications.', // description
+          importance: Importance.max,
+        );
+
+        await _flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+            ?.createNotificationChannel(channel);
+      }
+
+      // Handle initial message (terminated state)
+      RemoteMessage? initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+      if (initialMessage != null) {
+        developer.log('App opened from terminated state by notification: ${initialMessage.notification?.title}', name: 'PushNotificationService');
+      }
+
+      // Set foreground presentation options for iOS
+      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
       // Listen to foreground messages
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         developer.log('Received foreground push notification: ${message.notification?.title}', name: 'PushNotificationService');
+        
+        RemoteNotification? notification = message.notification;
+        AndroidNotification? android = message.notification?.android;
+
+        // If a notification is received while in the foreground, display it.
+        // On iOS, setForegroundNotificationPresentationOptions handles this natively,
+        // but we can still trigger local notifications if needed or let the system handle it.
+        if (notification != null) {
+          _flutterLocalNotificationsPlugin.show(
+            id: notification.hashCode,
+            title: notification.title,
+            body: notification.body,
+            notificationDetails: NotificationDetails(
+              android: AndroidNotificationDetails(
+                'high_importance_channel',
+                'High Importance Notifications',
+                channelDescription: 'This channel is used for important notifications.',
+                icon: android?.smallIcon ?? '@mipmap/ic_launcher',
+              ),
+              iOS: const DarwinNotificationDetails(
+                presentAlert: true,
+                presentBadge: true,
+                presentSound: true,
+              )
+            ),
+            payload: message.data.toString(),
+          );
+        }
       });
 
       // Handle message clicks when app is opened from a notification
@@ -55,27 +141,40 @@ class PushNotificationService {
   }
 
   /// Gets the Firebase Cloud Messaging device token with a fallback.
-  Future<String> getDeviceToken() async {
+  Future<String?> getDeviceToken() async {
     if (!_isFirebaseInitialized) {
-      developer.log('Firebase not initialized. Returning mock device token.', name: 'PushNotificationService');
-      return 'e1F_A4xWRQe7d-V8G9H0I1J2K3L4M5N6O7P8Q9R0S1T2U3V4W5X6Y7Z8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z4A5B6C7D8E9F0G1H2I3J4K5L6M7N8O9P';
+      developer.log('Firebase not initialized. Returning null device token.', name: 'PushNotificationService');
+      return null;
     }
 
     try {
+      // On iOS, it's highly recommended to retrieve the APNs token first before getting the FCM token.
+      if (Platform.isIOS) {
+        final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+        if (apnsToken == null) {
+          developer.log('APNs Token is null. The FCM token may fail to fetch or be invalid.', name: 'PushNotificationService');
+          // We can delay briefly to allow APNs to register, though usually it happens automatically.
+          await Future.delayed(const Duration(seconds: 2));
+        } else {
+          developer.log('APNs Token successfully retrieved.', name: 'PushNotificationService');
+        }
+      }
+
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null && token.isNotEmpty) {
-        developer.log('Retrieved FCM Device Token successfully.', name: 'PushNotificationService');
+        developer.log('Retrieved FCM Device Token successfully: $token', name: 'PushNotificationService');
+        print('\n\n========== FCM DEVICE TOKEN ==========\n$token\n======================================\n\n');
         return token;
       }
     } catch (e) {
       developer.log(
-        'Failed to fetch real FCM token. Returning fallback device token.',
+        'Failed to fetch real FCM token. Returning null device token.',
         name: 'PushNotificationService',
         error: e,
       );
     }
 
-    return 'f3JpA4xWRQe7d-V8G9H0I1J2K3L4M5N6O7P8Q9R0S1T2U3V4W5X6Y7Z8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z4A5B6C7D8E9F0G1H2I3J4K5L6M7N8O9P';
+    return null;
   }
 
   /// Gets the current operating system platform.

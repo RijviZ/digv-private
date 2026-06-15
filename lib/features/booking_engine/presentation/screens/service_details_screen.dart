@@ -6,20 +6,17 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/widgets/app_filter_bar.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../search/presentation/providers/search_provider.dart';
 
 class ServiceDetailsScreen extends ConsumerStatefulWidget {
   final String serviceItemId;
 
-  const ServiceDetailsScreen({
-    super.key,
-    required this.serviceItemId,
-  });
+  const ServiceDetailsScreen({super.key, required this.serviceItemId});
 
   @override
-  ConsumerState<ServiceDetailsScreen> createState() => _ServiceDetailsScreenState();
+  ConsumerState<ServiceDetailsScreen> createState() =>
+      _ServiceDetailsScreenState();
 }
 
 class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
@@ -27,11 +24,13 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final detailsAsync = ref.watch(serviceDetailsProvider(widget.serviceItemId));
+    final detailsAsync = ref.watch(
+      serviceDetailsProvider(widget.serviceItemId),
+    );
 
     return detailsAsync.when(
       data: (details) {
-        final types = details.selectableTypes.map((t) => t.name).toList();
+        details.selectableTypes.map((t) => t.name).toList();
 
         return Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
@@ -41,7 +40,10 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
                 const AppTopBar(title: 'Service Details'),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -51,15 +53,23 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
                           clipBehavior: Clip.antiAlias,
                           decoration: ShapeDecoration(
                             image: DecorationImage(
-                              image: details.serviceItemImageUrl != null && details.serviceItemImageUrl!.isNotEmpty
+                              image:
+                                  details.serviceItemImageUrl != null &&
+                                      details.serviceItemImageUrl!.isNotEmpty
                                   ? NetworkImage(details.serviceItemImageUrl!)
-                                  : const AssetImage('assets/images/Container.png') as ImageProvider,
+                                  : const AssetImage(
+                                          'assets/images/Container.png',
+                                        )
+                                        as ImageProvider,
                               fit: BoxFit.cover,
                             ),
                             gradient: LinearGradient(
                               begin: const Alignment(0.50, -0.00),
                               end: const Alignment(0.50, 1.00),
-                              colors: [Colors.black.withOpacity(0.20), Colors.black],
+                              colors: [
+                                Colors.black.withOpacity(0.20),
+                                Colors.black,
+                              ],
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(6),
@@ -98,7 +108,8 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          details.serviceItemDescription ?? 'Professional service provided by our top-rated technicians.',
+                          details.serviceItemDescription ??
+                              'Professional service provided by our top-rated technicians.',
                           style: AppTextStyles.captionMedium.copyWith(
                             color: Theme.of(context).colorScheme.secondary,
                           ),
@@ -114,7 +125,9 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
                         ),
                         const SizedBox(height: 7),
                         if (details.whatsIncluded.isNotEmpty)
-                          ...details.whatsIncluded.map((feature) => _includedItem(text: feature))
+                          ...details.whatsIncluded.map(
+                            (feature) => _includedItem(text: feature),
+                          )
                         else ...[
                           _includedItem(text: 'Filter Cleaning'),
                           _includedItem(text: 'Gas Pressure Check'),
@@ -144,12 +157,17 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
-                border: const Border(top: BorderSide(color: AppColors.dropDownBorder)),
+                border: const Border(
+                  top: BorderSide(color: AppColors.dropDownBorder),
+                ),
               ),
               child: AppPrimaryButton(
                 text: 'Continue to select technician',
                 onTap: () {
-                  context.push('/select_technician', extra: (widget.serviceItemId, _quantity));
+                  context.push(
+                    '/select_technician',
+                    extra: (widget.serviceItemId, _quantity),
+                  );
                 },
               ),
             ),
@@ -174,7 +192,9 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
           foregroundColor: Theme.of(context).colorScheme.primary,
           elevation: 0,
         ),
-        body: Center(child: Text('Error: $err', style: const TextStyle(color: Colors.red))),
+        body: Center(
+          child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
+        ),
       ),
     );
   }
@@ -203,7 +223,9 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               clipBehavior: Clip.antiAlias,
-              decoration: const BoxDecoration(color: AppColors.inputBgSecondary),
+              decoration: const BoxDecoration(
+                color: AppColors.inputBgSecondary,
+              ),
               child: Text(
                 '–',
                 style: AppTextStyles.bodyMedium.copyWith(
@@ -235,7 +257,9 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               clipBehavior: Clip.antiAlias,
-              decoration: const BoxDecoration(color: AppColors.inputBgSecondary),
+              decoration: const BoxDecoration(
+                color: AppColors.inputBgSecondary,
+              ),
               child: Text(
                 '+',
                 style: AppTextStyles.bodyMedium.copyWith(

@@ -44,13 +44,12 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
   final Map<String, int> _validCodes = {'FIRST10': 10};
 
   int get _serviceCharge => widget.technician.pricePerVisit * widget.quantity;
-  int get _platformFee => (_serviceCharge * 0.10).round();
 
   int get _discountPercent => _promoApplied ? (_validCodes[_promoController.text.trim().toUpperCase()] ?? 0) : 0;
 
-  int get _discountAmount => ((_serviceCharge - _platformFee) * _discountPercent / 100).round();
+  int get _discountAmount => (_serviceCharge * _discountPercent / 100).round();
 
-  int get _total => _serviceCharge - _platformFee - _discountAmount;
+  int get _total => _serviceCharge - _discountAmount;
 
   void _applyPromo() {
     final code = _promoController.text.trim().toUpperCase();
@@ -124,7 +123,7 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
                 'amount': _total,
                 'quantity': widget.quantity,
                 'serviceCharge': _serviceCharge,
-                'fee': _platformFee,
+                'fee': 0,
                 'service': widget.service,
                 'technician': widget.technician,
                 'date': widget.date,
@@ -352,16 +351,6 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
           _buildPriceRow(
             label: 'Service charges',
             value: '₹$_serviceCharge',
-            labelStyle: AppTextStyles.captionMedium.copyWith(color: Theme.of(context).colorScheme.secondary),
-            valueStyle: AppTextStyles.captionMedium.copyWith(
-              color: Theme.of(context).colorScheme.secondary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _buildPriceRow(
-            label: 'Platform fee (10%)',
-            value: '₹$_platformFee',
             labelStyle: AppTextStyles.captionMedium.copyWith(color: Theme.of(context).colorScheme.secondary),
             valueStyle: AppTextStyles.captionMedium.copyWith(
               color: Theme.of(context).colorScheme.secondary,

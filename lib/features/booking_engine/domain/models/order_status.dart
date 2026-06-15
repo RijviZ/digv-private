@@ -1,6 +1,7 @@
 enum PaymentType { prepaid, postpaid }
 
 enum OrderStatus {
+  created,
   assigned,
   onTheWay,
   arrived,
@@ -12,6 +13,8 @@ enum OrderStatus {
 extension OrderStatusLabel on OrderStatus {
   String get label {
     switch (this) {
+      case OrderStatus.created:
+        return 'Created';
       case OrderStatus.assigned:
         return 'Technician Assigned';
       case OrderStatus.onTheWay:

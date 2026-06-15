@@ -32,7 +32,7 @@ class OrderTrackingScreen extends ConsumerStatefulWidget {
 }
 
 class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
-  OrderStatus _status = OrderStatus.assigned;
+  OrderStatus _status = OrderStatus.created;
   late PaymentType _paymentType;
   List<OrderTrackingLog>? _logs;
 
@@ -96,7 +96,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   // Only postpaid can cancel up to workStarted
   bool get _canCancel {
     if (_isPrepaid) return _status != OrderStatus.completed;
-    return _status == OrderStatus.onTheWay || _status == OrderStatus.arrived || _status == OrderStatus.assigned;
+    return _status == OrderStatus.onTheWay || _status == OrderStatus.arrived || _status == OrderStatus.assigned || _status == OrderStatus.created;
   }
 
   void _resolveStatusFromLogs(List<OrderTrackingLog> logs) {
@@ -104,7 +104,8 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     
     // 1. Completed
     if (widget.order!.status == OrderBadgeStatus.completed || 
-        logs.any((l) => l.newStatus == 'COMPLETED' || l.action == 'COMPLETED')) {
+        logs.any((l) => l.newStatus == 'COMPLETED' || l.action == 'COMPLETED' ||
+                        l.newStatus == 'OTP_VERIFIED' || l.action == 'OTP_VERIFIED')) {
       _status = OrderStatus.completed;
       return;
     }
@@ -118,7 +119,6 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     
     // 3. Work Started
     if (logs.any((l) => l.newStatus == 'WORK_STARTED' || l.action == 'WORK_STARTED' ||
-                    l.newStatus == 'OTP_VERIFIED' || l.action == 'OTP_VERIFIED' ||
                     l.newStatus == 'WORK_PROGRESS_UPDATED' || l.action == 'WORK_PROGRESS_UPDATED')) {
       _status = OrderStatus.workStarted;
       return;
@@ -135,12 +135,18 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       _status = OrderStatus.onTheWay;
       return;
     }
-
+ 
     // 6. Assigned (Technician Assigned)
     if (logs.any((l) => l.newStatus == 'PROVIDER_ASSIGN' || l.action == 'PROVIDER_ASSIGN' ||
                     l.newStatus == 'PROVIDER_ASIGN' || l.action == 'PROVIDER_ASIGN' ||
                     l.newStatus == 'ACCEPTED' || l.action == 'ACCEPTED')) {
       _status = OrderStatus.assigned;
+      return;
+    }
+
+    // 7. Created
+    if (logs.any((l) => l.action == 'CREATED' || l.newStatus == 'PENDING')) {
+      _status = OrderStatus.created;
       return;
     }
     
@@ -152,60 +158,67 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       case OrderBadgeStatus.active:
         _status = OrderStatus.assigned;
         break;
+      case OrderBadgeStatus.upcoming:
+        _status = OrderStatus.created;
+        break;
       default:
-        _status = OrderStatus.assigned;
+        _status = OrderStatus.created;
     }
   }
 
   List<TrackingStep> get _steps {
     final idx = OrderStatus.values.indexOf(_status);
     return [
-      // These 2 steps are always completed before tracking screen opens
-      const TrackingStep(
-        title: 'Booking Confirmed',
-        subtitle: 'Payment received',
+      TrackingStep(
+        title: 'Created',
+        subtitle: 'Booking request created',
         isCompleted: true,
+        isActive: _status == OrderStatus.created,
+      ),
+      TrackingStep(
+        title: 'Booking Confirmed',
+        subtitle: 'Booking is confirmed',
+        isCompleted: idx >= 1,
         isActive: false,
       ),
       TrackingStep(
         title: 'Technician Assigned',
         subtitle: widget.order != null ? '${widget.order!.technicianName} is assigned' : 'Arjun Kumar is assigned',
-        isCompleted: true,
+        isCompleted: idx >= 1,
         isActive: _status == OrderStatus.assigned,
       ),
-      // These 5 steps map 1:1 to OrderStatus enum (indices 1–5)
       TrackingStep(
         title: 'On the Way',
         subtitle: 'ETA 12 minutes',
-        isCompleted: idx >= 1,
-        isActive: idx == 1,
-      ),
-      TrackingStep(
-        title: 'Arrived',
         isCompleted: idx >= 2,
         isActive: idx == 2,
       ),
       TrackingStep(
-        title: 'Work Started',
+        title: 'Arrived',
         isCompleted: idx >= 3,
         isActive: idx == 3,
+      ),
+      TrackingStep(
+        title: 'Work Started',
+        isCompleted: idx >= 4,
+        isActive: idx == 4,
       ),
       TrackingStep(
         title: 'Work Done — OTP Needed',
         subtitle: 'Share OTP with technician',
         subtitleColor: AppColors.alertText,
-        isCompleted: idx >= 4,
-        isActive: idx == 4,
+        isCompleted: idx >= 5,
+        isActive: idx == 5,
         actionLabel: 'View OTP Code',
         actionLabelColor: AppColors.alertText,
         actionBackgroundColor: AppColors.alertBg,
         actionBorderColor: AppColors.alertBorder,
-        onAction: idx == 4 ? _showOtpSheet : null,
+        onAction: idx == 5 ? _showOtpSheet : null,
       ),
       TrackingStep(
         title: 'Completed',
-        isCompleted: idx >= 5,
-        isActive: idx == 5,
+        isCompleted: idx >= 6,
+        isActive: idx == 6,
       ),
     ];
   }

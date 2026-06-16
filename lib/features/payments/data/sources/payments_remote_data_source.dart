@@ -51,12 +51,12 @@ class PaymentsRemoteDataSourceImpl implements PaymentsRemoteDataSource {
     required String gatewayTransactionId,
     required Map<String, dynamic> gatewayResponse,
   }) async {
-    return {
-      'gatewayResponse': {
-        'provider': 'MANUAL',
-        'status': 'SUCCESS',
-        'paidAt': '2026-05-22T18:01:25.952725Z',
-      }
-    };
+    final response = await _dio.post(
+      '/payments/$paymentId/confirm',
+      data: {
+        'gatewayResponse': gatewayResponse,
+      },
+    );
+    return response.data as Map<String, dynamic>;
   }
 }

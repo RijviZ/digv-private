@@ -104,16 +104,21 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     required List<String> tags,
     required List<String> photos,
   }) async {
+    final payload = <String, dynamic>{
+      'serviceRequestId': serviceRequestId,
+      'targetType': targetType,
+      'rating': rating,
+      'tags': tags,
+    };
+    if (comment.isNotEmpty) {
+      payload['comment'] = comment;
+    }
+    if (photos.isNotEmpty) {
+      payload['photos'] = photos;
+    }
     final response = await _dio.post(
       '/users/review',
-      data: {
-        'serviceRequestId': serviceRequestId,
-        'targetType': targetType,
-        'rating': rating,
-        'comment': comment,
-        'tags': tags,
-        'photos': photos,
-      },
+      data: payload,
     );
     return response.data as Map<String, dynamic>;
   }
@@ -147,14 +152,19 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     required List<String> tags,
     required List<String> photos,
   }) async {
+    final payload = <String, dynamic>{
+      'rating': rating,
+      'tags': tags,
+    };
+    if (comment.isNotEmpty) {
+      payload['comment'] = comment;
+    }
+    if (photos.isNotEmpty) {
+      payload['photos'] = photos;
+    }
     final response = await _dio.patch(
       '/users/review/$id',
-      data: {
-        'rating': rating,
-        'comment': comment,
-        'tags': tags,
-        'photos': photos,
-      },
+      data: payload,
     );
     return response.data as Map<String, dynamic>;
   }

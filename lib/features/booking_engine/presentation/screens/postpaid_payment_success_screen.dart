@@ -1,5 +1,6 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -12,13 +13,18 @@ import 'package:digv/features/orders/domain/models/order_item.dart';
 class PostpaidPaymentSuccessScreen extends ConsumerStatefulWidget {
   final String serviceRequestId;
 
-  const PostpaidPaymentSuccessScreen({super.key, required this.serviceRequestId});
+  const PostpaidPaymentSuccessScreen({
+    super.key,
+    required this.serviceRequestId,
+  });
 
   @override
-  ConsumerState<PostpaidPaymentSuccessScreen> createState() => _PostpaidPaymentSuccessScreenState();
+  ConsumerState<PostpaidPaymentSuccessScreen> createState() =>
+      _PostpaidPaymentSuccessScreenState();
 }
 
-class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSuccessScreen> {
+class _PostpaidPaymentSuccessScreenState
+    extends ConsumerState<PostpaidPaymentSuccessScreen> {
   int _rating = 0;
   final TextEditingController _reviewController = TextEditingController();
   final List<String> _photos = [];
@@ -89,15 +95,17 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
     if (pickedFile != null) {
       setState(() => _isUploadingPhoto = true);
       try {
-        final url = await ref.read(fileUploadServiceProvider).uploadFile(pickedFile.path, category: 'reviews');
+        final url = await ref
+            .read(fileUploadServiceProvider)
+            .uploadFile(pickedFile.path, category: 'reviews');
         setState(() {
           _photos.add(url);
         });
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to upload image: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to upload image: $e')));
         }
       } finally {
         setState(() => _isUploadingPhoto = false);
@@ -111,7 +119,7 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
     setState(() => _isSubmitting = true);
     try {
       final repository = ref.read(ordersRepositoryProvider);
-      
+
       final tags = <String>[];
       if (_rating >= 4) {
         tags.addAll(['Friendly', 'Cooperative', 'Good Behaviour']);
@@ -143,17 +151,31 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_existingReviewId != null ? 'Review updated successfully!' : 'Review submitted successfully!'),
+            content: Text(
+              _existingReviewId != null
+                  ? 'Review updated successfully!'
+                  : 'Review submitted successfully!',
+            ),
             backgroundColor: AppColors.successText,
           ),
         );
         context.go('/home');
       }
     } catch (e) {
+      String errorMessage = e.toString();
+      if (e is DioException) {
+        final responseData = e.response?.data;
+        if (responseData is Map<String, dynamic> &&
+            responseData['message'] != null) {
+          errorMessage = responseData['message'].toString();
+        } else if (responseData != null) {
+          errorMessage = responseData.toString();
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save review: $e'),
+            content: Text('Failed to save review: $errorMessage'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -180,7 +202,7 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
           children: [
             // Custom App Bar
             _buildAppBar(context),
-            
+
             Expanded(
               child: _isLoadingReview
                   ? const Center(child: CircularProgressIndicator())
@@ -191,29 +213,31 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
                           const SizedBox(height: 20),
                           // Technician Info
                           _buildTechnicianInfo(),
-                          
+
                           const SizedBox(height: 16),
                           // Rating Info Box
                           _buildRatingInfoBox(),
-                          
+
                           const SizedBox(height: 24),
                           // Star Rating
                           _buildStarRating(),
-                          
+
                           const SizedBox(height: 28),
                           // Review Section
                           _buildReviewSection(),
-                          
+
                           const SizedBox(height: 24),
                           // Photo Section
                           _buildPhotoSection(),
-                          
-                          const SizedBox(height: 44), // Buffer for bottom buttons
+
+                          const SizedBox(
+                            height: 44,
+                          ), // Buffer for bottom buttons
                         ],
                       ),
                     ),
             ),
-            
+
             // Bottom Action Buttons
             _buildBottomButtons(context),
           ],
@@ -244,7 +268,10 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
                 ),
                 child: SvgPicture.asset(
                   'assets/images/CaretLeft.svg',
-                  colorFilter: const ColorFilter.mode(AppColors.onLight, BlendMode.srcIn),
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.onLight,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),
@@ -278,7 +305,11 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
                 : null,
           ),
           child: order?.technicianImageUrl == null
-              ? const Icon(Icons.person, size: 36, color: AppColors.textSecondary)
+              ? const Icon(
+                  Icons.person,
+                  size: 36,
+                  color: AppColors.textSecondary,
+                )
               : null,
         ),
         const SizedBox(height: 8),
@@ -304,7 +335,10 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
                     'assets/images/star.svg',
                     width: 13,
                     height: 13,
-                    colorFilter: const ColorFilter.mode(AppColors.star, BlendMode.srcIn),
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.star,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 );
               }),
@@ -353,7 +387,10 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
       decoration: ShapeDecoration(
         color: AppColors.unread,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: AppColors.inputBorderSecondary),
+          side: const BorderSide(
+            width: 1,
+            color: AppColors.inputBorderSecondary,
+          ),
           borderRadius: BorderRadius.circular(6),
         ),
       ),
@@ -392,12 +429,17 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
           child: GestureDetector(
             onTap: () => _onRatingChanged(currentRating),
             child: SvgPicture.asset(
-              isFilled ? 'assets/images/star.svg' : 'assets/images/star_edge.svg',
+              isFilled
+                  ? 'assets/images/star.svg'
+                  : 'assets/images/star_edge.svg',
               width: 40,
               height: 40,
-              colorFilter: isFilled 
-                ? const ColorFilter.mode(AppColors.star, BlendMode.srcIn)
-                : const ColorFilter.mode(AppColors.dropDownBorder, BlendMode.srcIn),
+              colorFilter: isFilled
+                  ? const ColorFilter.mode(AppColors.star, BlendMode.srcIn)
+                  : const ColorFilter.mode(
+                      AppColors.dropDownBorder,
+                      BlendMode.srcIn,
+                    ),
             ),
           ),
         );
@@ -464,7 +506,10 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
                   'assets/images/camera.svg',
                   width: 14,
                   height: 14,
-                  colorFilter: const ColorFilter.mode(AppColors.textDark, BlendMode.srcIn),
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.textDark,
+                    BlendMode.srcIn,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 const Text(
@@ -505,40 +550,46 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
         const SizedBox(height: 9),
         Row(
           children: [
-            ..._photos.map((url) => Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Stack(
-                children: [
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.inputBorder),
-                      image: DecorationImage(
-                        image: NetworkImage(url),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 2,
-                    right: 2,
-                    child: GestureDetector(
-                      onTap: () => setState(() => _photos.remove(url)),
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
+            ..._photos.map(
+              (url) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.inputBorder),
+                        image: DecorationImage(
+                          image: NetworkImage(url),
+                          fit: BoxFit.cover,
                         ),
-                        padding: const EdgeInsets.all(2),
-                        child: const Icon(Icons.close, size: 12, color: Colors.white),
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      top: 2,
+                      right: 2,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _photos.remove(url)),
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(2),
+                          child: const Icon(
+                            Icons.close,
+                            size: 12,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )),
+            ),
             if (_photos.length < 4)
               GestureDetector(
                 onTap: _pickAndUploadPhoto,
@@ -548,7 +599,10 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
                   decoration: BoxDecoration(
                     color: const Color(0xFFF7F7F7),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.inputBorder, width: 1.08),
+                    border: Border.all(
+                      color: AppColors.inputBorder,
+                      width: 1.08,
+                    ),
                   ),
                   child: _isUploadingPhoto
                       ? const Center(
@@ -565,7 +619,10 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
                               'assets/images/photo.svg',
                               width: 20,
                               height: 20,
-                              colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.textSecondary,
+                                BlendMode.srcIn,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             const Text(
@@ -637,7 +694,9 @@ class _PostpaidPaymentSuccessScreenState extends ConsumerState<PostpaidPaymentSu
                       )
                     : Text(
                         _rating > 0
-                            ? (_existingReviewId != null ? 'Update Review' : 'Submit Review')
+                            ? (_existingReviewId != null
+                                  ? 'Update Review'
+                                  : 'Submit Review')
                             : 'Tap a star to rate',
                         textAlign: TextAlign.center,
                         style: const TextStyle(

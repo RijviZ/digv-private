@@ -138,6 +138,16 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
           throw Exception('Failed to get payment ID from server.');
         }
 
+        // Verify/Confirm the payment
+        await ref.read(paymentsNotifierProvider.notifier).confirmPayment(
+          paymentId: paymentId,
+          gatewayTransactionId: gatewayRef,
+          gatewayResponse: const {
+            'provider': 'MANUAL',
+            'status': 'SUCCESS',
+          },
+        );
+
         if (mounted) {
           context.push('/postpaid_payment_success', extra: serviceRequestId);
         }

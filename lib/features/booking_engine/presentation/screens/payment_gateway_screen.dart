@@ -27,7 +27,8 @@ class PaymentGatewayScreen extends ConsumerStatefulWidget {
   int get amount => bookingDetails['amount'] as int? ?? 0;
 
   @override
-  ConsumerState<PaymentGatewayScreen> createState() => _PaymentGatewayScreenState();
+  ConsumerState<PaymentGatewayScreen> createState() =>
+      _PaymentGatewayScreenState();
 }
 
 class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
@@ -50,7 +51,9 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final methodsAsync = ref.read(paymentMethodsProvider);
       methodsAsync.whenData((methods) {
-        if (_cardNumCtrl.text.isEmpty && _nameCtrl.text.isEmpty && _expiryCtrl.text.isEmpty) {
+        if (_cardNumCtrl.text.isEmpty &&
+            _nameCtrl.text.isEmpty &&
+            _expiryCtrl.text.isEmpty) {
           PaymentMethod? defaultCard;
           for (final m in methods) {
             if (m.isDefault) {
@@ -63,7 +66,8 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
             setState(() {
               _nameCtrl.text = promoCard.cardHolderName;
               _cardNumCtrl.text = '•••• •••• •••• ${promoCard.cardLast4}';
-              _expiryCtrl.text = '${promoCard.expiryMonth.toString().padLeft(2, '0')}/${promoCard.expiryYear.toString().substring(2)}';
+              _expiryCtrl.text =
+                  '${promoCard.expiryMonth.toString().padLeft(2, '0')}/${promoCard.expiryYear.toString().substring(2)}';
               if (method == 'CARD') {
                 _tab = PayTab.credit;
               }
@@ -76,7 +80,20 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
 
   String _formatScheduledDate(DateItem dateItem) {
     final now = DateTime.now();
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final monthIdx = months.indexOf(dateItem.month) + 1;
     final year = now.year;
     final mm = monthIdx.toString().padLeft(2, '0');
@@ -87,10 +104,20 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
   String _getCardBrand(String number) {
     final clean = number.replaceAll(RegExp(r'\D'), '');
     if (clean.startsWith('4')) return 'VISA';
-    if (RegExp(r'^5[1-5]').hasMatch(clean) || RegExp(r'^2[2-7]').hasMatch(clean)) return 'MASTERCARD';
+    if (RegExp(r'^5[1-5]').hasMatch(clean) ||
+        RegExp(r'^2[2-7]').hasMatch(clean))
+      return 'MASTERCARD';
     if (clean.startsWith('34') || clean.startsWith('37')) return 'AMEX';
-    if (clean.startsWith('60') || clean.startsWith('65') || clean.startsWith('81') || clean.startsWith('82') || clean.startsWith('508')) return 'RUPAY';
-    if (clean.startsWith('6011') || clean.startsWith('64') || clean.startsWith('65')) return 'DISCOVER';
+    if (clean.startsWith('60') ||
+        clean.startsWith('65') ||
+        clean.startsWith('81') ||
+        clean.startsWith('82') ||
+        clean.startsWith('508'))
+      return 'RUPAY';
+    if (clean.startsWith('6011') ||
+        clean.startsWith('64') ||
+        clean.startsWith('65'))
+      return 'DISCOVER';
     return 'OTHER';
   }
 
@@ -102,21 +129,31 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
         if (_cardNumCtrl.text.isNotEmpty) {
           final cardBrand = _getCardBrand(_cardNumCtrl.text);
           final cardLast4 = _cardNumCtrl.text.replaceAll(RegExp(r'\D'), '');
-          final last4 = cardLast4.length >= 4 ? cardLast4.substring(cardLast4.length - 4) : '0000';
-          
+          final last4 = cardLast4.length >= 4
+              ? cardLast4.substring(cardLast4.length - 4)
+              : '0000';
+
           final expiryParts = _expiryCtrl.text.split('/');
-          final month = expiryParts.isNotEmpty ? int.tryParse(expiryParts[0]) ?? 1 : 1;
-          final year = expiryParts.length > 1 ? int.tryParse('20${expiryParts[1]}') ?? 2026 : 2026;
-          
+          final month = expiryParts.isNotEmpty
+              ? int.tryParse(expiryParts[0]) ?? 1
+              : 1;
+          final year = expiryParts.length > 1
+              ? int.tryParse('20${expiryParts[1]}') ?? 2026
+              : 2026;
+
           final paymentMethodToSave = PaymentMethod(
-            cardHolderName: _nameCtrl.text.isEmpty ? 'Customer' : _nameCtrl.text,
+            cardHolderName: _nameCtrl.text.isEmpty
+                ? 'Customer'
+                : _nameCtrl.text,
             cardBrand: cardBrand,
             cardLast4: last4,
             expiryMonth: month,
             expiryYear: year,
             isDefault: false,
           );
-          await ref.read(paymentMethodsProvider.notifier).addPaymentMethod(paymentMethodToSave);
+          await ref
+              .read(paymentMethodsProvider.notifier)
+              .addPaymentMethod(paymentMethodToSave);
         }
       }
 
@@ -126,12 +163,16 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
       final date = widget.bookingDetails['date'] as DateItem?;
       final address = widget.bookingDetails['address'] as Address?;
       final timeStr = widget.bookingDetails['time'] as String? ?? '';
-      
-      final scheduledDateStr = date != null ? _formatScheduledDate(date) : '2026-05-10';
-      
+
+      final scheduledDateStr = date != null
+          ? _formatScheduledDate(date)
+          : '2026-05-10';
+
       final timeParts = timeStr.split('|');
-      final slotId = timeParts.length > 1 ? timeParts[1] : '11111111-1111-4111-8111-111111111111';
-      
+      final slotId = timeParts.length > 1
+          ? timeParts[1]
+          : '11111111-1111-4111-8111-111111111111';
+
       String gatewayRef = 'MANUAL-REF-001';
       if (_tab == PayTab.credit || _tab == PayTab.debit) {
         final brand = _getCardBrand(_cardNumCtrl.text);
@@ -139,9 +180,11 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
         final last4 = raw.length >= 4 ? raw.substring(raw.length - 4) : '0000';
         gatewayRef = '$brand-REF-$last4';
       } else if (_tab == PayTab.bank) {
-        gatewayRef = 'BANK-REF-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+        gatewayRef =
+            'BANK-REF-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
       } else if (_tab == PayTab.upi) {
-        gatewayRef = 'UPI-REF-${_upiCtrl.text.isEmpty ? "GUEST" : _upiCtrl.text.toUpperCase()}';
+        gatewayRef =
+            'UPI-REF-${_upiCtrl.text.isEmpty ? "GUEST" : _upiCtrl.text.toUpperCase()}';
       }
 
       final quantity = widget.bookingDetails['quantity'] as int? ?? 1;
@@ -149,16 +192,21 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
 
       // 4. Create the booking / service request first without passing client-side IDs
       final payload = {
-        'providerId': technician?.providerId ?? '2f4a8f15-3c10-4d1a-9821-111111111111',
-        'providerServiceId': technician?.providerServiceId ?? service?.serviceId ?? '7a8b9c10-1111-4d1a-9821-222222222222',
+        'providerId':
+            technician?.providerId ?? '2f4a8f15-3c10-4d1a-9821-111111111111',
+        'providerServiceId':
+            technician?.providerServiceId ??
+            service?.serviceId ??
+            '7a8b9c10-1111-4d1a-9821-222222222222',
         'scheduledDate': scheduledDateStr,
-        'availabilitySlotIds': [
-          slotId
-        ],
+        'availabilitySlotIds': [slotId],
         'quantity': quantity,
-        'description': 'Need service booking for ${service?.title ?? "Regular Service"}.',
-        'paymentMethod': widget.bookingDetails['paymentMethod'] as String? ?? 'CARD',
-        'collectionType': widget.bookingDetails['collectionType'] as String? ?? 'PREPAID',
+        'description':
+            'Need service booking for ${service?.title ?? "Regular Service"}.',
+        'paymentMethod':
+            widget.bookingDetails['paymentMethod'] as String? ?? 'CARD',
+        'collectionType':
+            widget.bookingDetails['collectionType'] as String? ?? 'PREPAID',
         'gatewayReference': gatewayRef,
         'paymentAmount': baseAmount.toDouble().toStringAsFixed(2),
         'addressLabel': address?.label ?? 'Home',
@@ -167,16 +215,20 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
         'state': address?.state ?? 'Dhaka',
         'postalCode': address?.postalCode ?? '1209',
         'serviceLat': address?.lat ?? 23.7465,
-        'serviceLng': address?.lng ?? 90.376
+        'serviceLng': address?.lng ?? 90.376,
       };
 
-      final bookingRes = await ref.read(createBookingProvider.notifier).createBooking(payload);
+      final bookingRes = await ref
+          .read(createBookingProvider.notifier)
+          .createBooking(payload);
 
       // 5. Extract the server-generated serviceRequestId from the booking response
-      final serviceRequestId = bookingRes['serviceRequestId'] as String? ?? 
-                               bookingRes['data']?['serviceRequestId'] as String? ??
-                               bookingRes['id'] as String? ??
-                               bookingRes['data']?['id'] as String? ?? '';
+      final serviceRequestId =
+          bookingRes['serviceRequestId'] as String? ??
+          bookingRes['data']?['serviceRequestId'] as String? ??
+          bookingRes['id'] as String? ??
+          bookingRes['data']?['id'] as String? ??
+          '';
 
       if (serviceRequestId.isEmpty) {
         throw Exception('Failed to retrieve service request ID from server.');
@@ -190,21 +242,34 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
         method = 'NET_BANKING';
       }
 
-      final paymentRes = await ref.read(paymentsNotifierProvider.notifier).createPendingPayment(
-        serviceRequestId: serviceRequestId,
-        method: method,
-        collectionType: 'PREPAID',
-        amount: baseAmount.toDouble().toStringAsFixed(2),
-        gatewayReference: gatewayRef,
-        note: 'Prepaid checkout payment',
-      );
+      final paymentRes = await ref
+          .read(paymentsNotifierProvider.notifier)
+          .createPendingPayment(
+            serviceRequestId: serviceRequestId,
+            method: method,
+            collectionType: 'PREPAID',
+            amount: baseAmount.toDouble().toStringAsFixed(2),
+            gatewayReference: gatewayRef,
+            note: 'Prepaid checkout payment',
+          );
 
-      final paymentId = paymentRes['paymentId'] as String? ?? 
-                        paymentRes['data']?['paymentId'] as String? ?? '';
+      final paymentId =
+          paymentRes['paymentId'] as String? ??
+          paymentRes['data']?['paymentId'] as String? ??
+          '';
 
       if (paymentId.isEmpty) {
         throw Exception('Failed to initiate prepaid payment.');
       }
+
+      // Verify/Confirm the payment
+      await ref
+          .read(paymentsNotifierProvider.notifier)
+          .confirmPayment(
+            paymentId: paymentId,
+            gatewayTransactionId: gatewayRef,
+            gatewayResponse: const {'provider': 'MANUAL', 'status': 'SUCCESS'},
+          );
 
       if (mounted) {
         final orderItem = OrderItem(
@@ -213,7 +278,8 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
           serviceName: service?.title ?? 'Regular Service',
           orderId: 'ORD-${serviceRequestId.substring(0, 4).toUpperCase()}',
           status: OrderBadgeStatus.active,
-          scheduledTime: '${date?.date ?? ""} ${date?.month ?? ""} · ${timeStr.split("|")[0]}',
+          scheduledTime:
+              '${date?.date ?? ""} ${date?.month ?? ""} · ${timeStr.split("|")[0]}',
           location: address?.label ?? 'Home',
           technicianName: technician?.name ?? 'Arjun Kumar',
           technicianImageUrl: technician?.avatarUrl,
@@ -251,7 +317,9 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
       barrierDismissible: true,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           elevation: 8,
           backgroundColor: Colors.white,
           child: Padding(
@@ -271,7 +339,10 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
                       'assets/images/XCircle.svg',
                       width: 28,
                       height: 28,
-                      colorFilter: const ColorFilter.mode(AppColors.error, BlendMode.srcIn),
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.error,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
                 ),
@@ -328,14 +399,24 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
   // amount comes from widget
 
   final List<UpiApp> _upiApps = const [
-    UpiApp(name: 'Google Pay', bgColor: Color(0xFFF5F5F5), iconBg: Colors.white, imagePath: 'assets/images/gpay.png'),
+    UpiApp(
+      name: 'Google Pay',
+      bgColor: Color(0xFFF5F5F5),
+      iconBg: Colors.white,
+      imagePath: 'assets/images/gpay.png',
+    ),
     UpiApp(
       name: 'PhonePe',
       bgColor: Color(0xFFF5F5F5),
       iconBg: Color(0xFF5F259F),
       imagePath: 'assets/images/phonepe.png',
     ),
-    UpiApp(name: 'Paytm', bgColor: Color(0xFFF5F5F5), iconBg: Color(0xFF00BAF2), imagePath: 'assets/images/paytm.png'),
+    UpiApp(
+      name: 'Paytm',
+      bgColor: Color(0xFFF5F5F5),
+      iconBg: Color(0xFF00BAF2),
+      imagePath: 'assets/images/paytm.png',
+    ),
     UpiApp(
       name: 'BHIM UPI',
       bgColor: Color(0xFFF5F5F5),
@@ -366,9 +447,14 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
   @override
   Widget build(BuildContext context) {
     final method = widget.bookingDetails['paymentMethod'] as String? ?? 'UPI';
-    ref.listen<AsyncValue<List<PaymentMethod>>>(paymentMethodsProvider, (prev, next) {
+    ref.listen<AsyncValue<List<PaymentMethod>>>(paymentMethodsProvider, (
+      prev,
+      next,
+    ) {
       next.whenData((methods) {
-        if (_cardNumCtrl.text.isEmpty && _nameCtrl.text.isEmpty && _expiryCtrl.text.isEmpty) {
+        if (_cardNumCtrl.text.isEmpty &&
+            _nameCtrl.text.isEmpty &&
+            _expiryCtrl.text.isEmpty) {
           PaymentMethod? defaultCard;
           for (final m in methods) {
             if (m.isDefault) {
@@ -381,7 +467,8 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
             setState(() {
               _nameCtrl.text = promoCard.cardHolderName;
               _cardNumCtrl.text = '•••• •••• •••• ${promoCard.cardLast4}';
-              _expiryCtrl.text = '${promoCard.expiryMonth.toString().padLeft(2, '0')}/${promoCard.expiryYear.toString().substring(2)}';
+              _expiryCtrl.text =
+                  '${promoCard.expiryMonth.toString().padLeft(2, '0')}/${promoCard.expiryYear.toString().substring(2)}';
               if (method == 'CARD') {
                 _tab = PayTab.credit;
               }
@@ -398,9 +485,16 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
           children: [
             const AppTopBar(title: 'Payment Gateway'),
             _tabBar(),
-            const Divider(height: 1, thickness: 1, color: AppColors.inputBorder),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.inputBorder,
+            ),
             Expanded(
-              child: SingleChildScrollView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 16), child: _tabBody()),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: _tabBody(),
+              ),
             ),
             //_bottomBar(),
           ],
@@ -410,10 +504,7 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Theme
-                .of(context)
-                .colorScheme
-                .surface,
+            color: Theme.of(context).colorScheme.surface,
             border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
           ),
           child: Column(
@@ -425,7 +516,11 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
                   Expanded(
                     child: Row(
                       children: [
-                        SvgPicture.asset('assets/images/lock.svg', width: 24, height: 24),
+                        SvgPicture.asset(
+                          'assets/images/lock.svg',
+                          width: 24,
+                          height: 24,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -447,7 +542,10 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
                         'assets/images/rupee.svg',
                         width: 20,
                         height: 20,
-                        colorFilter: ColorFilter.mode(AppColors.blueLight, BlendMode.srcIn),
+                        colorFilter: ColorFilter.mode(
+                          AppColors.blueLight,
+                          BlendMode.srcIn,
+                        ),
                       ),
                       const SizedBox(width: 2),
                       Text(
@@ -475,62 +573,62 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
     );
   }
 
-  Widget _tabBar() =>
-      Container(
-        color: Colors.white,
-        child: Row(
-          children: PayTab.values.map((tab) {
-            final active = _tab == tab;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _tab = tab),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: active ? Theme
-                        .of(context)
-                        .colorScheme
-                        .primary : Colors.transparent, width: 1)),
-                  ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SvgPicture.asset(
-                          tab.svgPath,
-                          height: 20,
-                          width: 20,
-                          colorFilter:
-                          ColorFilter.mode(active ? AppColors.onLight : Theme
-                              .of(context)
-                              .colorScheme
-                              .secondary, BlendMode.srcIn),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          tab.label,
-                          style: AppTextStyles.labelMedium.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: active ? Theme
-                                .of(context)
-                                .colorScheme
-                                .primary : Theme
-                                .of(context)
-                                .colorScheme
-                                .secondary,
-                          ),
-                        ),
-                      ],
-                    ),
+  Widget _tabBar() => Container(
+    color: Colors.white,
+    child: Row(
+      children: PayTab.values.map((tab) {
+        final active = _tab == tab;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _tab = tab),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: active
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.transparent,
+                    width: 1,
                   ),
                 ),
               ),
-            );
-          }).toList(),
-        ),
-      );
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SvgPicture.asset(
+                      tab.svgPath,
+                      height: 20,
+                      width: 20,
+                      colorFilter: ColorFilter.mode(
+                        active
+                            ? AppColors.onLight
+                            : Theme.of(context).colorScheme.secondary,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      tab.label,
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: active
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    ),
+  );
 
   Widget _tabBody() {
     switch (_tab) {
@@ -555,10 +653,7 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
           'Choose UPI App',
           style: AppTextStyles.titleLight.copyWith(
             fontWeight: FontWeight.w500,
-            color: Theme
-                .of(context)
-                .colorScheme
-                .onSurface,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -570,10 +665,9 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
         const SizedBox(height: 8),
         Text(
           'Enter your UPI ID linked to any bank account',
-          style: AppTextStyles.caption.copyWith(color: Theme
-              .of(context)
-              .colorScheme
-              .secondary),
+          style: AppTextStyles.caption.copyWith(
+            color: Theme.of(context).colorScheme.secondary,
+          ),
         ),
       ],
     );
@@ -595,9 +689,9 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             decoration: BoxDecoration(
-              color: selected ? Theme
-                  .of(context)
-                  .primaryColor : AppColors.inputBgSecondary,
+              color: selected
+                  ? Theme.of(context).primaryColor
+                  : AppColors.inputBgSecondary,
               borderRadius: BorderRadius.circular(4),
               border: Border.all(color: AppColors.inputBorder, width: 1),
             ),
@@ -607,21 +701,22 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
                 Container(
                   width: 32,
                   height: 32,
-                  decoration: BoxDecoration(color: app.iconBg, shape: BoxShape.circle),
-                  child: ClipOval(child: Image.asset(app.imagePath, fit: BoxFit.cover)),
+                  decoration: BoxDecoration(
+                    color: app.iconBg,
+                    shape: BoxShape.circle,
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(app.imagePath, fit: BoxFit.cover),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   app.name,
                   style: AppTextStyles.labelMedium.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: selected ? Theme
-                        .of(context)
-                        .colorScheme
-                        .surface : Theme
-                        .of(context)
-                        .colorScheme
-                        .primary,
+                    color: selected
+                        ? Theme.of(context).colorScheme.surface
+                        : Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -632,68 +727,76 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
     );
   }
 
-  Widget _dividerOr() =>
-      Row(
-        children: [
-          const Expanded(child: Divider(color: AppColors.inputBorder, thickness: 1)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Text('or enter UPI ID', style: AppTextStyles.caption.copyWith(
-              fontWeight: FontWeight.w400,
-              color: Theme
-                  .of(context)
-                  .colorScheme
-                  .secondary,
-            ),
-            ),),
-          const Expanded(child: Divider(color: AppColors.inputBorder, thickness: 1)),
-        ],
-      );
-
-  Widget _upiIdInput() =>
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.inputBorder),
+  Widget _dividerOr() => Row(
+    children: [
+      const Expanded(
+        child: Divider(color: AppColors.inputBorder, thickness: 1),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Text(
+          'or enter UPI ID',
+          style: AppTextStyles.caption.copyWith(
+            fontWeight: FontWeight.w400,
+            color: Theme.of(context).colorScheme.secondary,
+          ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        height: 52,
-        child: Row(
-          children: [
-            SvgPicture.asset(
-              'assets/images/mobile.svg',
-              height: 18,
-              width: 18,
-              colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
+      ),
+      const Expanded(
+        child: Divider(color: AppColors.inputBorder, thickness: 1),
+      ),
+    ],
+  );
+
+  Widget _upiIdInput() => Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.inputBorder),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    height: 52,
+    child: Row(
+      children: [
+        SvgPicture.asset(
+          'assets/images/mobile.svg',
+          height: 18,
+          width: 18,
+          colorFilter: const ColorFilter.mode(
+            AppColors.textSecondary,
+            BlendMode.srcIn,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: TextField(
+            controller: _upiCtrl,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: Theme.of(context).colorScheme.primary,
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _upiCtrl,
-                style: AppTextStyles.bodyMedium.copyWith(color: Theme
-                    .of(context)
-                    .colorScheme
-                    .primary),
-                decoration: InputDecoration(
-                  hintText: 'yourname@upi',
-                  hintStyle: AppTextStyles.bodyMedium.copyWith(color: Theme
-                      .of(context)
-                      .colorScheme
-                      .secondary),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
+            decoration: InputDecoration(
+              hintText: 'yourname@upi',
+              hintStyle: AppTextStyles.bodyMedium.copyWith(
+                color: Theme.of(context).colorScheme.secondary,
               ),
+              border: InputBorder.none,
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
             ),
-          ],
+          ),
         ),
-      );
-
+      ],
+    ),
+  );
 
   Widget _bankBody() {
-    final banks = ['State Bank of India', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra Bank'];
+    final banks = [
+      'State Bank of India',
+      'HDFC Bank',
+      'ICICI Bank',
+      'Axis Bank',
+      'Kotak Mahindra Bank',
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -701,172 +804,191 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
         const SizedBox(height: 22),
         const Text(
           'Select Your Bank',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.onLight),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onLight,
+          ),
         ),
         const SizedBox(height: 14),
-        ...banks
-            .asMap()
-            .entries
-            .map(
-              (e) =>
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Container(
+        ...banks.asMap().entries.map(
+          (e) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.inputBorder),
+              ),
+              child: ListTile(
+                leading: Container(
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.inputBorder),
+                    color: AppColors.inputBgSecondary,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: ListTile(
-                    leading: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                          color: AppColors.inputBgSecondary, borderRadius: BorderRadius.circular(12)),
-                      child: Center(
-                        child: SvgPicture.asset(
-                          'assets/images/bank.svg',
-                          height: 18,
-                          width: 18,
-                          colorFilter: const ColorFilter.mode(Color(0xFF64748B), BlendMode.srcIn),
-                        ),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/images/bank.svg',
+                      height: 18,
+                      width: 18,
+                      colorFilter: const ColorFilter.mode(
+                        Color(0xFF64748B),
+                        BlendMode.srcIn,
                       ),
                     ),
-                    title: Text(
-                      e.value,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.onLight),
-                    ),
-                    trailing: const Icon(Icons.chevron_right, color: Color(0xFFAAAAAA), size: 20),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
                 ),
+                title: Text(
+                  e.value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.onLight,
+                  ),
+                ),
+                trailing: const Icon(
+                  Icons.chevron_right,
+                  color: Color(0xFFAAAAAA),
+                  size: 20,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
               ),
+            ),
+          ),
         ),
       ],
     );
   }
-  Widget _amountCard() =>
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.inputBgSecondary,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: AppColors.inputBorder),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
+
+  Widget _amountCard() => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    decoration: BoxDecoration(
+      color: AppColors.inputBgSecondary,
+      borderRadius: BorderRadius.circular(4),
+      border: Border.all(color: AppColors.inputBorder),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Text(
+              'Amount Due',
+              style: AppTextStyles.captionMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
               children: [
-                Text(
-                  'Amount Due',
-                  style: AppTextStyles.captionMedium.copyWith(color: AppColors.textSecondary),
+                SvgPicture.asset(
+                  'assets/images/rupee.svg',
+                  height: 16,
+                  width: 16,
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).colorScheme.primary,
+                    BlendMode.srcIn,
+                  ),
                 ),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    SvgPicture.asset(
-                      'assets/images/rupee.svg',
-                      height: 16,
-                      width: 16,
-                      colorFilter: ColorFilter.mode(Theme
-                          .of(context)
-                          .colorScheme
-                          .primary, BlendMode.srcIn),
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${widget.amount}',
-                      style: AppTextStyles.h3.copyWith(color: Theme
-                          .of(context)
-                          .colorScheme
-                          .primary, fontWeight: FontWeight.w900, letterSpacing: 0),
-                    ),
-                  ],
+                const SizedBox(width: 2),
+                Text(
+                  '${widget.amount}',
+                  style: AppTextStyles.h3.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0,
+                  ),
                 ),
               ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.successBg,
-                borderRadius: BorderRadius.circular(2),
-                border: Border.all(color: AppColors.successBorder),
-              ),
-              child: Row(
-                children: [
-                  SvgPicture.asset(
-                    'assets/images/lock.svg',
-                    height: 13,
-                    width: 13,
-                    colorFilter: ColorFilter.mode(AppColors.success, BlendMode.srcIn),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'SSL Secured',
-                    style: AppTextStyles.captionSmall.copyWith(color: AppColors.success),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
-      );
-
-  Widget _inputField({required String hint, IconData? icon, String? svgPath, bool obscure = false}) =>
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.inputBorder),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        height: 48,
-        child: Row(
-          children: [
-            if (svgPath != null)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.successBg,
+            borderRadius: BorderRadius.circular(2),
+            border: Border.all(color: AppColors.successBorder),
+          ),
+          child: Row(
+            children: [
               SvgPicture.asset(
-                svgPath,
-                height: 18,
-                width: 18,
-                colorFilter: ColorFilter.mode(Theme
-                    .of(context)
-                    .colorScheme
-                    .secondary, BlendMode.srcIn),
-              )
-            else
-              if (icon != null)
-                Icon(icon, size: 18, color: Theme
-                    .of(context)
-                    .colorScheme
-                    .secondary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                obscureText: obscure,
-                style: AppTextStyles.bodyMedium.copyWith(color: Theme
-                    .of(context)
-                    .colorScheme
-                    .primary),
-                decoration: InputDecoration(
-                  hintText: hint,
-                  hintStyle: AppTextStyles.bodyMedium.copyWith(color: Theme
-                      .of(context)
-                      .colorScheme
-                      .secondary),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
+                'assets/images/lock.svg',
+                height: 13,
+                width: 13,
+                colorFilter: ColorFilter.mode(
+                  AppColors.success,
+                  BlendMode.srcIn,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 6),
+              Text(
+                'SSL Secured',
+                style: AppTextStyles.captionSmall.copyWith(
+                  color: AppColors.success,
+                ),
+              ),
+            ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
+
+  Widget _inputField({
+    required String hint,
+    IconData? icon,
+    String? svgPath,
+    bool obscure = false,
+  }) => Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.inputBorder),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    height: 48,
+    child: Row(
+      children: [
+        if (svgPath != null)
+          SvgPicture.asset(
+            svgPath,
+            height: 18,
+            width: 18,
+            colorFilter: ColorFilter.mode(
+              Theme.of(context).colorScheme.secondary,
+              BlendMode.srcIn,
+            ),
+          )
+        else if (icon != null)
+          Icon(icon, size: 18, color: Theme.of(context).colorScheme.secondary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: TextField(
+            obscureText: obscure,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: AppTextStyles.bodyMedium.copyWith(
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+              border: InputBorder.none,
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
   // Card fields
   final _cardNumCtrl = TextEditingController();
@@ -894,8 +1016,13 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: AppTextStyles.titleLight.copyWith(fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.primary)),
+        Text(
+          label,
+          style: AppTextStyles.titleLight.copyWith(
+            fontWeight: FontWeight.w500,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
         const SizedBox(height: 12),
 
         _CardPreview(
@@ -919,30 +1046,32 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
         ),
         const SizedBox(height: 16),
 
-        Row(children: [
-          Expanded(
-            child: _cardInputField(
-              controller: _expiryCtrl,
-              hint: 'MM/YY',
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                _ExpiryFormatter(),
-              ],
-              maxLength: 5,
+        Row(
+          children: [
+            Expanded(
+              child: _cardInputField(
+                controller: _expiryCtrl,
+                hint: 'MM/YY',
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  _ExpiryFormatter(),
+                ],
+                maxLength: 5,
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _cardInputField(
-              controller: _cvvCtrl,
-              hint: 'CVV',
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              maxLength: 3,
+            const SizedBox(width: 16),
+            Expanded(
+              child: _cardInputField(
+                controller: _cvvCtrl,
+                hint: 'CVV',
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                maxLength: 3,
+              ),
             ),
-          ),
-        ]),
+          ],
+        ),
         const SizedBox(height: 16),
 
         // Name field
@@ -956,30 +1085,36 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
         // Save card checkbox
         GestureDetector(
           onTap: () => setState(() => _saveCard = !_saveCard),
-          child: Row(children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: _saveCard ? AppColors.onLight : AppColors.onDark,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: _saveCard ? AppColors.onLight : AppColors.inputBorder,
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: _saveCard ? AppColors.onLight : AppColors.onDark,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: _saveCard
+                        ? AppColors.onLight
+                        : AppColors.inputBorder,
+                  ),
                 ),
+                child: _saveCard
+                    ? const Icon(Icons.check, size: 13, color: Colors.white)
+                    : null,
               ),
-              child: _saveCard
-                  ? const Icon(Icons.check, size: 13, color: Colors.white)
-                  : null,
-            ),
-            const SizedBox(width: 10),
-            Text('Save this card for future payments',
+              const SizedBox(width: 10),
+              Text(
+                'Save this card for future payments',
                 style: AppTextStyles.labelMedium.copyWith(
                   color: AppColors.textSecondary,
                   fontSize: 12,
-                  fontFamily: 'Poppins'
-                )),
-          ]),
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -1004,30 +1139,34 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
       ),
       padding: const EdgeInsets.all(16),
       height: 52,
-      child: Row(children: [
-        Expanded(
-          child: TextField(
-            controller: controller,
-            obscureText: obscure,
-            keyboardType: keyboardType,
-            inputFormatters: inputFormatters,
-            textCapitalization: textCapitalization,
-            maxLength: maxLength,
-            style: AppTextStyles.bodyMedium.copyWith(
-                color: Theme.of(context).colorScheme.primary),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: AppTextStyles.bodyMedium.copyWith(
-                  color: Theme.of(context).colorScheme.primary),
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-              counterText: '',
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              obscureText: obscure,
+              keyboardType: keyboardType,
+              inputFormatters: inputFormatters,
+              textCapitalization: textCapitalization,
+              maxLength: maxLength,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: AppTextStyles.bodyMedium.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+                counterText: '',
+              ),
             ),
           ),
-        ),
-        ?suffix,
-      ]),
+          ?suffix,
+        ],
+      ),
     );
   }
 }
@@ -1053,49 +1192,57 @@ class _CardPreview extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
-          colors: [Color(0xFF064A7D),Color(0xFF642401)],
+          colors: [Color(0xFF064A7D), Color(0xFF642401)],
         ),
       ),
-      child: Stack(children: [
-        // Card content
-        Padding(
-          padding: const EdgeInsets.all(22),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    isCredit ? 'Credit' : 'Debit',
-                    style: AppTextStyles.bodyLarge.copyWith(
+      child: Stack(
+        children: [
+          // Card content
+          Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isCredit ? 'Credit' : 'Debit',
+                      style: AppTextStyles.bodyLarge.copyWith(
                         fontWeight: FontWeight.w400,
-                        color: Colors.white, letterSpacing: 0),
-                  ),
-                  SvgPicture.asset('assets/images/visa.svg', height: 48, width: 48),
-                ],
-              ),
+                        color: Colors.white,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                    SvgPicture.asset(
+                      'assets/images/visa.svg',
+                      height: 48,
+                      width: 48,
+                    ),
+                  ],
+                ),
 
-              const Spacer(),
- Text(
-                    name,
-                    style: AppTextStyles.bodyLarge.copyWith(
-                  color: Colors.white,
-                  fontFamily: 'IBMPlexMono',
+                const Spacer(),
+                Text(
+                  name,
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: Colors.white,
+                    fontFamily: 'IBMPlexMono',
+                  ),
                 ),
-              ),
-              // Card number
-              Text(
-                number,
-                style: AppTextStyles.bodyLarge.copyWith(
-                  color: Colors.white,
-                  fontFamily: 'IBMPlexMono',
+                // Card number
+                Text(
+                  number,
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: Colors.white,
+                    fontFamily: 'IBMPlexMono',
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
@@ -1103,7 +1250,9 @@ class _CardPreview extends StatelessWidget {
 class _CardNumberFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue old, TextEditingValue newVal) {
+    TextEditingValue old,
+    TextEditingValue newVal,
+  ) {
     final digits = newVal.text.replaceAll(' ', '');
     final buffer = StringBuffer();
     for (int i = 0; i < digits.length && i < 16; i++) {
@@ -1121,7 +1270,9 @@ class _CardNumberFormatter extends TextInputFormatter {
 class _ExpiryFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue old, TextEditingValue newVal) {
+    TextEditingValue old,
+    TextEditingValue newVal,
+  ) {
     final digits = newVal.text.replaceAll('/', '');
     final buffer = StringBuffer();
     for (int i = 0; i < digits.length && i < 4; i++) {

@@ -29,7 +29,7 @@ class TechnicianCard extends StatelessWidget {
 
     final name = order?.technicianName ?? 'Arjun Kumar';
     final imageUrl = order?.technicianImageUrl;
-    final rating = order?.rating ?? 4.9;
+    final rating = order?.rating ?? 0.0;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -82,7 +82,7 @@ class TechnicianCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          ' (312)',
+                          ' (${order?.reviews ?? 312})',
                           style: AppTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.secondary),
                         ),
                         Text(

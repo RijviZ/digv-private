@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-
+import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_top_bar.dart';
 import '../../../search/domain/entities/search_result.dart';
@@ -89,7 +89,8 @@ class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
                     final addressState = ref.read(addressListProvider);
                     final addresses = addressState.value;
                     if (addresses != null && addresses.isNotEmpty) {
-                      final address = addresses[_selectedAddress];
+                      final selectedIndex = _selectedAddress < addresses.length ? _selectedAddress : 0;
+                      final address = addresses[selectedIndex];
                       context.push('/review_and_pay', extra: (
                         widget.service,
                         widget.technician,
@@ -98,6 +99,8 @@ class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
                         _quantity,
                         address,
                       ));
+                    } else {
+                      SnackBarUtils.showError(context, 'Please add and select an address first');
                     }
                   }
                 : null,
@@ -196,7 +199,7 @@ class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
                     ),
                     const SizedBox(width: 2),
                     Text(
-                      '(312)',
+                      '(${widget.technician.reviews})',
                       style: AppTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.secondary),
                     ),
                     const SizedBox(width: 6),

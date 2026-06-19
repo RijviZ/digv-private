@@ -195,6 +195,13 @@ class _PostpaidPaymentSuccessScreenState
 
   @override
   Widget build(BuildContext context) {
+    // Watch all statuses unconditionally so the screen rebuilds when the data finishes loading from server
+    ref.watch(ordersProvider(null));
+    ref.watch(ordersProvider('ACTIVE'));
+    ref.watch(ordersProvider('PAST'));
+    ref.watch(ordersProvider('UPCOMING'));
+    ref.watch(ordersProvider('CANCELLED'));
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -324,48 +331,56 @@ class _PostpaidPaymentSuccessScreenState
           ),
         ),
         const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              children: List.generate(5, (index) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: SvgPicture.asset(
-                    'assets/images/star.svg',
-                    width: 13,
-                    height: 13,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.star,
-                      BlendMode.srcIn,
-                    ),
+        Builder(
+          builder: (context) {
+            final rating = order?.rating ?? 0.0;
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: List.generate(5, (index) {
+                    final isFilled = index < rating.floor();
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: SvgPicture.asset(
+                        isFilled
+                            ? 'assets/images/star.svg'
+                            : 'assets/images/star_edge.svg',
+                        width: 13,
+                        height: 13,
+                        colorFilter: const ColorFilter.mode(
+                          AppColors.star,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  rating.toStringAsFixed(1),
+                  style: const TextStyle(
+                    color: AppColors.onLight,
+                    fontSize: 12,
+                    fontFamily: AppTextStyles.fontFamilyPoppins,
+                    fontWeight: FontWeight.w700,
+                    height: 1.50,
                   ),
-                );
-              }),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              (order?.rating ?? 4.9).toString(),
-              style: const TextStyle(
-                color: AppColors.onLight,
-                fontSize: 12,
-                fontFamily: AppTextStyles.fontFamilyPoppins,
-                fontWeight: FontWeight.w700,
-                height: 1.50,
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Text(
-              '(312 reviews)',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-                fontFamily: AppTextStyles.fontFamilyPoppins,
-                fontWeight: FontWeight.w400,
-                height: 1.50,
-              ),
-            ),
-          ],
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '(${order?.reviews ?? 0} reviews)',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontFamily: AppTextStyles.fontFamilyPoppins,
+                    fontWeight: FontWeight.w400,
+                    height: 1.50,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
         Text(
           order?.serviceName ?? 'AC Regular Service',

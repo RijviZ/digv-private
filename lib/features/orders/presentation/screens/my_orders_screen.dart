@@ -268,6 +268,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
       paymentStatus: order.paymentStatus,
       paymentMethod: order.paymentMethod,
       providerPhoneNumber: order.providerPhoneNumber,
+      reviews: order.reviews,
     );
 
     return Container(

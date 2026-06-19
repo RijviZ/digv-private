@@ -33,6 +33,7 @@ class OrderItem {
   final String? paymentStatus;
   final String? paymentMethod;
   final String? providerPhoneNumber;
+  final int? reviews;
 
   const OrderItem({
     required this.id,
@@ -50,5 +51,6 @@ class OrderItem {
     this.paymentStatus,
     this.paymentMethod,
     this.providerPhoneNumber,
+    this.reviews,
   });
 }

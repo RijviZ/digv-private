@@ -279,7 +279,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                         .sendOtp(
                                           phoneNumber: widget.phoneNumber,
                                           countryCode: '+91',
-                                          role: 'CUSTOMER',
+                                          userType: 'CUSTOMER',
                                         );
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(

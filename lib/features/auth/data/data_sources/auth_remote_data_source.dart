@@ -12,7 +12,7 @@ abstract class AuthRemoteDataSource {
   Future<Map<String, dynamic>> sendOtp({
     required String phoneNumber,
     required String countryCode,
-    required String role,
+    required String userType,
   });
 
   Future<Map<String, dynamic>> verifyOtp({
@@ -63,7 +63,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<Map<String, dynamic>> sendOtp({
     required String phoneNumber,
     required String countryCode,
-    required String role,
+    required String userType,
   }) async {
     try {
       final response = await dio.post(
@@ -71,7 +71,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         data: {
           "phoneNumber": phoneNumber,
           "countryCode": countryCode,
-          "role": role,
+          "userType": userType,
         },
       );
       
@@ -102,6 +102,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         data: {
           "phoneNumber": phoneNumber,
           "otp": otp,
+          "userType": "CUSTOMER",
           if (deviceToken != null) "deviceToken": deviceToken,
           if (platform != null) "platform": platform,
           if (appVersion != null) "appVersion": appVersion,

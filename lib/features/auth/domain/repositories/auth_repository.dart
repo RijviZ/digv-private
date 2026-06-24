@@ -7,7 +7,7 @@ abstract class AuthRepository {
   Future<Map<String, dynamic>> sendOtp({
     required String phoneNumber,
     required String countryCode,
-    required String role,
+    required String userType,
   });
 
   Future<Map<String, dynamic>> verifyOtp({

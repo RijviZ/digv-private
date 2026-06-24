@@ -35,12 +35,12 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Map<String, dynamic>> sendOtp({
     required String phoneNumber,
     required String countryCode,
-    required String role,
+    required String userType,
   }) async {
     final response = await remoteDataSource.sendOtp(
       phoneNumber: phoneNumber,
       countryCode: countryCode,
-      role: role,
+      userType: userType,
     );
     return {
       'message': response['message'],

@@ -211,7 +211,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   .sendOtp(
                                     phoneNumber: phone,
                                     countryCode: '+91',
-                                    role: 'CUSTOMER',
+                                    userType: 'CUSTOMER',
                                   );
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(

@@ -49,14 +49,14 @@ class AuthNotifier extends AsyncNotifier<void> {
   Future<Map<String, dynamic>> sendOtp({
     required String phoneNumber,
     required String countryCode,
-    required String role,
+    required String userType,
   }) async {
     state = const AsyncValue.loading();
     try {
       final result = await _repository.sendOtp(
         phoneNumber: phoneNumber,
         countryCode: countryCode,
-        role: role,
+        userType: userType,
       );
       state = const AsyncValue.data(null);
       return result;

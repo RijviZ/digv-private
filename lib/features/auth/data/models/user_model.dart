@@ -52,7 +52,11 @@ class UserModel extends User {
       avatarUrl: json['avatarUrl'] as String?,
       referredByCode: json['referredByCode'] as String?,
       userOwnReferralCode: json['userOwnReferralCode'] as String?,
-      role: json['role'] as String,
+      role: json['role'] as String? ??
+          json['currentRole'] as String? ??
+          (json['roles'] is List && (json['roles'] as List).isNotEmpty
+              ? (json['roles'] as List).first.toString()
+              : 'CUSTOMER'),
       isPhoneVerified: json['isPhoneVerified'] as bool? ?? false,
       isEmailVerified: json['isEmailVerified'] as bool? ?? false,
       isProfileSetupCompleted: json['isProfileSetupCompleted'] as bool? ??

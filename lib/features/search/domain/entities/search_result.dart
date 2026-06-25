@@ -136,7 +136,8 @@ extension SearchServiceItemMapping on SearchServiceItemEntity {
       isActive: true,
       categoryId: serviceCategoryId ?? '',
       categoryName: serviceCategoryName ?? '',
-      priceOverride: double.tryParse(startingPrice) ?? (double.tryParse(basePrice) ?? 0.0),
+      priceOverride:
+          double.tryParse(startingPrice) ?? (double.tryParse(basePrice) ?? 0.0),
       serviceType: serviceTypeName ?? '',
       experienceYears: 5,
       title: serviceItemName,
@@ -150,27 +151,30 @@ extension SearchServiceItemMapping on SearchServiceItemEntity {
   List<SearchProviderEntity> toMockProviders() {
     final count = availableProvidersCount > 0 ? availableProvidersCount : 1;
     final service = toSearchServiceEntity();
-    
+
     final firstNames = ['Amit', 'Rahul', 'Priyo', 'Sujon', 'Anis'];
     final lastNames = ['Sharma', 'Khan', 'Rahman', 'Dutta', 'Ahmed'];
 
     return List.generate(count, (index) {
       final fName = firstNames[index % firstNames.length];
       final lName = lastNames[(index + 1) % lastNames.length];
-      
+
       return SearchProviderEntity(
         userId: 'mock-provider-id-$serviceItemId-$index',
         fullName: '$fName $lName',
         avatarUrl: 'https://i.pravatar.cc/150?img=${(index + 7) * 3}',
         userProfileId: 'mock-profile-id-$serviceItemId-$index',
-        bio: 'Professional technician specializing in ${serviceCategoryName ?? 'services'}. Quick and reliable service.',
+        bio:
+            'Professional technician specializing in ${serviceCategoryName ?? 'services'}. Quick and reliable service.',
         isAvailableNow: true,
         basePrice: basePrice,
-        currency: 'BDT',
+        currency: '₹',
         verificationStatus: 'verified',
         addressLine: 'Road ${index + 2}, Block C',
         city: 'Dhaka',
-        distanceKm: index == 0 ? nearestProviderDistanceKm : '${(double.tryParse(nearestProviderDistanceKm) ?? 1.5) + (index * 1.2)}',
+        distanceKm: index == 0
+            ? nearestProviderDistanceKm
+            : '${(double.tryParse(nearestProviderDistanceKm) ?? 1.5) + (index * 1.2)}',
         services: [service],
         averageRating: rating?.toString() ?? '4.5',
         reviewCount: (totalBookings * 2) + 3 + index,
@@ -270,7 +274,8 @@ extension ServiceDetailsMapping on ServiceDetailsEntity {
       isActive: true,
       categoryId: serviceCategoryId ?? '',
       categoryName: serviceCategoryName ?? '',
-      priceOverride: double.tryParse(startingPrice) ?? (double.tryParse(basePrice) ?? 0.0),
+      priceOverride:
+          double.tryParse(startingPrice) ?? (double.tryParse(basePrice) ?? 0.0),
       serviceType: serviceCategoryName ?? '',
       experienceYears: 5,
       title: serviceItemName,
@@ -282,5 +287,3 @@ extension ServiceDetailsMapping on ServiceDetailsEntity {
     );
   }
 }
-
-

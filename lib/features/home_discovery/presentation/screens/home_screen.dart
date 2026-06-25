@@ -345,7 +345,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             if (serviceTypes.isEmpty)
               const Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40.0, horizontal: 20.0),
+                  padding: EdgeInsets.symmetric(
+                    vertical: 40.0,
+                    horizontal: 20.0,
+                  ),
                   child: Text(
                     'No services available for this category.',
                     style: TextStyle(color: Colors.grey),
@@ -360,7 +363,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   itemCount: serviceTypes.length,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemBuilder: (context, index) {
-                    final safeSubTypeIndex = _selectedSubTypeIndex < serviceTypes.length
+                    final safeSubTypeIndex =
+                        _selectedSubTypeIndex < serviceTypes.length
                         ? _selectedSubTypeIndex
                         : 0;
                     final type = serviceTypes[index];
@@ -404,14 +408,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Consumer(
                   builder: (context, ref, child) {
-                    final safeSubTypeIndex = _selectedSubTypeIndex < serviceTypes.length
+                    final safeSubTypeIndex =
+                        _selectedSubTypeIndex < serviceTypes.length
                         ? _selectedSubTypeIndex
                         : 0;
                     final searchAsync = ref.watch(
                       searchResultsProvider(
                         SearchFilters(
                           categoryId: category.categoryId,
-                          serviceTypeId: serviceTypes[safeSubTypeIndex].serviceTypeId,
+                          serviceTypeId:
+                              serviceTypes[safeSubTypeIndex].serviceTypeId,
                         ),
                       ),
                     );
@@ -472,10 +478,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget _buildServiceCard(SearchServiceItemEntity serviceItem) {
     return GestureDetector(
       onTap: () {
-        context.push(
-          '/service_details',
-          extra: serviceItem.serviceItemId,
-        );
+        context.push('/service_details', extra: serviceItem.serviceItemId);
       },
       child: Container(
         width: double.infinity,
@@ -527,7 +530,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 ),
                 child: Text(
-                  'from BDT ${serviceItem.startingPrice}',
+                  'from ₹ ${serviceItem.startingPrice}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -606,7 +609,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (allServices.isNotEmpty && _randomService == null) {
       _randomService = allServices[Random().nextInt(allServices.length)];
     }
-    final firstService = _randomService ?? (allServices.isNotEmpty ? allServices.first : null);
+    final firstService =
+        _randomService ?? (allServices.isNotEmpty ? allServices.first : null);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -735,10 +739,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (hasService) {
       return GestureDetector(
         onTap: () {
-          context.push(
-            '/service_details',
-            extra: firstService.serviceItemId,
-          );
+          context.push('/service_details', extra: firstService.serviceItemId);
         },
         child: bannerContent,
       );
@@ -857,7 +858,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'from ৳${serviceItem.startingPrice}',
+                                    'from ₹${serviceItem.startingPrice}',
                                     style: AppTextStyles.labelMedium.copyWith(
                                       color: Colors.white,
                                     ),
@@ -1027,10 +1028,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget _buildServiceSearchResultCard(SearchServiceItemEntity serviceItem) {
     return GestureDetector(
       onTap: () {
-        context.push(
-          '/service_details',
-          extra: serviceItem.serviceItemId,
-        );
+        context.push('/service_details', extra: serviceItem.serviceItemId);
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
@@ -1151,7 +1149,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'from ৳${serviceItem.startingPrice}',
+                              'from ₹${serviceItem.startingPrice}',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,

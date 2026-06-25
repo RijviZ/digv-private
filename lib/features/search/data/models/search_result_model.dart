@@ -77,7 +77,9 @@ class SearchServiceModel extends SearchServiceEntity {
       categoryName: json['categoryName'] ?? '',
       priceOverride: json['priceOverride'] ?? 0,
       serviceType: json['serviceType'] ?? '',
-      experienceYears: json['experienceYears'] ?? 0,
+      experienceYears: json['experienceYears'] is int
+          ? json['experienceYears'] as int
+          : (double.tryParse(json['experienceYears']?.toString() ?? '')?.toInt() ?? 0),
       title: json['title'] ?? '',
       serviceId: json['serviceId'] ?? '',
       categoryIconUrl: json['categoryIconUrl'],
@@ -257,11 +259,15 @@ class SearchTechnicianModel extends SearchTechnicianEntity {
       avatarUrl: json['avatarUrl'],
       providerProfileId: json['providerProfileId'] ?? '',
       providerServiceId: json['providerServiceId'] ?? '',
-      experienceYears: json['experienceYears'] ?? 0,
+      experienceYears: json['experienceYears'] is int
+          ? json['experienceYears'] as int
+          : (double.tryParse(json['experienceYears']?.toString() ?? '')?.toInt() ?? 0),
       serviceCategoryName: json['serviceCategoryName'] ?? '',
       servicePrice: json['servicePrice'] ?? '0.00',
       rating: (json['rating'] as num?)?.toDouble(),
-      totalJobs: json['totalJobs'] ?? 0,
+      totalJobs: json['totalJobs'] is int
+          ? json['totalJobs'] as int
+          : (double.tryParse(json['totalJobs']?.toString() ?? '')?.toInt() ?? 0),
       isTopRated: json['isTopRated'] ?? false,
       distanceKm: json['distanceKm'] ?? '0.00',
       distanceTag: json['distanceTag'] ?? '',

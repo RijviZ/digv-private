@@ -1,10 +1,11 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/core/widgets/app_filter_bar.dart';
 import 'package:digv/core/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../search/presentation/providers/search_provider.dart';
@@ -21,6 +22,7 @@ class ServiceDetailsScreen extends ConsumerStatefulWidget {
 
 class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
   int _quantity = 1;
+  String? _selectedType;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +32,9 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
 
     return detailsAsync.when(
       data: (details) {
-        details.selectableTypes.map((t) => t.name).toList();
+        final selectableTypeNames = details.selectableTypes
+            .map((t) => t.name)
+            .toList();
 
         return Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
@@ -67,7 +71,7 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
                               begin: const Alignment(0.50, -0.00),
                               end: const Alignment(0.50, 1.00),
                               colors: [
-                                Colors.black.withOpacity(0.20),
+                                Colors.black.withValues(alpha: 0.20),
                                 Colors.black,
                               ],
                             ),
@@ -77,13 +81,29 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          details.serviceItemName,
-                          style: AppTextStyles.h3.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            height: 1.40,
-                            letterSpacing: 0,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                details.serviceItemName,
+                                style: AppTextStyles.h3.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  height: 1.40,
+                                  letterSpacing: 0,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '₹${details.startingPrice}',
+                              style: AppTextStyles.h3.copyWith(
+                                color: AppColors.blue,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Row(
@@ -114,6 +134,28 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
                             color: Theme.of(context).colorScheme.secondary,
                           ),
                         ),
+                        if (selectableTypeNames.isNotEmpty) ...[
+                          const SizedBox(height: 20),
+                          Text(
+                            'Service Type',
+                            style: AppTextStyles.titleLight.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          AppFilterBar(
+                            items: selectableTypeNames,
+                            selectedItem:
+                                _selectedType ?? selectableTypeNames.first,
+                            onSelected: (item) {
+                              setState(() {
+                                _selectedType = item;
+                              });
+                            },
+                            padding: EdgeInsets.zero,
+                          ),
+                        ],
                         const SizedBox(height: 20),
                         Text(
                           'What\'s Included',

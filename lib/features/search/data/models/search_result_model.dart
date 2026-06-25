@@ -121,15 +121,15 @@ class SearchServiceItemModel extends SearchServiceItemEntity {
       serviceItemName: json['serviceItemName'] ?? '',
       serviceItemDescription: json['serviceItemDescription'],
       durationMinutes: json['durationMinutes'],
-      basePrice: json['basePrice'] ?? '0.00',
+      basePrice: json['basePrice']?.toString() ?? '0.00',
       serviceItemImageUrl: json['serviceItemImageUrl'],
       serviceTypeId: json['serviceTypeId'],
       serviceTypeName: json['serviceTypeName'],
       serviceCategoryId: json['serviceCategoryId'],
       serviceCategoryName: json['serviceCategoryName'],
-      startingPrice: json['startingPrice'] ?? '0.00',
+      startingPrice: json['startingPrice']?.toString() ?? '0.00',
       availableProvidersCount: json['availableProvidersCount'] ?? 0,
-      nearestProviderDistanceKm: json['nearestProviderDistanceKm'] ?? '0.00',
+      nearestProviderDistanceKm: json['nearestProviderDistanceKm']?.toString() ?? '0.00',
       rating: (json['rating'] as num?)?.toDouble(),
       totalBookings: json['totalBookings'] ?? 0,
     );
@@ -213,7 +213,7 @@ class ServiceDetailsModel extends ServiceDetailsEntity {
       serviceItemName: data['serviceItemName'] ?? '',
       serviceItemDescription: data['serviceItemDescription'],
       durationMinutes: data['durationMinutes'],
-      basePrice: data['basePrice'] ?? '0.00',
+      basePrice: data['basePrice']?.toString() ?? '0.00',
       serviceItemImageUrl: data['serviceItemImageUrl'],
       serviceTypeId: data['serviceTypeId'],
       serviceCategoryId: data['serviceCategoryId'],
@@ -224,8 +224,8 @@ class ServiceDetailsModel extends ServiceDetailsEntity {
           [],
       rating: (data['rating'] as num?)?.toDouble(),
       totalBookings: data['totalBookings'] ?? 0,
-      startingPrice: data['startingPrice'] ?? '0.00',
-      nearestProviderDistanceKm: data['nearestProviderDistanceKm'] ?? '0.00',
+      startingPrice: data['startingPrice']?.toString() ?? '0.00',
+      nearestProviderDistanceKm: data['nearestProviderDistanceKm']?.toString() ?? '0.00',
       totalAvailableProviders: data['totalAvailableProviders'] ?? 0,
       selectableTypes: (data['selectableTypes'] as List<dynamic>?)
               ?.map((e) => SelectableTypeModel.fromJson(e as Map<String, dynamic>))
@@ -263,13 +263,13 @@ class SearchTechnicianModel extends SearchTechnicianEntity {
           ? json['experienceYears'] as int
           : (double.tryParse(json['experienceYears']?.toString() ?? '')?.toInt() ?? 0),
       serviceCategoryName: json['serviceCategoryName'] ?? '',
-      servicePrice: json['servicePrice'] ?? '0.00',
+      servicePrice: json['servicePrice']?.toString() ?? '0.00',
       rating: (json['rating'] as num?)?.toDouble(),
       totalJobs: json['totalJobs'] is int
           ? json['totalJobs'] as int
           : (double.tryParse(json['totalJobs']?.toString() ?? '')?.toInt() ?? 0),
       isTopRated: json['isTopRated'] ?? false,
-      distanceKm: json['distanceKm'] ?? '0.00',
+      distanceKm: json['distanceKm']?.toString() ?? '0.00',
       distanceTag: json['distanceTag'] ?? '',
     );
   }

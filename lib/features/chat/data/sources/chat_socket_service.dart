@@ -17,7 +17,7 @@ class ChatSocketService {
   bool get isConnected => _socket?.connected ?? false;
 
   void connect({
-    required String baseUrl, // example: https://dev-service-api.roketbus.com
+    required String baseUrl, // example: https://unwitty-insensately-rikki.ngrok-free.dev
     required String accessToken,
   }) {
     // If already connected or socket exists, disconnect first

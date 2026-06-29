@@ -51,8 +51,10 @@ class OrdersRepositoryImpl implements OrdersRepository {
     }
 
     // Price formatting
-    final subtotalAmount = map['subtotalAmount'] as String? ?? '0.00';
-    final doubleAmount = double.tryParse(subtotalAmount) ?? 0.0;
+    final rawSubtotal = map['subtotalAmount'];
+    final doubleAmount = rawSubtotal is num
+        ? rawSubtotal.toDouble()
+        : double.tryParse(rawSubtotal?.toString() ?? '0.00') ?? 0.0;
     final currencyStr = map['currency'] as String? ?? 'INR';
     final symbol = currencyStr == 'INR' ? '₹' : '₹';
     final priceStr = '$symbol${doubleAmount.toStringAsFixed(0)}';

@@ -200,8 +200,8 @@ class ActiveChatNotifier extends StateNotifier<ActiveChatState> {
     };
 
     // If socket isn't connected, connect it now.
-    // Base API URL is dev-service-api.roketbus.com
-    const String baseUrl = 'https://dev-service-api.roketbus.com';
+    // Base API URL is unwitty-insensately-rikki.ngrok-free.dev
+    const String baseUrl = 'https://unwitty-insensately-rikki.ngrok-free.dev';
     socketService.connect(baseUrl: baseUrl, accessToken: token);
 
     // If already connected, immediately join chat

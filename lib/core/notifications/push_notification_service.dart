@@ -2,8 +2,10 @@ import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:digv/core/router/app_router.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -95,6 +97,30 @@ class PushNotificationService {
           .getInitialMessage();
       if (initialMessage != null) {
         print('[NOTIF_DEBUG] App opened from terminated state notification: ${initialMessage.notification?.title}');
+        final data = initialMessage.data;
+        String? serviceRequestId = data['serviceRequestId'] as String?;
+        String? serviceRequestNumber = data['serviceRequestNumber'] as String?;
+
+        if (serviceRequestId == null && data['clickAction'] != null) {
+          final clickAction = data['clickAction'] as String;
+          final uriParts = clickAction.split('/');
+          if (uriParts.isNotEmpty) {
+            final lastPart = uriParts.last;
+            if (lastPart.length >= 32) {
+              serviceRequestId = lastPart;
+            }
+          }
+        }
+
+        if (serviceRequestId != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            appRouter.push('/order_tracking', extra: serviceRequestId);
+          });
+        } else if (serviceRequestNumber != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            appRouter.push('/order_tracking', extra: serviceRequestNumber);
+          });
+        }
       }
 
       // Get and print the FCM token immediately during init
@@ -150,6 +176,26 @@ class PushNotificationService {
       // Handle message clicks when app is opened from a notification
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         print('[NOTIF_DEBUG] User tapped on notification: ${message.notification?.title}');
+        final data = message.data;
+        String? serviceRequestId = data['serviceRequestId'] as String?;
+        String? serviceRequestNumber = data['serviceRequestNumber'] as String?;
+
+        if (serviceRequestId == null && data['clickAction'] != null) {
+          final clickAction = data['clickAction'] as String;
+          final uriParts = clickAction.split('/');
+          if (uriParts.isNotEmpty) {
+            final lastPart = uriParts.last;
+            if (lastPart.length >= 32) {
+              serviceRequestId = lastPart;
+            }
+          }
+        }
+
+        if (serviceRequestId != null) {
+          appRouter.push('/order_tracking', extra: serviceRequestId);
+        } else if (serviceRequestNumber != null) {
+          appRouter.push('/order_tracking', extra: serviceRequestNumber);
+        }
       });
 
       // Listen for token refresh

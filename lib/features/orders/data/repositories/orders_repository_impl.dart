@@ -63,7 +63,7 @@ class OrdersRepositoryImpl implements OrdersRepository {
       id: map['serviceRequestId'] as String? ?? '',
       providerId: map['providerId'] as String?,
       serviceName: map['serviceTitle'] as String? ?? 'Service Request',
-      orderId:
+      orderId: map['serviceRequestNumber'] as String? ??
           'ORD-${(map['serviceRequestId'] as String? ?? '').substring(0, 4).toUpperCase()}',
       status: badgeStatus,
       scheduledTime: scheduledTime,

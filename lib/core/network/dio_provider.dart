@@ -5,7 +5,7 @@ import '../storage/secure_storage_provider.dart';
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'https://dev-service-api.roketbus.com',
+      baseUrl: 'https://unwitty-insensately-rikki.ngrok-free.dev/',
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {

@@ -202,6 +202,20 @@ final GoRouter appRouter = GoRouter(
       path: '/order_tracking',
       builder: (context, state) {
         final extra = state.extra;
+        String? serviceRequestId;
+        if (extra is String) {
+          serviceRequestId = extra;
+        } else if (state.uri.queryParameters['serviceRequestId'] != null) {
+          serviceRequestId = state.uri.queryParameters['serviceRequestId'];
+        }
+
+        if (serviceRequestId != null) {
+          return OrderTrackingScreen(
+            paymentType: PaymentType.prepaid,
+            serviceRequestId: serviceRequestId,
+          );
+        }
+
         if (extra is PaymentType) {
           return OrderTrackingScreen(paymentType: extra);
         } else if (extra is OrderItem) {

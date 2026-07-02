@@ -1,9 +1,14 @@
-import 'package:digv/core/theme/app_colors.dart';
-import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:digv/core/theme/app_colors.dart';
+import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/features/orders/domain/models/order_item.dart';
+import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
+
+import '../../domain/entities/notification_entity.dart';
 import '../providers/notification_provider.dart';
 
 class NotificationsScreen extends ConsumerWidget {
@@ -13,7 +18,6 @@ class NotificationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationsAsync = ref.watch(notificationsProvider);
     final unreadCountAsync = ref.watch(unreadCountProvider);
-    final repository = ref.read(notificationRepositoryProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -52,13 +56,7 @@ class NotificationsScreen extends ConsumerWidget {
                       !notification.isRead,
                       context,
                       isLast: index == newNotifications.length - 1,
-                      onTap: () async {
-                        if (!notification.isRead) {
-                          await repository.markAsRead(notification.notificationId);
-                          ref.invalidate(notificationsProvider);
-                          ref.invalidate(unreadCountProvider);
-                        }
-                      },
+                      onTap: () => _handleNotificationTap(context, ref, notification),
                     );
                   }),
                   const SizedBox(height: 32),
@@ -78,13 +76,7 @@ class NotificationsScreen extends ConsumerWidget {
                       !notification.isRead,
                       context,
                       isLast: index == earlierNotifications.length - 1,
-                      onTap: () async {
-                        if (!notification.isRead) {
-                          await repository.markAsRead(notification.notificationId);
-                          ref.invalidate(notificationsProvider);
-                          ref.invalidate(unreadCountProvider);
-                        }
-                      },
+                      onTap: () => _handleNotificationTap(context, ref, notification),
                     );
                   }),
                 ],
@@ -309,6 +301,99 @@ class NotificationsScreen extends ConsumerWidget {
       return '${difference.inMinutes} m ago';
     } else {
       return 'Just now';
+    }
+  }
+
+  Future<void> _handleNotificationTap(BuildContext context, WidgetRef ref, NotificationEntity notification) async {
+    // 1. Mark as read if unread
+    if (!notification.isRead) {
+      try {
+        final repository = ref.read(notificationRepositoryProvider);
+        await repository.markAsRead(notification.notificationId);
+        ref.invalidate(notificationsProvider);
+        ref.invalidate(unreadCountProvider);
+      } catch (e) {
+        debugPrint('Error marking notification as read: $e');
+      }
+    }
+
+    // 2. Extract serviceRequestId and/or serviceRequestNumber (SBR123456)
+    String? serviceRequestId = notification.data?['serviceRequestId'] as String?;
+    String? serviceRequestNumber = notification.data?['serviceRequestNumber'] as String?;
+    
+    // Also try parsing tracking ID from title/body if not in data (e.g. SBR723695)
+    if (serviceRequestNumber == null) {
+      final sbrRegex = RegExp(r'\bSBR\d+\b');
+      final match = sbrRegex.firstMatch(notification.title) ?? sbrRegex.firstMatch(notification.body);
+      if (match != null) {
+        serviceRequestNumber = match.group(0);
+      }
+    }
+
+    if (serviceRequestId == null && notification.clickAction != null) {
+      final uriParts = notification.clickAction!.split('/');
+      if (uriParts.isNotEmpty) {
+        final lastPart = uriParts.last;
+        if (lastPart.length >= 32) {
+          serviceRequestId = lastPart;
+        }
+      }
+    }
+
+    if (serviceRequestId == null && serviceRequestNumber == null) {
+      return;
+    }
+
+    // Show progress dialog
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final ordersRepo = ref.read(ordersRepositoryProvider);
+      // Fetch all service requests to find the match
+      final orders = await ordersRepo.getServiceRequests();
+      
+      OrderItem? matchedOrder;
+      for (final order in orders) {
+        if (serviceRequestId != null && order.id == serviceRequestId) {
+          matchedOrder = order;
+          break;
+        }
+        if (serviceRequestNumber != null && order.orderId == serviceRequestNumber) {
+          matchedOrder = order;
+          break;
+        }
+      }
+
+      // Pop the loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (matchedOrder != null) {
+        if (context.mounted) {
+          context.push('/order_tracking', extra: matchedOrder);
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Order not found or access denied')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load order: $e')),
+        );
+      }
     }
   }
 }

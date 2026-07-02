@@ -72,3 +72,14 @@ final orderTrackingProvider = FutureProvider.autoDispose.family<OrderTrackingDat
   final repository = ref.watch(ordersRepositoryProvider);
   return await repository.getOrderTracking(id: id);
 });
+
+final orderItemProvider = FutureProvider.family<OrderItem?, String>((ref, serviceRequestId) async {
+  final repository = ref.watch(ordersRepositoryProvider);
+  final orders = await repository.getServiceRequests();
+  for (final order in orders) {
+    if (order.id == serviceRequestId || order.orderId == serviceRequestId) {
+      return order;
+    }
+  }
+  return null;
+});

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
@@ -57,6 +58,50 @@ class PushNotificationService {
         settings: initializationSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
           print('[NOTIF_DEBUG] Local notification tapped: ${response.payload}');
+          if (response.payload != null && response.payload!.isNotEmpty) {
+            try {
+              final Map<String, dynamic> data = jsonDecode(response.payload!) as Map<String, dynamic>;
+              String? serviceRequestId = data['serviceRequestId'] as String?;
+              String? serviceRequestNumber = data['serviceRequestNumber'] as String?;
+
+              if (serviceRequestId == null && data['clickAction'] != null) {
+                final clickAction = data['clickAction'] as String;
+                final uriParts = clickAction.split('/');
+                if (uriParts.isNotEmpty) {
+                  final lastPart = uriParts.last;
+                  if (lastPart.length >= 32) {
+                    serviceRequestId = lastPart;
+                  }
+                }
+              }
+
+              // Fallback to scan values for SBR ID
+              if (serviceRequestNumber == null) {
+                final sbrRegex = RegExp(r'\bSBR\d+\b');
+                for (final val in data.values) {
+                  if (val is String) {
+                    final match = sbrRegex.firstMatch(val);
+                    if (match != null) {
+                      serviceRequestNumber = match.group(0);
+                      break;
+                    }
+                  }
+                }
+              }
+
+              if (serviceRequestId != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  appRouter.push('/order_tracking', extra: serviceRequestId);
+                });
+              } else if (serviceRequestNumber != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  appRouter.push('/order_tracking', extra: serviceRequestNumber);
+                });
+              }
+            } catch (e) {
+              print('[NOTIF_DEBUG] Error handling local notification tap: $e');
+            }
+          }
         },
       );
       print('[NOTIF_DEBUG] ✅ Local notifications plugin initialized');
@@ -112,6 +157,16 @@ class PushNotificationService {
           }
         }
 
+        if (serviceRequestNumber == null) {
+          final sbrRegex = RegExp(r'\bSBR\d+\b');
+          final title = initialMessage.notification?.title ?? '';
+          final body = initialMessage.notification?.body ?? '';
+          final match = sbrRegex.firstMatch(title) ?? sbrRegex.firstMatch(body);
+          if (match != null) {
+            serviceRequestNumber = match.group(0);
+          }
+        }
+
         if (serviceRequestId != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             appRouter.push('/order_tracking', extra: serviceRequestId);
@@ -164,7 +219,7 @@ class PushNotificationService {
                 presentSound: true,
               ),
             ),
-            payload: message.data.toString(),
+            payload: jsonEncode(message.data),
           );
           print('[NOTIF_DEBUG] ✅ Local notification show() called');
         } else {
@@ -191,10 +246,24 @@ class PushNotificationService {
           }
         }
 
+        if (serviceRequestNumber == null) {
+          final sbrRegex = RegExp(r'\bSBR\d+\b');
+          final title = message.notification?.title ?? '';
+          final body = message.notification?.body ?? '';
+          final match = sbrRegex.firstMatch(title) ?? sbrRegex.firstMatch(body);
+          if (match != null) {
+            serviceRequestNumber = match.group(0);
+          }
+        }
+
         if (serviceRequestId != null) {
-          appRouter.push('/order_tracking', extra: serviceRequestId);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            appRouter.push('/order_tracking', extra: serviceRequestId);
+          });
         } else if (serviceRequestNumber != null) {
-          appRouter.push('/order_tracking', extra: serviceRequestNumber);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            appRouter.push('/order_tracking', extra: serviceRequestNumber);
+          });
         }
       });
 

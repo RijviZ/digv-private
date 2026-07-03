@@ -75,11 +75,18 @@ final orderTrackingProvider = FutureProvider.autoDispose.family<OrderTrackingDat
 
 final orderItemProvider = FutureProvider.family<OrderItem?, String>((ref, serviceRequestId) async {
   final repository = ref.watch(ordersRepositoryProvider);
-  final orders = await repository.getServiceRequests();
-  for (final order in orders) {
-    if (order.id == serviceRequestId || order.orderId == serviceRequestId) {
-      return order;
-    }
+  final statuses = [null, 'ACTIVE', 'UPCOMING', 'PAST', 'CANCELLED'];
+  for (final status in statuses) {
+    try {
+      final orders = await repository.getServiceRequests(status: status);
+      for (final order in orders) {
+        if (order.id == serviceRequestId || 
+            order.orderId == serviceRequestId || 
+            order.orderId.replaceAll(' ', '') == serviceRequestId.replaceAll(' ', '')) {
+          return order;
+        }
+      }
+    } catch (_) {}
   }
   return null;
 });

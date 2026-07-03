@@ -72,24 +72,26 @@ class ActiveChatState {
 // Active Chat Room Notifier
 // It handles connecting to socket, joining chat, fetching REST history, and real-time syncing.
 final activeChatNotifierProvider =
-    StateNotifierProvider.family<ActiveChatNotifier, ActiveChatState, String>(
-        (ref, peerUserId) {
-  final repository = ref.watch(chatRepositoryProvider);
-  final socketService = ref.watch(chatSocketServiceProvider);
-  return ActiveChatNotifier(
-    ref: ref,
-    repository: repository,
-    socketService: socketService,
-    peerUserId: peerUserId,
-  );
-});
+    StateNotifierProvider.family<ActiveChatNotifier, ActiveChatState, String>((
+      ref,
+      peerUserId,
+    ) {
+      final repository = ref.watch(chatRepositoryProvider);
+      final socketService = ref.watch(chatSocketServiceProvider);
+      return ActiveChatNotifier(
+        ref: ref,
+        repository: repository,
+        socketService: socketService,
+        peerUserId: peerUserId,
+      );
+    });
 
 class ActiveChatNotifier extends StateNotifier<ActiveChatState> {
   final Ref ref;
   final ChatRepository repository;
   final ChatSocketService socketService;
   final String peerUserId;
-  
+
   String? _currentUserId;
   Timer? _typingTimer;
 
@@ -133,7 +135,6 @@ class ActiveChatNotifier extends StateNotifier<ActiveChatState> {
 
       // 5. Connect and register Socket.IO listeners
       _setupSocketConnection(token, chatRoom.chatId);
-
     } catch (e, stack) {
       print('Error initializing chat: $e\n$stack');
       state = ActiveChatState(
@@ -152,9 +153,10 @@ class ActiveChatNotifier extends StateNotifier<ActiveChatState> {
     };
 
     socketService.onChatHistoryCallback = (data) {
-      final List<ChatMessage> receivedMessages =
-          data.map((m) => ChatMessage.fromJson(m as Map<String, dynamic>)).toList();
-      
+      final List<ChatMessage> receivedMessages = data
+          .map((m) => ChatMessage.fromJson(m as Map<String, dynamic>))
+          .toList();
+
       // If we got history, let's merge or replace
       if (receivedMessages.isNotEmpty) {
         state = state.copyWith(messages: receivedMessages);
@@ -168,7 +170,7 @@ class ActiveChatNotifier extends StateNotifier<ActiveChatState> {
         if (!state.messages.any((m) => m.messageId == message.messageId)) {
           state = state.copyWith(messages: [...state.messages, message]);
         }
-        
+
         // Auto-emit markRead if the sheet is open
         if (message.senderId != _currentUserId) {
           socketService.markRead(chatId: chatId, messageId: message.messageId);
@@ -201,7 +203,7 @@ class ActiveChatNotifier extends StateNotifier<ActiveChatState> {
 
     // If socket isn't connected, connect it now.
     // Base API URL is dev-service-api.roketbus.com
-    const String baseUrl = 'https://unwitty-insensately-rikki.ngrok-free.dev/';
+    const String baseUrl = 'https://dev-service-api.roketbus.com';
     socketService.connect(baseUrl: baseUrl, accessToken: token);
 
     // If already connected, immediately join chat
@@ -212,7 +214,8 @@ class ActiveChatNotifier extends StateNotifier<ActiveChatState> {
 
   // Load older messages for infinite scroll
   Future<void> loadMoreMessages() async {
-    if (state.chat == null || state.isLoadingMore || _currentUserId == null) return;
+    if (state.chat == null || state.isLoadingMore || _currentUserId == null)
+      return;
     if (state.messages.isEmpty) return;
 
     state = state.copyWith(isLoadingMore: true);
@@ -229,10 +232,10 @@ class ActiveChatNotifier extends StateNotifier<ActiveChatState> {
       if (olderMessages.isNotEmpty) {
         // Prepend the older messages and remove potential duplicates
         final existingIds = state.messages.map((m) => m.messageId).toSet();
-        final filteredOlder = olderMessages.where((m) => !existingIds.contains(m.messageId)).toList();
-        state = state.copyWith(
-          messages: [...filteredOlder, ...state.messages],
-        );
+        final filteredOlder = olderMessages
+            .where((m) => !existingIds.contains(m.messageId))
+            .toList();
+        state = state.copyWith(messages: [...filteredOlder, ...state.messages]);
       }
     } catch (e) {
       print('Error loading older messages: $e');
@@ -242,7 +245,11 @@ class ActiveChatNotifier extends StateNotifier<ActiveChatState> {
   }
 
   // Send a message
-  Future<void> sendMessage(String content, {String type = 'text', List<String>? attachmentUrls}) async {
+  Future<void> sendMessage(
+    String content, {
+    String type = 'text',
+    List<String>? attachmentUrls,
+  }) async {
     if (state.chat == null || _currentUserId == null) return;
 
     // Send through WebSocket for real-time responsiveness

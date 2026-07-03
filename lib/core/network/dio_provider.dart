@@ -5,13 +5,10 @@ import '../storage/secure_storage_provider.dart';
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'https://unwitty-insensately-rikki.ngrok-free.dev/',
+      baseUrl: 'https://dev-service-api.roketbus.com',
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
-      headers: {
-        'Accept': '*/*',
-        'Content-Type': 'application/json',
-      },
+      headers: {'Accept': '*/*', 'Content-Type': 'application/json'},
     ),
   );
 
@@ -28,14 +25,16 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
-  dio.interceptors.add(LogInterceptor(
-    request: true,
-    requestHeader: true,
-    requestBody: true,
-    responseHeader: true,
-    responseBody: true,
-    error: true,
-  ));
+  dio.interceptors.add(
+    LogInterceptor(
+      request: true,
+      requestHeader: true,
+      requestBody: true,
+      responseHeader: true,
+      responseBody: true,
+      error: true,
+    ),
+  );
 
   return dio;
 });

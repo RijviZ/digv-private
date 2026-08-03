@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
@@ -80,15 +81,16 @@ class _BottomNav extends StatelessWidget {
 
   const _BottomNav({required this.selectedIndex, required this.onTap});
 
-  static const _items = [
-    _NavDef(label: 'Home', asset: 'assets/images/home', index: kHomeTab),
-    _NavDef(label: 'Orders', asset: 'assets/images/order', index: kOrdersTab),
-    _NavDef(label: 'More', asset: 'assets/images/more', index: kMoreTab),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final items = [
+      _NavDef(label: l10n.tab_home, asset: 'assets/images/home', index: kHomeTab),
+      _NavDef(label: l10n.tab_orders, asset: 'assets/images/order', index: kOrdersTab),
+      _NavDef(label: l10n.tab_more, asset: 'assets/images/more', index: kMoreTab),
+    ];
+
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
@@ -102,7 +104,7 @@ class _BottomNav extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: _items
+        children: items
             .map((def) => _NavItem(
                   def: def,
                   isSelected: selectedIndex == def.index,
@@ -136,8 +138,10 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color =
-        isSelected ? theme.colorScheme.primary : theme.colorScheme.secondary;
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final color = isSelected
+        ? (isDarkMode ? Colors.white : theme.colorScheme.primary)
+        : theme.colorScheme.secondary;
 
     return GestureDetector(
       onTap: onTap,

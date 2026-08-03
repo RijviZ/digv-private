@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/features/more/presentation/widgets/logout_button.dart';
 import 'package:digv/features/more/presentation/widgets/profile_header.dart';
 import 'package:digv/features/more/presentation/widgets/section_card.dart';
@@ -13,6 +14,7 @@ class MoreScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final profileAsync = ref.watch(profileProvider);
     final statsAsync = ref.watch(userStatsProvider);
     return SafeArea(
@@ -37,7 +39,8 @@ class MoreScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(28, 16, 28, 0),
                 child: profileAsync.when(
                   data: (user) => ProfileHeader(user: user),
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (err, stack) => const Text('Failed to load profile'),
                 ),
               ),
@@ -62,68 +65,68 @@ class MoreScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-  
+
               const SizedBox(height: 28),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionCard(
-                    title: 'ACCOUNT',
-                    items: [
-                      MenuItem(
-                        svgAsset: 'assets/images/person.svg',
-                        label: 'Edit Profile',
-                        onTap: () => context.push('/edit_profile'),
-                      ),
-                      MenuItem(
-                        svgAsset: 'assets/images/pin_g.svg',
-                        label: 'Manage Addresses',
-                        onTap: () => context.push('/manage_addresses'),
-                      ),
-                      MenuItem(
-                        svgAsset: 'assets/images/card.svg',
-                        label: 'Saved Payment Methods',
-                        onTap: () => context.push('/payment_methods'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionCard(
+                      title: l10n.account.toUpperCase(),
+                      items: [
+                        MenuItem(
+                          svgAsset: 'assets/images/person.svg',
+                          label: l10n.edit_profile_title,
+                          onTap: () => context.push('/edit_profile'),
+                        ),
+                        MenuItem(
+                          svgAsset: 'assets/images/pin_g.svg',
+                          label: l10n.manage_addresses,
+                          onTap: () => context.push('/manage_addresses'),
+                        ),
+                        MenuItem(
+                          svgAsset: 'assets/images/card.svg',
+                          label: l10n.saved_cards,
+                          onTap: () => context.push('/payment_methods'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-                  // PREFERENCES
-                  SectionCard(
-                    title: 'PREFERENCES',
-                    items: [
-                      MenuItem(
-                        svgAsset: 'assets/images/notification.svg',
-                        label: 'Notification Settings',
-                        onTap: () => context.push('/notification_settings'),
-                      ),
-                      MenuItem(
-                        svgAsset: 'assets/images/settings.svg',
-                        label: 'App Settings',
-                        onTap: () => context.push('/app_settings'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                    // PREFERENCES
+                    SectionCard(
+                      title: l10n.preferences.toUpperCase(),
+                      items: [
+                        MenuItem(
+                          svgAsset: 'assets/images/notification.svg',
+                          label: l10n.notification_settings_title,
+                          onTap: () => context.push('/notification_settings'),
+                        ),
+                        MenuItem(
+                          svgAsset: 'assets/images/settings.svg',
+                          label: l10n.app_settings,
+                          onTap: () => context.push('/app_settings'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-                  // SUPPORT
-                  const SupportSection(),
-                  const SizedBox(height: 16),
+                    // SUPPORT
+                    const SupportSection(),
+                    const SizedBox(height: 16),
 
-                  // LOGOUT
-                  const LogoutButton(),
-                  const SizedBox(height: 32),
-                ],
+                    // LOGOUT
+                    const LogoutButton(),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

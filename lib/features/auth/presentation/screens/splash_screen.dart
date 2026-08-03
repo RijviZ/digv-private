@@ -74,9 +74,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Center(
           child: Column(
@@ -92,7 +93,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       height: 88,
                       clipBehavior: Clip.antiAlias,
                       decoration: ShapeDecoration(
-                        color: Theme.of(context).colorScheme.primary,
+                        color: const Color(0xFF2563EB), // Vibrant Primary Blue
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(28),
                         ),
@@ -101,7 +102,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         child: SizedBox(
                           width: 44,
                           height: 44,
-                          child: SvgPicture.asset('assets/images/icon.svg'),
+                          child: SvgPicture.asset(
+                            'assets/images/icon.svg',
+                            colorFilter: const ColorFilter.mode(
+                              Colors.white,
+                              BlendMode.srcIn,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -110,14 +117,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       l10n.appTitle,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.h1.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 7),
                     Text(
                       l10n.splash_welcome,
                       style: AppTextStyles.bodyLarge.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -127,7 +135,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               Text(
                 l10n.app_version,
                 style: AppTextStyles.caption.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],

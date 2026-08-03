@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -103,6 +104,7 @@ class NotificationsScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -110,7 +112,7 @@ class NotificationsScreen extends ConsumerWidget {
           SvgPicture.asset('assets/images/BellSimple.svg', width: 64, height: 64, colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.secondary.withOpacity(0.5), BlendMode.srcIn)),
           const SizedBox(height: 16),
           Text(
-            'No notifications yet',
+            l10n.no_notifications,
             style: AppTextStyles.h3.copyWith(color: Theme.of(context).colorScheme.secondary),
           ),
         ],
@@ -119,6 +121,7 @@ class NotificationsScreen extends ConsumerWidget {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context, AsyncValue<int> asyncCount, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final unreadCount = asyncCount.when(
       data: (count) => count,
       loading: () => 0,
@@ -132,12 +135,18 @@ class NotificationsScreen extends ConsumerWidget {
       centerTitle: true,
       leading: IconButton(
         onPressed: () => context.pop(),
-        icon: SvgPicture.asset('assets/images/CaretLeft.svg'),
+        icon: SvgPicture.asset(
+          'assets/images/CaretLeft.svg',
+          colorFilter: ColorFilter.mode(
+            Theme.of(context).colorScheme.primary,
+            BlendMode.srcIn,
+          ),
+        ),
       ),
       title: Column(
         children: [
           Text(
-            'Notifications',
+            l10n.notifications_title,
             style: AppTextStyles.titleLight.copyWith(
               color: Theme.of(context).colorScheme.primary,
             ),
@@ -162,7 +171,7 @@ class NotificationsScreen extends ConsumerWidget {
                 }
               : null,
           child: Text(
-            'Read All',
+            l10n.read_all,
             style: AppTextStyles.bodyMedium.copyWith(
               color: unreadCount > 0 ? Theme.of(context).colorScheme.primary : Theme.of(context).disabledColor,
             ),
@@ -174,10 +183,12 @@ class NotificationsScreen extends ConsumerWidget {
   }
 
   Widget _buildSectionHeader(String title, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final displayTitle = title.toLowerCase() == 'new' ? l10n.new_section : title;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
-        title,
+        displayTitle,
         style: AppTextStyles.h3.copyWith(
           color: Theme.of(context).colorScheme.primary,
           height: 1.40,
@@ -197,13 +208,22 @@ class NotificationsScreen extends ConsumerWidget {
     bool isLast = false,
     VoidCallback? onTap,
   }) {
-    final backgroundColor = isNew ? AppColors.unread : Theme.of(context).colorScheme.surface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isNew
+        ? (isDark ? AppColors.inputBgSecondaryDark : AppColors.unread)
+        : Theme.of(context).colorScheme.surface;
     return InkWell(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
-          border: isNew && !isLast ? const Border(bottom: BorderSide(color: AppColors.inputBorderSecondary)) : null,
+          border: isNew && !isLast
+              ? Border(
+                  bottom: BorderSide(
+                    color: isDark ? AppColors.inputBorderDark : AppColors.inputBorderSecondary,
+                  ),
+                )
+              : Border(bottom: BorderSide(color: Theme.of(context).dividerColor.withAlpha(50))),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(
@@ -222,8 +242,20 @@ class NotificationsScreen extends ConsumerWidget {
               ),
               padding: const EdgeInsets.all(14),
               child: icon.startsWith('http')
-                  ? SvgPicture.network(icon)
-                  : SvgPicture.asset(icon),
+                  ? SvgPicture.network(
+                      icon,
+                      colorFilter: ColorFilter.mode(
+                        Theme.of(context).colorScheme.onSurface,
+                        BlendMode.srcIn,
+                      ),
+                    )
+                  : SvgPicture.asset(
+                      icon,
+                      colorFilter: ColorFilter.mode(
+                        Theme.of(context).colorScheme.onSurface,
+                        BlendMode.srcIn,
+                      ),
+                    ),
             ),
             const SizedBox(width: 16),
             Expanded(

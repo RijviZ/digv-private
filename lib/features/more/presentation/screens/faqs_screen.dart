@@ -36,7 +36,7 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
     final faqAsync = ref.watch(faqProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -94,9 +94,9 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
                     ),
                   );
                 },
-                loading: () => const Center(
+                loading: () => Center(
                   child: CircularProgressIndicator(
-                    color: AppColors.onLight,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 error: (err, stack) => Center(
@@ -114,8 +114,8 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
                         Text(
                           'Failed to load FAQs: $err',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppColors.textDark,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 14,
                             fontFamily: AppTextStyles.fontFamily,
                             fontWeight: FontWeight.w500,
@@ -125,8 +125,8 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
                         ElevatedButton(
                           onPressed: () => ref.invalidate(faqProvider),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.onLight,
-                            foregroundColor: Colors.white,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Theme.of(context).colorScheme.onPrimary,
                           ),
                           child: const Text('Retry'),
                         ),
@@ -156,7 +156,7 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(isHelpful ? 'Thank you for your helpful feedback!' : 'Feedback submitted successfully.'),
-          backgroundColor: AppColors.onLight,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -174,8 +174,8 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.dropDownBorder),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -184,7 +184,10 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
             'assets/images/search.svg',
             width: 16,
             height: 16,
-            colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
+            colorFilter: ColorFilter.mode(
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              BlendMode.srcIn,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -193,20 +196,20 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
               onChanged: (val) => setState(() {
                 _expandedFaqIndex = null; // Collapse active item on search changes
               }),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Search frequently asked questions...',
                 hintStyle: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   fontSize: 14,
                   fontFamily: AppTextStyles.fontFamily,
                   fontWeight: FontWeight.w400,
                 ),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
-              style: const TextStyle(
-                color: AppColors.textDark,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 14,
                 fontFamily: AppTextStyles.fontFamily,
                 fontWeight: FontWeight.w400,
@@ -244,16 +247,18 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
               child: Container(
                 padding: const EdgeInsets.only(bottom: 8, right: 24),
                 decoration: isSelected
-                    ? const BoxDecoration(
+                    ? BoxDecoration(
                         border: Border(
-                          bottom: BorderSide(color: AppColors.onLight, width: 2),
+                          bottom: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
                         ),
                       )
                     : null,
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: isSelected ? AppColors.onLight : AppColors.textSecondary,
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     fontSize: 14,
                     fontFamily: AppTextStyles.fontFamily,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -278,14 +283,14 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
               Icon(
                 Icons.search_off_rounded,
                 size: 48,
-                color: AppColors.textSecondary.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'No FAQs found matching your filters.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   fontSize: 14,
                   fontFamily: AppTextStyles.fontFamily,
                   fontWeight: FontWeight.w400,
@@ -315,8 +320,8 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
   Widget _buildFaqItem(FaqItem item, bool isExpanded, int index) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.inputBorder),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -361,7 +366,7 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
                         Text(
                           item.question,
                           style: TextStyle(
-                            color: AppColors.textDark,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 14,
                             fontFamily: AppTextStyles.fontFamilyPoppins,
                             fontWeight: isExpanded ? FontWeight.w700 : FontWeight.w600,

@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -84,7 +85,14 @@ class _AddCardBottomSheetState extends ConsumerState<AddCardBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
@@ -101,11 +109,14 @@ class _AddCardBottomSheetState extends ConsumerState<AddCardBottomSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Add New Card',
-                  style: AppTextStyles.h6.copyWith(fontWeight: FontWeight.bold),
+                  l10n.add_new_card,
+                  style: AppTextStyles.h6.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: theme.colorScheme.primary),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -113,8 +124,9 @@ class _AddCardBottomSheetState extends ConsumerState<AddCardBottomSheet> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameController,
+              style: TextStyle(color: theme.colorScheme.onSurface),
               decoration: InputDecoration(
-                labelText: 'Cardholder Name',
+                labelText: l10n.cardholder_name,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
               validator: (v) => v == null || v.isEmpty ? 'Required' : null,
@@ -123,12 +135,13 @@ class _AddCardBottomSheetState extends ConsumerState<AddCardBottomSheet> {
             TextFormField(
               controller: _numberController,
               keyboardType: TextInputType.number,
+              style: TextStyle(color: theme.colorScheme.onSurface),
               inputFormatters: [
                 FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(16),
               ],
               decoration: InputDecoration(
-                labelText: 'Card Number',
+                labelText: l10n.card_number,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
               validator: (v) => v == null || v.length < 15 ? 'Invalid card number' : null,
@@ -140,12 +153,13 @@ class _AddCardBottomSheetState extends ConsumerState<AddCardBottomSheet> {
                   child: TextFormField(
                     controller: _expiryController,
                     keyboardType: TextInputType.datetime,
+                    style: TextStyle(color: theme.colorScheme.onSurface),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9/]')),
                       LengthLimitingTextInputFormatter(5),
                     ],
                     decoration: InputDecoration(
-                      labelText: 'Expiry (MM/YY)',
+                      labelText: l10n.expiry_date,
                       hintText: 'MM/YY',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -171,12 +185,13 @@ class _AddCardBottomSheetState extends ConsumerState<AddCardBottomSheet> {
                   child: TextFormField(
                     controller: _cvvController,
                     keyboardType: TextInputType.number,
+                    style: TextStyle(color: theme.colorScheme.onSurface),
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
                       LengthLimitingTextInputFormatter(4),
                     ],
                     decoration: InputDecoration(
-                      labelText: 'CVV',
+                      labelText: l10n.cvv,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     obscureText: true,
@@ -189,11 +204,14 @@ class _AddCardBottomSheetState extends ConsumerState<AddCardBottomSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Set as default payment method'),
+                Text(
+                  l10n.set_default_payment_method,
+                  style: TextStyle(color: theme.colorScheme.onSurface),
+                ),
                 Switch(
                   value: _isDefault,
                   onChanged: (val) => setState(() => _isDefault = val),
-                  activeColor: Theme.of(context).colorScheme.primary,
+                  activeThumbColor: theme.colorScheme.primary,
                 ),
               ],
             ),
@@ -204,26 +222,27 @@ class _AddCardBottomSheetState extends ConsumerState<AddCardBottomSheet> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 child: _isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 24,
                         width: 24,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: theme.colorScheme.onPrimary,
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text(
-                        'Add Card',
+                    : Text(
+                        l10n.add_new_card,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onPrimary,
                         ),
                       ),
               ),

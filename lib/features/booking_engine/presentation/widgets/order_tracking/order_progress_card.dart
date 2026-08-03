@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/booking_engine/domain/models/tracking_step.dart';
@@ -12,8 +13,9 @@ class OrderProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SectionCard(
-      label: 'ORDER PROGRESS',
+      label: l10n.order_progress,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -32,14 +34,14 @@ class StepTile extends StatelessWidget {
 
   const StepTile({super.key, required this.step, required this.isLast});
 
-  Color get _dotColor {
+  Color _dotColor(BuildContext context) {
     if (step.isActive) return AppColors.blue;
-    if (step.isCompleted) return AppColors.textDark;
-    return AppColors.onLight;
+    if (step.isCompleted) return Theme.of(context).colorScheme.primary;
+    return Theme.of(context).dividerColor;
   }
 
-  Color get _textColor {
-    if (step.isCompleted || step.isActive) return AppColors.textDark;
+  Color _textColor(BuildContext context) {
+    if (step.isCompleted || step.isActive) return Theme.of(context).colorScheme.onSurface;
     return AppColors.textGray;
   }
 
@@ -60,10 +62,10 @@ class StepTile extends StatelessWidget {
                     color: step.isActive
                         ? AppColors.blue
                         : step.isCompleted
-                        ? AppColors.textDark
-                        : Colors.white,
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.surface,
                     shape: BoxShape.circle,
-                    border: Border.all(color: _dotColor, width: 1),
+                    border: Border.all(color: _dotColor(context), width: 1),
                   ),
                   child: step.isCompleted && !step.isActive
                       ? Padding(
@@ -83,7 +85,7 @@ class StepTile extends StatelessWidget {
                   Expanded(
                     child: Container(
                       width: 2,
-                      color: AppColors.onLight,
+                      color: Theme.of(context).dividerColor,
                     ),
                   ),
               ],
@@ -100,7 +102,7 @@ class StepTile extends StatelessWidget {
                     step.title,
                     style: AppTextStyles.captionMedium.copyWith(
                       fontWeight: (step.isCompleted || step.isActive) ? FontWeight.w700 : FontWeight.w400,
-                      color: _textColor,
+                      color: _textColor(context),
                     ),
                   ),
                   if (step.subtitle != null && (step.isCompleted || step.isActive)) ...[

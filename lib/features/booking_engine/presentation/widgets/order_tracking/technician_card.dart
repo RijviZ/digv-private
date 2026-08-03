@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/booking_engine/domain/models/order_status.dart';
@@ -23,6 +24,7 @@ class TechnicianCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isPrepaid = order != null
         ? !(order!.paymentStatus == 'UNPAID' || order!.price.toLowerCase().contains('postpaid'))
         : paymentType == PaymentType.prepaid;
@@ -34,8 +36,9 @@ class TechnicianCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.inputBorder),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         children: [
@@ -47,8 +50,8 @@ class TechnicianCard extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFE5E7EB),
-                  border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
+                  color: Theme.of(context).colorScheme.surface,
+                  border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
                   image: imageUrl != null && imageUrl.isNotEmpty
                       ? DecorationImage(
                           image: NetworkImage(imageUrl),
@@ -57,7 +60,7 @@ class TechnicianCard extends StatelessWidget {
                       : null,
                 ),
                 child: imageUrl == null || imageUrl.isEmpty
-                    ? const Icon(Icons.person, color: Color(0xFF9CA3AF), size: 24)
+                    ? Icon(Icons.person, color: Theme.of(context).colorScheme.secondary, size: 24)
                     : null,
               ),
               const SizedBox(width: 12),
@@ -67,7 +70,10 @@ class TechnicianCard extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: AppTextStyles.h6.copyWith(fontWeight: FontWeight.w700, color: AppColors.textDark),
+                      style: AppTextStyles.h6.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Row(
@@ -105,10 +111,10 @@ class TechnicianCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SvgPicture.asset('assets/images/lock.svg', height: 12, width: 12, colorFilter: ColorFilter.mode(const Color(0xFFC2410C), BlendMode.srcIn)),
+                          SvgPicture.asset('assets/images/lock.svg', height: 12, width: 12, colorFilter: const ColorFilter.mode(Color(0xFFC2410C), BlendMode.srcIn)),
                           const SizedBox(width: 3),
                           Text(
-                            'Post Paid',
+                            l10n.postpaid_order,
                             style: AppTextStyles.caption.copyWith(
                               fontWeight: FontWeight.w600,
                               color: const Color(0xFFC2410C),
@@ -121,7 +127,7 @@ class TechnicianCard extends StatelessWidget {
                 ),
               ),
               // Action icons
-              IconAction(icon: 'assets/images/message.svg', fillColor: Colors.white, onTap: onChat, borderColor: AppColors.inputBorder,),
+              IconAction(icon: 'assets/images/message.svg', fillColor: Theme.of(context).colorScheme.surface, onTap: onChat, borderColor: Theme.of(context).dividerColor,),
               const SizedBox(width: 8),
               IconAction(icon: 'assets/images/phone.svg', onTap: onCall ?? () {}, fillColor: AppColors.successSecondaryBg),
             ],

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/booking_engine/domain/models/order_status.dart';
@@ -223,21 +224,23 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
   List<TrackingStep> get _steps {
     final idx = OrderStatus.values.indexOf(_status);
+    final l10n = AppLocalizations.of(context)!;
+
     return [
       TrackingStep(
-        title: 'Created',
-        subtitle: 'Booking request created',
+        title: l10n.step_created,
+        subtitle: l10n.step_created_sub,
         isCompleted: true,
         isActive: _status == OrderStatus.created,
       ),
       TrackingStep(
-        title: 'Booking Confirmed',
-        subtitle: 'Booking is confirmed',
+        title: l10n.step_booking_confirmed,
+        subtitle: l10n.step_booking_confirmed_sub,
         isCompleted: idx >= 1,
         isActive: false,
       ),
       TrackingStep(
-        title: 'Technician Assigned',
+        title: l10n.step_tech_assigned,
         subtitle: _order != null
             ? '${_order!.technicianName} is assigned'
             : 'Arjun Kumar is assigned',
@@ -245,31 +248,31 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         isActive: _status == OrderStatus.assigned,
       ),
       TrackingStep(
-        title: 'On the Way',
+        title: l10n.step_on_the_way,
         subtitle: 'ETA 12 minutes',
         isCompleted: idx >= 2,
         isActive: idx == 2,
       ),
-      TrackingStep(title: 'Arrived', isCompleted: idx >= 3, isActive: idx == 3),
+      TrackingStep(title: l10n.step_arrived, isCompleted: idx >= 3, isActive: idx == 3),
       TrackingStep(
-        title: 'Work Started',
+        title: l10n.step_work_started,
         isCompleted: idx >= 4,
         isActive: idx == 4,
       ),
       TrackingStep(
-        title: 'Work Done — OTP Needed',
-        subtitle: 'Share OTP with technician',
+        title: l10n.step_work_done_otp,
+        subtitle: l10n.share_otp_technician,
         subtitleColor: AppColors.alertText,
         isCompleted: idx >= 5,
         isActive: idx == 5,
-        actionLabel: 'View OTP Code',
+        actionLabel: l10n.view_otp_code,
         actionLabelColor: AppColors.alertText,
         actionBackgroundColor: AppColors.alertBg,
         actionBorderColor: AppColors.alertBorder,
         onAction: idx == 5 ? _showOtpSheet : null,
       ),
       TrackingStep(
-        title: 'Completed',
+        title: l10n.step_completed,
         isCompleted: idx >= 6,
         isActive: idx == 6,
       ),

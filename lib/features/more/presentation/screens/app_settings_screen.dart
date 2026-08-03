@@ -1,6 +1,8 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/more/presentation/providers/settings_provider.dart';
+import 'package:digv/features/profile_settings/presentation/providers/locale_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +24,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final settingsAsync = ref.watch(settingsProvider);
 
@@ -39,14 +42,14 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
               height: 18,
               width: 18,
               colorFilter: ColorFilter.mode(
-                theme.colorScheme.secondary,
+                theme.colorScheme.onSurface,
                 BlendMode.srcIn,
               ),
             ),
             onPressed: () => Navigator.maybePop(context),
           ),
           title: Text(
-            'App Settings',
+            l10n.darkMode,
             style: AppTextStyles.titleLight.copyWith(
               color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w400,
@@ -65,7 +68,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Appearance',
+                    l10n.appearance,
                     style: AppTextStyles.titleLight.copyWith(
                       color: theme.colorScheme.onSurface,
                       fontWeight: FontWeight.w500,
@@ -76,7 +79,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: theme.dividerColor),
                     ),
@@ -88,6 +91,10 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                               'assets/images/sun.svg',
                               width: 18,
                               height: 18,
+                              colorFilter: ColorFilter.mode(
+                                theme.colorScheme.primary,
+                                BlendMode.srcIn,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -95,16 +102,16 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Dark Mode',
+                                    l10n.darkMode,
                                     style: AppTextStyles.h6.copyWith(
-                                      color: AppColors.textDark,
+                                      color: theme.colorScheme.onSurface,
                                       fontFamily: AppTextStyles.fontFamilyPoppins,
                                       fontWeight: FontWeight.w600,
                                       height: 1.5,
                                     ),
                                   ),
                                   Text(
-                                    isDarkMode ? 'Currently On' : 'Currently Off',
+                                    isDarkMode ? l10n.currently_on : l10n.currently_off,
                                     style: AppTextStyles.caption.copyWith(
                                       color: theme.colorScheme.secondary,
                                       fontFamily: AppTextStyles.fontFamilyPoppins,
@@ -134,7 +141,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                     borderRadius: BorderRadius.circular(4),
                                     border: Border.all(
                                       color: isLightSelected
-                                          ? AppColors.textDark
+                                          ? theme.colorScheme.primary
                                           : theme.dividerColor,
                                       width: 1,
                                     ),
@@ -158,9 +165,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                       ),
                                       Container(
                                         height: 34,
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.textLight,
-                                          borderRadius: BorderRadius.vertical(
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.surface,
+                                          borderRadius: const BorderRadius.vertical(
                                             bottom: Radius.circular(4),
                                           ),
                                         ),
@@ -169,9 +176,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              'Light',
+                                              l10n.light,
                                               style: AppTextStyles.labelMedium.copyWith(
-                                                color: AppColors.textDark,
+                                                color: theme.colorScheme.onSurface,
                                                 fontFamily: AppTextStyles.fontFamilyPoppins,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -181,8 +188,8 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                                 'assets/images/check.svg',
                                                 width: 14,
                                                 height: 14,
-                                                colorFilter: const ColorFilter.mode(
-                                                  AppColors.textDark,
+                                                colorFilter: ColorFilter.mode(
+                                                  theme.colorScheme.primary,
                                                   BlendMode.srcIn,
                                                 ),
                                               ),
@@ -203,7 +210,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                     borderRadius: BorderRadius.circular(4),
                                     border: Border.all(
                                       color: isDarkMode
-                                          ? AppColors.textDark
+                                          ? theme.colorScheme.primary
                                           : theme.dividerColor,
                                       width: 1.08,
                                     ),
@@ -227,9 +234,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                       ),
                                       Container(
                                         height: 34,
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.textLight,
-                                          borderRadius: BorderRadius.vertical(
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.surface,
+                                          borderRadius: const BorderRadius.vertical(
                                             bottom: Radius.circular(4),
                                           ),
                                         ),
@@ -238,9 +245,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              'Dark',
+                                              l10n.dark,
                                               style: AppTextStyles.labelMedium.copyWith(
-                                                color: AppColors.textDark,
+                                                color: theme.colorScheme.onSurface,
                                                 fontFamily: AppTextStyles.fontFamilyPoppins,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -250,8 +257,8 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                                 'assets/images/check.svg',
                                                 width: 14,
                                                 height: 14,
-                                                colorFilter: const ColorFilter.mode(
-                                                  AppColors.textDark,
+                                                colorFilter: ColorFilter.mode(
+                                                  theme.colorScheme.primary,
                                                   BlendMode.srcIn,
                                                 ),
                                               ),
@@ -272,7 +279,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                   const SizedBox(height: 28),
 
                   Text(
-                    'Language',
+                    l10n.language,
                     style: AppTextStyles.titleLight.copyWith(
                       color: theme.colorScheme.onSurface,
                       fontWeight: FontWeight.w500,
@@ -282,7 +289,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
 
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: theme.dividerColor),
                     ),
@@ -290,7 +297,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                       children: _languages.asMap().entries.map((entry) {
                         final idx = entry.key;
                         final lang = entry.value;
-                        final isSelected = settings.appLanguage == lang['code'];
+                        final currentLocaleCode = ref.watch(localeProvider).languageCode.toLowerCase();
+                        final isSelected = currentLocaleCode == (lang['code'] as String).toLowerCase() ||
+                            settings.appLanguage.toLowerCase() == (lang['code'] as String).toLowerCase();
                         final isFirst = idx == 0;
 
                         return Column(
@@ -298,7 +307,11 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                             if (!isFirst)
                               Divider(height: 1, color: theme.dividerColor),
                             GestureDetector(
-                              onTap: () => ref.read(settingsProvider.notifier).updateLanguage(lang['code']!),
+                              onTap: () {
+                                final code = lang['code']!;
+                                ref.read(localeProvider.notifier).setLocale(Locale(code.toLowerCase()));
+                                ref.read(settingsProvider.notifier).updateLanguage(code.toUpperCase());
+                              },
                               child: Container(
                                 padding: const EdgeInsets.all(16),
                                 color: Colors.transparent,
@@ -309,7 +322,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                       width: 18,
                                       height: 18,
                                       colorFilter: ColorFilter.mode(
-                                        isSelected ? AppColors.blueDeep : theme.colorScheme.secondary,
+                                        isSelected ? theme.colorScheme.primary : theme.colorScheme.secondary,
                                         BlendMode.srcIn,
                                       ),
                                     ),
@@ -321,7 +334,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                           Text(
                                             lang['name']!,
                                             style: AppTextStyles.h6.copyWith(
-                                              color: AppColors.textDark,
+                                              color: theme.colorScheme.onSurface,
                                               fontFamily: AppTextStyles.fontFamilyPoppins,
                                               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                                               height: 1.5,
@@ -343,8 +356,8 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                         'assets/images/check.svg',
                                         width: 18,
                                         height: 18,
-                                        colorFilter: const ColorFilter.mode(
-                                          AppColors.blueDeep,
+                                        colorFilter: ColorFilter.mode(
+                                          theme.colorScheme.primary,
                                           BlendMode.srcIn,
                                         ),
                                       ),
@@ -369,7 +382,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                       border: Border.all(color: const Color(0xFFFED7AA)),
                     ),
                     child: Text(
-                      'Language change takes effect immediately. All app content will be displayed in the selected language.',
+                      l10n.lang_notice,
                       style: AppTextStyles.caption.copyWith(
                         color: const Color(0xFFC2410C),
                       ),

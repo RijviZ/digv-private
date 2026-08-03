@@ -100,9 +100,9 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.8,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
         ),
@@ -120,7 +120,7 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _buildHeader(context),
             ),
-            const Divider(color: AppColors.dropDownBorder, height: 24),
+            Divider(color: Theme.of(context).dividerColor, height: 24),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -130,7 +130,7 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
                     Text(
                       'Why are you cancelling?',
                       style: AppTextStyles.bodyMediumBold.copyWith(
-                        color: AppColors.textDark,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -146,9 +146,9 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
               ),
               child: _isSubmitting
                   ? Container(
@@ -192,10 +192,10 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Cancel Service',
                 style: TextStyle(
-                  color: AppColors.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 18,
                   fontFamily: AppTextStyles.fontFamily,
                   fontWeight: FontWeight.w600,
@@ -204,8 +204,8 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
               const SizedBox(height: 2),
               Text(
                 '${widget.order.serviceName} • ${widget.order.orderId}',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   fontSize: 14,
                   fontFamily: AppTextStyles.fontFamily,
                   fontWeight: FontWeight.w400,
@@ -218,15 +218,18 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
           onTap: () => Navigator.of(context).pop(),
           child: Container(
             padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: AppColors.bg,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: SvgPicture.asset(
               'assets/images/close.svg',
               width: 16,
               height: 16,
-              colorFilter: const ColorFilter.mode(AppColors.textDark, BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).colorScheme.onSurface,
+                BlendMode.srcIn,
+              ),
             ),
           ),
         ),
@@ -245,10 +248,14 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).colorScheme.primary.withAlpha(15) : Colors.white,
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary.withAlpha(25)
+              : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Theme.of(context).colorScheme.primary : AppColors.dropDownBorder,
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).dividerColor,
             width: 1.5,
           ),
         ),
@@ -264,7 +271,7 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
                   color: isSelected ? Theme.of(context).colorScheme.primary : AppColors.textSecondary,
                   width: isSelected ? 6 : 2,
                 ),
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
               ),
             ),
             const SizedBox(width: 14),
@@ -272,7 +279,9 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
               child: Text(
                 reason,
                 style: AppTextStyles.bodyMedium.copyWith(
-                  color: isSelected ? Theme.of(context).colorScheme.primary : AppColors.textDark,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),

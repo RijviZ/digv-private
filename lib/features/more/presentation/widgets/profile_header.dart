@@ -31,7 +31,7 @@ class ProfileHeader extends StatelessWidget {
               Text(
                 (user.fullName != null && user.fullName!.isNotEmpty) ? user.fullName! : 'User',
                 style: AppTextStyles.h4.copyWith(
-                  color: theme.colorScheme.primary,
+                  color: theme.colorScheme.onSurface,
                   fontFamily: AppTextStyles.fontFamilyPoppins,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.30,

@@ -146,9 +146,11 @@ class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.inputBgSecondary,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.inputBgSecondaryDark
+            : AppColors.inputBgSecondary,
         borderRadius: BorderRadius.circular(8),
-        border: const Border(bottom: BorderSide(color: AppColors.inputBorder)),
+        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
       ),
       child: Row(
         children: [
@@ -343,7 +345,9 @@ class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
         height: 40,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AppColors.inputBgSecondary,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.inputBgSecondaryDark
+              : AppColors.inputBgSecondary,
           borderRadius: BorderRadius.horizontal(
             left: text == '-' ? const Radius.circular(2) : Radius.zero,
             right: text == '+' ? const Radius.circular(2) : Radius.zero,

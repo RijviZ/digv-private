@@ -14,9 +14,11 @@ class BookingDetailsCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.inputBgSecondary,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.inputBgSecondaryDark
+            : AppColors.inputBgSecondary,
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.inputBorder),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         children: items.asMap().entries.map((entry) {

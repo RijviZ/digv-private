@@ -1,6 +1,7 @@
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/booking_engine/domain/models/order_status.dart';
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +16,8 @@ class BookingConfirmedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
@@ -32,7 +35,7 @@ class BookingConfirmedScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.dropDownBorder),
+                        border: Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: Center(child: SvgPicture.asset('assets/images/CheckCircleG.svg', width: 32, height: 32)),
                     ),
@@ -41,7 +44,7 @@ class BookingConfirmedScreen extends StatelessWidget {
 
                     // Title
                     Text(
-                      'Booking Confirmed!',
+                      l10n.booking_confirmed,
                       style: AppTextStyles.h3.copyWith(
                         color: Theme.of(context).colorScheme.onSurface,
                         letterSpacing: 0,
@@ -64,14 +67,14 @@ class BookingConfirmedScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).brightness == Brightness.dark ? AppColors.inputBgSecondaryDark : Colors.white,
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: AppColors.inputBorder),
+                        border: Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: Text(
                         'Order ID: ORD-8063',
                         style: AppTextStyles.captionMedium.copyWith(
-                          color: AppColors.textDark,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0,
                           height: 1.5,
@@ -88,12 +91,12 @@ class BookingConfirmedScreen extends StatelessWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: BoxDecoration(color: AppColors.blue, shape: BoxShape.circle),
+                          decoration: const BoxDecoration(color: AppColors.blue, shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Technician Confirmed • On the way',
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textGray),
+                          style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.secondary),
                         ),
                       ],
                     ),
@@ -103,31 +106,31 @@ class BookingConfirmedScreen extends StatelessWidget {
                     // Details card
                     BookingDetailsCard(
                       items: [
-                        const BookingDetailItem(
+                        BookingDetailItem(
                           icon: 'assets/images/checkmark.svg',
-                          iconColor: Color(0xFF22C55E),
-                          label: 'Service',
-                          value: 'Regular Service',
+                          iconColor: const Color(0xFF22C55E),
+                          label: l10n.service,
+                          value: l10n.regular_service,
                         ),
-                        const BookingDetailItem(
+                        BookingDetailItem(
                           icon: 'assets/images/CalendarBlank.svg',
-                          iconColor: Color(0xFF3B82F6),
-                          label: 'Schedule',
+                          iconColor: const Color(0xFF3B82F6),
+                          label: l10n.schedule,
                           value: 'Tomorrow · 10:00 AM',
                         ),
-                        const BookingDetailItem(
+                        BookingDetailItem(
                           icon: 'assets/images/pin_g.svg',
-                          iconColor: Color(0xFF6B7280),
-                          label: 'Address',
+                          iconColor: const Color(0xFF6B7280),
+                          label: l10n.address,
                           value: 'Home — Jl. Ngagelrejo No.34',
                         ),
                         BookingDetailItem(
                           icon: 'assets/images/card.svg',
                           iconColor: const Color(0xFF6B7280),
-                          label: 'Payment',
+                          label: l10n.payment,
                           value: paymentType == PaymentType.prepaid
-                              ? '₹199 · UPI Paid'
-                              : '₹199 · Pay after service',
+                              ? '₹199 · ${l10n.upi_paid}'
+                              : '₹199 · ${l10n.pay_after_service}',
                         ),
                       ],
                     ),
@@ -147,13 +150,13 @@ class BookingConfirmedScreen extends StatelessWidget {
                         context.push('/order_tracking', extra: paymentType);
                       },
                       style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Theme.of(context).colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                         elevation: 0,
                       ),
-                      child: Text('Track your order', style: AppTextStyles.button),
+                      child: Text(l10n.track_your_order, style: AppTextStyles.button),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -163,14 +166,14 @@ class BookingConfirmedScreen extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: () => context.push('/home'),
                       style: OutlinedButton.styleFrom(
-                        padding: EdgeInsetsGeometry.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         foregroundColor: Theme.of(context).colorScheme.primary,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
                         side: BorderSide(color: Theme.of(context).dividerColor),
                         elevation: 0,
                       ),
                       child: Text(
-                        'Go to home',
+                        l10n.go_to_home,
                         style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.primary),
                       ),
                     ),

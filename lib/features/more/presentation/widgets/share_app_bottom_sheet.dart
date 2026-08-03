@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/core/utils/snackbar_utils.dart';
@@ -21,15 +22,16 @@ class ShareAppBottomSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final profileAsync = ref.watch(profileProvider);
 
     return profileAsync.when(
       data: (user) {
         final referralCode = user.userOwnReferralCode ?? 'HOMESERV50';
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(24),
               topRight: Radius.circular(24),
             ),
@@ -45,17 +47,17 @@ class ShareAppBottomSheet extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _buildDragHandle(),
+                  _buildDragHandle(theme),
                   const SizedBox(height: 24),
-                  _buildHeader(context),
+                  _buildHeader(context, theme),
                   const SizedBox(height: 24),
-                  _buildReferralCodeSection(context, referralCode),
+                  _buildReferralCodeSection(context, referralCode, theme),
                   const SizedBox(height: 16),
-                  _buildReferralLinkSection(context, referralCode),
+                  _buildReferralLinkSection(context, referralCode, theme),
                   const SizedBox(height: 24),
-                  _buildHowItWorksSection(),
+                  _buildHowItWorksSection(theme, context),
                   const SizedBox(height: 24),
-                  _buildShareButton(context, referralCode),
+                  _buildShareButton(context, referralCode, theme),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -65,9 +67,9 @@ class ShareAppBottomSheet extends ConsumerWidget {
       },
       loading: () => Container(
         height: 200,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
           ),
@@ -76,9 +78,9 @@ class ShareAppBottomSheet extends ConsumerWidget {
       ),
       error: (err, stack) => Container(
         height: 200,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
           ),
@@ -88,18 +90,19 @@ class ShareAppBottomSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildDragHandle() {
+  Widget _buildDragHandle(ThemeData theme) {
     return Container(
       width: 48,
       height: 4,
       decoration: BoxDecoration(
-        color: AppColors.dropDownBorder.withOpacity(0.5),
+        color: theme.dividerColor,
         borderRadius: BorderRadius.circular(2),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -124,9 +127,9 @@ class ShareAppBottomSheet extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Share App & Earn',
+                l10n.share_app_title,
                 style: TextStyle(
-                  color: AppColors.textDark,
+                  color: theme.colorScheme.primary,
                   fontSize: 18,
                   fontFamily: AppTextStyles.fontFamily,
                   fontWeight: FontWeight.w600,
@@ -136,7 +139,7 @@ class ShareAppBottomSheet extends ConsumerWidget {
               Text(
                 'Invite friends to HomeServ',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: theme.colorScheme.secondary,
                   fontSize: 14,
                   fontFamily: AppTextStyles.fontFamily,
                   fontWeight: FontWeight.w400,
@@ -150,14 +153,14 @@ class ShareAppBottomSheet extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.bg,
+              color: theme.dividerColor.withOpacity(0.3),
               shape: BoxShape.circle,
             ),
             child: SvgPicture.asset(
               'assets/images/close.svg',
               width: 16,
               height: 16,
-              colorFilter: const ColorFilter.mode(AppColors.textDark, BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn),
             ),
           ),
         ),
@@ -165,23 +168,24 @@ class ShareAppBottomSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildReferralCodeSection(BuildContext context, String referralCode) {
+  Widget _buildReferralCodeSection(BuildContext context, String referralCode, ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     final spacedCode = referralCode.split('').join(' ');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.inputBorder),
+        color: theme.colorScheme.surface,
+        border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            'YOUR REFERRAL CODE',
+            l10n.your_referral_code,
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.colorScheme.secondary,
               fontSize: 11,
               fontFamily: AppTextStyles.fontFamilyPoppins,
               fontWeight: FontWeight.w700,
@@ -195,14 +199,14 @@ class ShareAppBottomSheet extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.bg,
+                    color: theme.brightness == Brightness.dark ? AppColors.inputBgSecondaryDark : AppColors.inputBgSecondary,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     spacedCode,
                     style: TextStyle(
-                      color: AppColors.textDark,
+                      color: theme.colorScheme.primary,
                       fontSize: 22,
                       fontFamily: AppTextStyles.fontFamily,
                       fontWeight: FontWeight.w700,
@@ -215,7 +219,7 @@ class ShareAppBottomSheet extends ConsumerWidget {
               Container(
                 height: 62,
                 decoration: BoxDecoration(
-                  color: AppColors.onLight,
+                  color: theme.colorScheme.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Material(
@@ -235,13 +239,13 @@ class ShareAppBottomSheet extends ConsumerWidget {
                             'assets/images/copy.svg',
                             width: 16,
                             height: 16,
-                            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                            colorFilter: ColorFilter.mode(theme.colorScheme.onPrimary, BlendMode.srcIn),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Copy',
+                            l10n.copy_link,
                             style: TextStyle(
-                              color: Colors.white,
+                              color: theme.colorScheme.onPrimary,
                               fontSize: 12,
                               fontFamily: AppTextStyles.fontFamily,
                               fontWeight: FontWeight.w500,
@@ -260,14 +264,15 @@ class ShareAppBottomSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildReferralLinkSection(BuildContext context, String referralCode) {
+  Widget _buildReferralLinkSection(BuildContext context, String referralCode, ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     final link = 'https://homeserv.app/join?ref=$referralCode';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.inputBorder),
+        color: theme.colorScheme.surface,
+        border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -277,7 +282,7 @@ class ShareAppBottomSheet extends ConsumerWidget {
             child: Text(
               link,
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: theme.colorScheme.secondary,
                 fontSize: 13,
                 fontFamily: AppTextStyles.fontFamily,
                 fontWeight: FontWeight.w400,
@@ -297,13 +302,13 @@ class ShareAppBottomSheet extends ConsumerWidget {
                   'assets/images/copy.svg',
                   width: 14,
                   height: 14,
-                  colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
+                  colorFilter: ColorFilter.mode(theme.colorScheme.secondary, BlendMode.srcIn),
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Copy link',
+                  l10n.copy_link,
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: theme.colorScheme.secondary,
                     fontSize: 13,
                     fontFamily: AppTextStyles.fontFamily,
                     fontWeight: FontWeight.w600,
@@ -317,22 +322,23 @@ class ShareAppBottomSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildHowItWorksSection() {
+  Widget _buildHowItWorksSection(ThemeData theme, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.inputBorder),
+        color: theme.colorScheme.surface,
+        border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'How It Works',
+            l10n.how_it_works,
             style: TextStyle(
-              color: AppColors.textDark,
+              color: theme.colorScheme.primary,
               fontSize: 14,
               fontFamily: AppTextStyles.fontFamily,
               fontWeight: FontWeight.w700,
@@ -343,14 +349,16 @@ class ShareAppBottomSheet extends ConsumerWidget {
             svgPath: 'assets/images/share.svg',
             iconColor: AppColors.blueLight,
             iconBgColor: AppColors.unread,
-            text: 'Share your unique code with friends & family',
+            text: l10n.share_code_step,
+            theme: theme,
           ),
           const SizedBox(height: 16),
           _buildHowItWorksStep(
             svgPath: 'assets/images/people.svg',
             iconColor: const Color(0xFF7C3AED),
             iconBgColor: const Color(0xFFEDE9FE),
-            text: 'Friend downloads HomeServ and uses your code',
+            text: l10n.friend_download_step,
+            theme: theme,
           ),
         ],
       ),
@@ -362,6 +370,7 @@ class ShareAppBottomSheet extends ConsumerWidget {
     required Color iconColor,
     required Color iconBgColor,
     required String text,
+    required ThemeData theme,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -386,7 +395,7 @@ class ShareAppBottomSheet extends ConsumerWidget {
             child: Text(
               text,
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: theme.colorScheme.secondary,
                 fontSize: 13,
                 fontFamily: AppTextStyles.fontFamily,
                 fontWeight: FontWeight.w400,
@@ -399,7 +408,8 @@ class ShareAppBottomSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildShareButton(BuildContext context, String referralCode) {
+  Widget _buildShareButton(BuildContext context, String referralCode, ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     return SizedBox(
       width: double.infinity,
       height: 54,
@@ -410,8 +420,8 @@ class ShareAppBottomSheet extends ConsumerWidget {
           SnackBarUtils.showSuccess(context, 'Invite message copied to clipboard!');
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.onLight,
-          foregroundColor: Colors.white,
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
           ),
@@ -423,15 +433,16 @@ class ShareAppBottomSheet extends ConsumerWidget {
               'assets/images/share.svg',
               width: 20,
               height: 20,
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(theme.colorScheme.onPrimary, BlendMode.srcIn),
             ),
             const SizedBox(width: 8),
             Text(
-              'Share Invite Now',
+              l10n.share_invite_now,
               style: TextStyle(
                 fontSize: 16,
                 fontFamily: AppTextStyles.fontFamily,
                 fontWeight: FontWeight.w500,
+                color: theme.colorScheme.onPrimary,
               ),
             ),
           ],

@@ -27,7 +27,7 @@ class MenuItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final resolvedIconBg = iconBgColor ?? AppColors.inputBgSecondary;
+    final resolvedIconBg = iconBgColor ?? (theme.brightness == Brightness.dark ? AppColors.inputBgSecondaryDark : AppColors.inputBgSecondary);
     final resolvedBorder = iconBgColor == null
         ? Border.all(color: theme.dividerColor)
         : null;
@@ -71,7 +71,7 @@ class MenuItemTile extends StatelessWidget {
                         Text(
                           label,
                           style: AppTextStyles.h6.copyWith(
-                            color: theme.colorScheme.primary,
+                            color: theme.colorScheme.onSurface,
                             fontFamily: AppTextStyles.fontFamilyPoppins,
                           ),
                         ),
@@ -81,7 +81,7 @@ class MenuItemTile extends StatelessWidget {
                   : Text(
                       label,
                       style: AppTextStyles.h6.copyWith(
-                        color: theme.colorScheme.primary,
+                        color: theme.colorScheme.onSurface,
                         fontFamily: AppTextStyles.fontFamilyPoppins,
                       ),
                     ),

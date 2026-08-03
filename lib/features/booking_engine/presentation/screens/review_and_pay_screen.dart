@@ -203,7 +203,9 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
   Widget _buildPromoCard() {
     return SectionCard(
       label: 'PROMO CODE',
-      bg: AppColors.inputBgSecondary,
+      bg: Theme.of(context).brightness == Brightness.dark
+          ? AppColors.inputBgSecondaryDark
+          : AppColors.inputBgSecondary,
       titleColor: Theme.of(context).colorScheme.secondary,
       titleBorder: false,
       titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -223,9 +225,9 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color:Theme.of(context).colorScheme.surface,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: _promoError ? AppColors.error : AppColors.dropDownBorder),
+                  border: Border.all(color: _promoError ? AppColors.error : Theme.of(context).dividerColor),
                 ),
                 child: Row(
                   children: [
@@ -254,6 +256,7 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
                             hintText: 'Enter promo code',
                             hintStyle: AppTextStyles.captionMedium.copyWith(color: AppColors.textGray),
                             filled: true,
+                            fillColor: Colors.transparent,
                             border: InputBorder.none,
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
@@ -280,7 +283,7 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
                 alignment: Alignment.center,
                 child: Text('Apply', style: AppTextStyles.captionMedium.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: Theme.of(context).colorScheme.surface
+                  color: Theme.of(context).colorScheme.onPrimary
                 )),
               ),
             ),
@@ -340,7 +343,9 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
   Widget _buildPriceBreakdownCard() {
     return SectionCard(
       label: 'PRICE BREAKDOWN',
-      bg: AppColors.inputBgSecondary,
+      bg: Theme.of(context).brightness == Brightness.dark
+          ? AppColors.inputBgSecondaryDark
+          : AppColors.inputBgSecondary,
       titleColor: Theme.of(context).colorScheme.secondary,
       titleBorder: false,
       titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -372,7 +377,7 @@ class _ReviewPayScreenState extends State<ReviewPayScreen> {
           ],
 
           const SizedBox(height: 8),
-          const Divider(color: AppColors.inputBorder, thickness: 1, height: 1),
+          Divider(color: Theme.of(context).dividerColor, thickness: 1, height: 1),
           const SizedBox(height: 8),
           _buildPriceRow(
             label: 'Total',

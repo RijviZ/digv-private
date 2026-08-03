@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/more/presentation/widgets/menu_item_tile.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ class SupportSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
     return Container(
@@ -35,7 +37,7 @@ class SupportSection extends StatelessWidget {
               ),
             ),
             child: Text(
-              'SUPPORT',
+              l10n.support.toUpperCase(),
               style: AppTextStyles.caption.copyWith(
                 color: theme.colorScheme.secondary,
               fontFamily: AppTextStyles.fontFamilyPoppins,
@@ -56,25 +58,25 @@ class SupportSection extends StatelessWidget {
                 children: [
                   MenuItemTile(
                     svgAsset: 'assets/images/help.svg',
-                    label: 'Help Center',
+                    label: l10n.helpCenter,
                     onTap: () => context.push('/help_center'),
                   ),
                   Divider(height: 1, color: theme.dividerColor),
                   MenuItemTile(
                     svgAsset: 'assets/images/message.svg',
-                    label: 'FAQs',
+                    label: l10n.faqs_title,
                     onTap: () => context.push('/faqs'),
                   ),
                   Divider(height: 1, color: theme.dividerColor),
                   MenuItemTile(
                     svgAsset: 'assets/images/send.svg',
-                    label: 'Contact Support',
+                    label: l10n.contact_support_title,
                     onTap: () => context.push('/contact_support'),
                   ),
                   Divider(height: 1, color: theme.dividerColor),
                   MenuItemTile(
                     svgAsset: 'assets/images/cancel.svg',
-                    label: 'Report an Issue',
+                    label: l10n.report_an_issue,
                     iconColor: theme.colorScheme.error,
                   ),
                   Divider(height: 1, color: theme.dividerColor),
@@ -111,7 +113,7 @@ class SupportSection extends StatelessWidget {
                                 Text(
                                   'Refer & Earn',
                                   style: TextStyle(
-                                    color: theme.colorScheme.primary,
+                                    color: theme.colorScheme.onSurface,
                                     fontSize: 14,
                                     fontFamily:
                                         AppTextStyles.fontFamilyPoppins,
@@ -119,14 +121,13 @@ class SupportSection extends StatelessWidget {
                                     height: 1.5,
                                   ),
                                 ),
-                                const Text(
-                                  'Invite friends · Get ₹50 per booking',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.invite_friends_desc,
+                                  style: const TextStyle(
                                     color: _amber,
                                     fontSize: 11,
                                     fontFamily: AppTextStyles.fontFamilyPoppins,
                                     fontWeight: FontWeight.w600,
-                                    height: 1.5,
                                   ),
                                 ),
                               ],

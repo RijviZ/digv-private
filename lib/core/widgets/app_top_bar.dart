@@ -25,7 +25,13 @@ class AppTopBar extends StatelessWidget {
             child: SizedBox(
               height: 18,
               width: 18,
-              child: SvgPicture.asset('assets/images/CaretLeft.svg'),
+              child: SvgPicture.asset(
+                'assets/images/CaretLeft.svg',
+                colorFilter: ColorFilter.mode(
+                  Theme.of(context).colorScheme.onSurface,
+                  BlendMode.srcIn,
+                ),
+              ),
             ),
           ),
           Expanded(
@@ -36,7 +42,7 @@ class AppTopBar extends StatelessWidget {
                   title,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.titleLight.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 if (subtitle != null) ...[

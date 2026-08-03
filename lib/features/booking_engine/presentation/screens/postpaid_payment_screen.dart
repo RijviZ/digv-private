@@ -312,7 +312,7 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -404,9 +404,11 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
-        color: AppColors.inputBgSecondary,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.inputBgSecondaryDark
+            : AppColors.inputBgSecondary,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: AppColors.inputBorder),
+          side: BorderSide(width: 1, color: Theme.of(context).dividerColor),
           borderRadius: BorderRadius.circular(4),
         ),
       ),
@@ -420,7 +422,7 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
               Text(
                 'Amount Due',
                 style: AppTextStyles.captionMedium.copyWith(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
               Row(
@@ -430,16 +432,16 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
                     'assets/images/rupee.svg',
                     height: 16,
                     width: 16,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.onLight,
+                    colorFilter: ColorFilter.mode(
+                      Theme.of(context).colorScheme.primary,
                       BlendMode.srcIn,
                     ),
                   ),
                   const SizedBox(width: 2),
                   Text(
                     '${widget.amount}',
-                    style: const TextStyle(
-                      color: AppColors.onLight,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
                       fontSize: 24,
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w900,
@@ -504,7 +506,7 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
             'Select Payment Method',
             style: AppTextStyles.titleLight.copyWith(
               fontWeight: FontWeight.w500,
-              color: AppColors.onLight,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ),
@@ -513,11 +515,13 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
           width: double.infinity,
           clipBehavior: Clip.antiAlias,
           decoration: ShapeDecoration(
-            color: AppColors.inputBgSecondary,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.inputBgSecondaryDark
+                : AppColors.inputBgSecondary,
             shape: RoundedRectangleBorder(
-              side: const BorderSide(
+              side: BorderSide(
                 width: 1,
-                color: AppColors.inputBorder,
+                color: Theme.of(context).dividerColor,
               ),
               borderRadius: BorderRadius.circular(8),
             ),
@@ -525,14 +529,14 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(color: AppColors.bg),
+            decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Pay via:',
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.onLight,
+                    color: Theme.of(context).colorScheme.primary,
                     height: 1.50,
                   ),
                 ),
@@ -580,11 +584,11 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
       height: 47,
       padding: const EdgeInsets.all(12),
       decoration: ShapeDecoration(
-        color: AppColors.bg,
+        color: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(
+          side: BorderSide(
             width: 1,
-            color: AppColors.dropDownBorder,
+            color: Theme.of(context).dividerColor,
           ),
           borderRadius: BorderRadius.circular(2),
         ),
@@ -595,8 +599,8 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
             'assets/images/smart-phone-01.svg',
             height: 16,
             width: 16,
-            colorFilter: const ColorFilter.mode(
-              AppColors.textSecondary,
+            colorFilter: ColorFilter.mode(
+              Theme.of(context).colorScheme.secondary,
               BlendMode.srcIn,
             ),
           ),
@@ -606,13 +610,13 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
               controller: _upiCtrl,
               style: AppTextStyles.bodyMedium.copyWith(
                 fontFamily: 'Poppins',
-                color: AppColors.onLight,
+                color: Theme.of(context).colorScheme.primary,
               ),
               decoration: InputDecoration(
                 hintText: 'Or enter UPI ID (yourname @upi)',
                 hintStyle: AppTextStyles.bodyMedium.copyWith(
                   fontFamily: 'Poppins',
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
                 border: InputBorder.none,
                 isDense: true,
@@ -633,16 +637,16 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
           'assets/images/lock.svg',
           height: 13,
           width: 13,
-          colorFilter: const ColorFilter.mode(
-            AppColors.textSecondary,
+          colorFilter: ColorFilter.mode(
+            Theme.of(context).colorScheme.secondary,
             BlendMode.srcIn,
           ),
         ),
         const SizedBox(width: 8),
-        const Text(
+        Text(
           'Secure payment · 256-bit SSL encrypted',
           style: TextStyle(
-            color: AppColors.textSecondary,
+            color: Theme.of(context).colorScheme.secondary,
             fontSize: 11,
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w400,
@@ -656,10 +660,10 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
   Widget _bottomBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      decoration: const BoxDecoration(
-        color: AppColors.bg,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
         border: Border(
-          top: BorderSide(width: 1, color: AppColors.dropDownBorder),
+          top: BorderSide(width: 1, color: Theme.of(context).dividerColor),
         ),
       ),
       child: Column(

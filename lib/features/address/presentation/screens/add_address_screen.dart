@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/address/domain/entities/address.dart';
 import 'package:digv/features/address/presentation/providers/address_provider.dart';
@@ -99,7 +100,12 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
             place.street,
             place.subLocality,
           ].where((e) => e != null && e.isNotEmpty).join(', ');
-          _cityCtrl.text = place.locality ?? '';
+          _cityCtrl.text = [
+            place.locality,
+            place.subAdministrativeArea,
+            place.administrativeArea,
+            'Unknown City'
+          ].firstWhere((c) => c != null && c.trim().length >= 2)!;
           _stateCtrl.text = place.administrativeArea ?? '';
           _postalCodeCtrl.text = place.postalCode ?? '';
         });
@@ -117,12 +123,6 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_lat == null || _lng == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please get location first')),
-      );
-      return;
-    }
 
     setState(() => _isSubmitting = true);
     try {
@@ -160,6 +160,7 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -174,14 +175,14 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
             icon: SvgPicture.asset(
               'assets/images/CaretLeft.svg',
               colorFilter: ColorFilter.mode(
-                theme.colorScheme.secondary,
+                theme.colorScheme.onSurface,
                 BlendMode.srcIn,
               ),
             ),
             onPressed: () => Navigator.maybePop(context),
           ),
           title: Text(
-            _isEditing ? 'Edit Address' : 'Add New Address',
+            _isEditing ? 'Edit Address' : l10n.add_new_address,
             style: AppTextStyles.titleLight.copyWith(
               color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w400,
@@ -202,14 +203,17 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
                       const SizedBox(height: 20),
                       
                       Text(
-                        'Location Details',
-                        style: AppTextStyles.h6.copyWith(fontWeight: FontWeight.w600),
+                        l10n.location_details,
+                        style: AppTextStyles.h6.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       
                       _AddressFormField(
                         controller: _labelCtrl,
-                        label: 'Label (e.g. Home, Office)',
+                        label: l10n.label_hint,
                         hint: 'Home',
                         validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                       ),
@@ -217,7 +221,7 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
                       
                       _AddressFormField(
                         controller: _addressLineCtrl,
-                        label: 'Address Line',
+                        label: l10n.address_line,
                         hint: 'Road 5, House 12',
                         validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                       ),
@@ -228,7 +232,7 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
                           Expanded(
                             child: _AddressFormField(
                               controller: _cityCtrl,
-                              label: 'City',
+                              label: l10n.city,
                               hint: 'New Delhi',
                               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                             ),
@@ -237,7 +241,7 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
                           Expanded(
                             child: _AddressFormField(
                               controller: _stateCtrl,
-                              label: 'State',
+                              label: l10n.state,
                               hint: 'Delhi',
                               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                             ),
@@ -248,7 +252,7 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
                       
                       _AddressFormField(
                         controller: _postalCodeCtrl,
-                        label: 'Postal Code',
+                        label: l10n.postal_code,
                         hint: '110001',
                         validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                       ),
@@ -259,7 +263,7 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
                         icon: _isLoadingLocation 
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                           : SvgPicture.asset('assets/images/MapPin.svg', width: 18, colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn)),
-                        label: Text('Get Current Location', style: TextStyle(color: theme.colorScheme.primary)),
+                        label: Text(l10n.get_current_location, style: TextStyle(color: theme.colorScheme.primary)),
                       ),
 
                       const SizedBox(height: 12),
@@ -269,10 +273,10 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
                           Switch(
                             value: _isDefault,
                             onChanged: (v) => setState(() => _isDefault = v),
-                            activeColor: theme.colorScheme.primary,
+                            activeThumbColor: theme.colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
-                          const Text('Set as default address', style: AppTextStyles.bodyMedium),
+                          Text(l10n.set_default_address, style: AppTextStyles.bodyMedium.copyWith(color: theme.colorScheme.onSurface)),
                         ],
                       ),
                       
@@ -297,8 +301,8 @@ class _AddEditAddressScreenState extends ConsumerState<AddEditAddressScreen> {
                     elevation: 0,
                   ),
                   child: _isSubmitting 
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(_isEditing ? 'Update Address' : 'Save Address', style: AppTextStyles.button),
+                    ? SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: theme.colorScheme.onPrimary))
+                    : Text(_isEditing ? 'Update Address' : l10n.save_address, style: AppTextStyles.button.copyWith(color: theme.colorScheme.onPrimary)),
                 ),
               ),
             ),
@@ -339,7 +343,7 @@ class _AddressFormField extends StatelessWidget {
           child: TextFormField(
             controller: controller,
             validator: validator,
-            style: AppTextStyles.bodyMedium,
+            style: AppTextStyles.bodyMedium.copyWith(color: theme.colorScheme.onSurface),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: AppTextStyles.bodyMedium.copyWith(color: theme.colorScheme.secondary.withOpacity(0.5)),

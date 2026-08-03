@@ -203,7 +203,7 @@ class _PostpaidPaymentSuccessScreenState
     ref.watch(ordersProvider('CANCELLED'));
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -269,24 +269,26 @@ class _PostpaidPaymentSuccessScreenState
                 width: 32,
                 height: 32,
                 padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: AppColors.bg,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
                   shape: BoxShape.circle,
                 ),
                 child: SvgPicture.asset(
                   'assets/images/CaretLeft.svg',
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.onLight,
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).colorScheme.primary,
                     BlendMode.srcIn,
                   ),
                 ),
               ),
             ),
           ),
-          const Text(
+          Text(
             'Rate Your Experience',
             textAlign: TextAlign.center,
-            style: AppTextStyles.titleLight,
+            style: AppTextStyles.titleLight.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ],
       ),
@@ -302,8 +304,10 @@ class _PostpaidPaymentSuccessScreenState
           height: 72,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.inputBgSecondary,
-            border: Border.all(color: AppColors.inputBorder, width: 2.16),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.inputBgSecondaryDark
+                : AppColors.inputBgSecondary,
+            border: Border.all(color: Theme.of(context).dividerColor, width: 2.16),
             image: order?.technicianImageUrl != null
                 ? DecorationImage(
                     image: NetworkImage(order!.technicianImageUrl!),
@@ -312,18 +316,18 @@ class _PostpaidPaymentSuccessScreenState
                 : null,
           ),
           child: order?.technicianImageUrl == null
-              ? const Icon(
+              ? Icon(
                   Icons.person,
                   size: 36,
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.secondary,
                 )
               : null,
         ),
         const SizedBox(height: 8),
         Text(
           order?.technicianName ?? 'Arjun Kumar',
-          style: const TextStyle(
-            color: AppColors.onLight,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 18,
             fontFamily: AppTextStyles.fontFamily,
             fontWeight: FontWeight.w500,
@@ -359,8 +363,8 @@ class _PostpaidPaymentSuccessScreenState
                 const SizedBox(width: 6),
                 Text(
                   rating.toStringAsFixed(1),
-                  style: const TextStyle(
-                    color: AppColors.onLight,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 12,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                     fontWeight: FontWeight.w700,
@@ -370,8 +374,8 @@ class _PostpaidPaymentSuccessScreenState
                 const SizedBox(width: 4),
                 Text(
                   '(${order?.reviews ?? 0} reviews)',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.secondary,
                     fontSize: 12,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                     fontWeight: FontWeight.w400,
@@ -384,8 +388,8 @@ class _PostpaidPaymentSuccessScreenState
         ),
         Text(
           order?.serviceName ?? 'AC Regular Service',
-          style: const TextStyle(
-            color: AppColors.textSecondary,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.secondary,
             fontSize: 12,
             fontFamily: AppTextStyles.fontFamilyPoppins,
             fontWeight: FontWeight.w400,
@@ -451,8 +455,8 @@ class _PostpaidPaymentSuccessScreenState
               height: 40,
               colorFilter: isFilled
                   ? const ColorFilter.mode(AppColors.star, BlendMode.srcIn)
-                  : const ColorFilter.mode(
-                      AppColors.dropDownBorder,
+                  : ColorFilter.mode(
+                      Theme.of(context).dividerColor,
                       BlendMode.srcIn,
                     ),
             ),
@@ -466,10 +470,10 @@ class _PostpaidPaymentSuccessScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Write a review (optional)',
           style: TextStyle(
-            color: AppColors.textDark,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 13,
             fontFamily: AppTextStyles.fontFamilyPoppins,
             fontWeight: FontWeight.w700,
@@ -479,27 +483,29 @@ class _PostpaidPaymentSuccessScreenState
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.inputBgSecondary,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.inputBgSecondaryDark
+                : AppColors.inputBgSecondary,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.inputBorder),
+            border: Border.all(color: Theme.of(context).dividerColor),
           ),
           child: TextField(
             controller: _reviewController,
             maxLines: 3,
-            style: const TextStyle(
-              color: AppColors.onLight,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 14,
               fontFamily: AppTextStyles.fontFamilyPoppins,
               height: 1.50,
             ),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Share your experience to help others...',
               hintStyle: TextStyle(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.secondary,
                 fontSize: 14,
                 fontFamily: AppTextStyles.fontFamilyPoppins,
               ),
-              contentPadding: EdgeInsets.all(14),
+              contentPadding: const EdgeInsets.all(14),
               border: InputBorder.none,
             ),
           ),
@@ -521,16 +527,16 @@ class _PostpaidPaymentSuccessScreenState
                   'assets/images/camera.svg',
                   width: 14,
                   height: 14,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.textDark,
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).colorScheme.primary,
                     BlendMode.srcIn,
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Text(
+                Text(
                   'Add Photos',
                   style: TextStyle(
-                    color: AppColors.textDark,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 13,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                     fontWeight: FontWeight.w700,
@@ -538,10 +544,10 @@ class _PostpaidPaymentSuccessScreenState
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Text(
+                Text(
                   '(optional · up to 4)',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.secondary,
                     fontSize: 11,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                     fontWeight: FontWeight.w400,
@@ -552,8 +558,8 @@ class _PostpaidPaymentSuccessScreenState
             ),
             Text(
               '${_photos.length}/4',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.secondary,
                 fontSize: 11,
                 fontFamily: AppTextStyles.fontFamilyPoppins,
                 fontWeight: FontWeight.w400,
@@ -575,7 +581,7 @@ class _PostpaidPaymentSuccessScreenState
                       height: 72,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.inputBorder),
+                        border: Border.all(color: Theme.of(context).dividerColor),
                         image: DecorationImage(
                           image: NetworkImage(url),
                           fit: BoxFit.cover,
@@ -612,10 +618,10 @@ class _PostpaidPaymentSuccessScreenState
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF7F7F7),
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.inputBorder,
+                      color: Theme.of(context).dividerColor,
                       width: 1.08,
                     ),
                   ),
@@ -634,16 +640,16 @@ class _PostpaidPaymentSuccessScreenState
                               'assets/images/photo.svg',
                               width: 20,
                               height: 20,
-                              colorFilter: const ColorFilter.mode(
-                                AppColors.textSecondary,
+                              colorFilter: ColorFilter.mode(
+                                Theme.of(context).colorScheme.secondary,
                                 BlendMode.srcIn,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               'Add',
                               style: TextStyle(
-                                color: AppColors.textSecondary,
+                                color: Theme.of(context).colorScheme.secondary,
                                 fontSize: 10,
                                 fontFamily: AppTextStyles.fontFamilyPoppins,
                                 fontWeight: FontWeight.w600,
@@ -657,10 +663,10 @@ class _PostpaidPaymentSuccessScreenState
           ],
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Add photos of the completed work to help future customers',
           style: TextStyle(
-            color: AppColors.textSecondary,
+            color: Theme.of(context).colorScheme.secondary,
             fontSize: 11,
             fontFamily: AppTextStyles.fontFamilyPoppins,
             fontWeight: FontWeight.w400,
@@ -675,10 +681,10 @@ class _PostpaidPaymentSuccessScreenState
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 44),
-      decoration: const BoxDecoration(
-        color: AppColors.bg,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
         border: Border(
-          top: BorderSide(color: AppColors.dropDownBorder, width: 1),
+          top: BorderSide(color: Theme.of(context).dividerColor, width: 1),
         ),
       ),
       child: Column(
@@ -693,7 +699,7 @@ class _PostpaidPaymentSuccessScreenState
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: AppColors.onLight,
+                  color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: _isSubmitting
@@ -714,8 +720,8 @@ class _PostpaidPaymentSuccessScreenState
                                   : 'Submit Review')
                             : 'Tap a star to rate',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppColors.onDark,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
                           fontSize: 16,
                           fontFamily: AppTextStyles.fontFamily,
                           fontWeight: FontWeight.w400,
@@ -734,13 +740,13 @@ class _PostpaidPaymentSuccessScreenState
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: AppColors.dropDownBorder),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
-              child: const Text(
+              child: Text(
                 'Remind me later',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppColors.onLight,
+                  color: Theme.of(context).colorScheme.primary,
                   fontSize: 16,
                   fontFamily: AppTextStyles.fontFamily,
                   fontWeight: FontWeight.w400,

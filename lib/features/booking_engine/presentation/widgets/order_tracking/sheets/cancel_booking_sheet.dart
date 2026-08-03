@@ -1,4 +1,4 @@
-import 'package:digv/core/theme/app_colors.dart';
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
@@ -9,10 +9,11 @@ class CancelBookingSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 36),
       child: Column(
@@ -22,7 +23,7 @@ class CancelBookingSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFFE5E7EB),
+              color: Theme.of(context).dividerColor,
               borderRadius: BorderRadius.circular(100),
             ),
           ),
@@ -30,7 +31,7 @@ class CancelBookingSheet extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Cancel Booking?',
+              l10n.cancel_booking_title,
               style: AppTextStyles.title.copyWith(
                 fontWeight: FontWeight.w500,
                 color: Theme.of(context).colorScheme.primary,
@@ -41,9 +42,9 @@ class CancelBookingSheet extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Cancellation is free before the technician starts work. Are you sure?',
+              l10n.cancel_booking_subtitle,
               style: AppTextStyles.captionMedium.copyWith(
-                color: AppColors.textGray,
+                color: Theme.of(context).colorScheme.secondary,
               ),
             ),
           ),
@@ -54,38 +55,45 @@ class CancelBookingSheet extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textDark,
-                    side: const BorderSide(color: AppColors.inputBorder),
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    side: BorderSide(color: Theme.of(context).dividerColor),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
-                  child: const Text(
-                    'Keep Booking',
-                    style: AppTextStyles.button,
+                  child: Text(
+                    l10n.keep_booking,
+                    style: AppTextStyles.button.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: onConfirm,
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onConfirm();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
-                  child: const Text(
-                    'Yes, Cancel',
-                    style: AppTextStyles.button,
+                  child: Text(
+                    l10n.yes_cancel,
+                    style: AppTextStyles.button.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   ),
                 ),
+              ),
             ],
           ),
         ],

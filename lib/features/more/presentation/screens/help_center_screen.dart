@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/core/widgets/app_top_bar.dart';
@@ -109,8 +110,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.dropDownBorder),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -119,13 +120,16 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             'assets/images/search.svg',
             width: 16,
             height: 16,
-            colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
+            colorFilter: ColorFilter.mode(
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              BlendMode.srcIn,
+            ),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'Search help articles...',
+          Text(
+            AppLocalizations.of(context)!.search_help_articles,
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               fontSize: 14,
               fontFamily: AppTextStyles.fontFamily,
               fontWeight: FontWeight.w400,
@@ -141,9 +145,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Popular Topics',
+          AppLocalizations.of(context)!.popular_topics,
           style: AppTextStyles.bodyMediumBold.copyWith(
-            color: AppColors.textDark,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 13,
             fontFamily: AppTextStyles.fontFamilyPoppins,
           ),
@@ -160,19 +164,57 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           ),
           itemCount: _popularTopics.length,
           itemBuilder: (context, index) {
-            return _buildTopicCard(_popularTopics[index]);
+            return _buildTopicCard(_popularTopics[index], index);
           },
         ),
       ],
     );
   }
 
-  Widget _buildTopicCard(Map<String, dynamic> topic) {
+  String _getTopicLabel(int index, String fallback, AppLocalizations l10n) {
+    switch (index) {
+      case 0:
+        return l10n.popular_how_to_book;
+      case 1:
+        return l10n.popular_payment_issues;
+      case 2:
+        return l10n.popular_reschedule;
+      case 3:
+        return l10n.popular_cancel;
+      case 4:
+        return l10n.popular_rate;
+      case 5:
+        return l10n.popular_change_address;
+      default:
+        return fallback;
+    }
+  }
+
+  String _getCategoryTitle(int index, String fallback, AppLocalizations l10n) {
+    switch (index) {
+      case 0:
+        return l10n.booking_requested;
+      case 1:
+        return l10n.payments_refunds;
+      case 2:
+        return l10n.service_technicians;
+      case 3:
+        return l10n.account_profile;
+      case 4:
+        return l10n.referral_rewards;
+      default:
+        return fallback;
+    }
+  }
+
+  Widget _buildTopicCard(Map<String, dynamic> topic, int index) {
+    final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
       decoration: BoxDecoration(
-        color: AppColors.inputBgSecondary,
-        border: Border.all(color: AppColors.inputBorder),
+        color: isDark ? AppColors.inputBgSecondaryDark : AppColors.inputBgSecondary,
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Column(
@@ -183,25 +225,28 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             height: 32,
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.inputBorder),
+              color: Theme.of(context).colorScheme.surface,
+              border: Border.all(color: Theme.of(context).dividerColor),
               borderRadius: BorderRadius.circular(50),
             ),
             child: SvgPicture.asset(
               topic['icon'] as String,
               width: 18,
               height: 18,
-              colorFilter: const ColorFilter.mode(AppColors.textDark, BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).colorScheme.onSurface,
+                BlendMode.srcIn,
+              ),
             ),
           ),
           const SizedBox(height: 12),
           Expanded(
             child: Center(
               child: Text(
-                topic['label'] as String,
+                _getTopicLabel(index, topic['label'] as String, l10n),
                 textAlign: TextAlign.center,
                 style: AppTextStyles.caption.copyWith(
-                  color: AppColors.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 11,
                   fontFamily: AppTextStyles.fontFamily,
                   height: 1.2,
@@ -219,20 +264,24 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       children: [
         _buildExpandableCategory(),
         const SizedBox(height: 10),
-        ..._categories.skip(1).map((cat) => Padding(
+        ..._categories.asMap().entries.skip(1).map((entry) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: _buildCollapsedCategory(cat),
+              child: _buildCollapsedCategory(entry.value, entry.key),
             )),
       ],
     );
   }
 
   Widget _buildExpandableCategory() {
+    final l10n = AppLocalizations.of(context)!;
     final cat = _categories[0];
+    final title = _getCategoryTitle(0, cat['title'] as String, l10n);
+    final count = '4 ${l10n.articles_count}';
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.inputBorder),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -267,17 +316,17 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          cat['title'] as String,
+                          title,
                           style: AppTextStyles.bodyMediumBold.copyWith(
-                            color: AppColors.onLight,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 14,
                             fontFamily: AppTextStyles.fontFamilyPoppins,
                           ),
                         ),
                         Text(
-                          cat['count'] as String,
+                          count,
                           style: AppTextStyles.caption.copyWith(
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             fontWeight: FontWeight.w500,
                             fontFamily: AppTextStyles.fontFamilyPoppins,
                           ),
@@ -289,7 +338,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                     _isBookingExpanded ? 'assets/images/caret-up.svg' : 'assets/images/CaretDown.svg',
                     width: 16,
                     height: 16,
-                    colorFilter: const ColorFilter.mode(AppColors.onLight, BlendMode.srcIn),
+                    colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.onSurface, BlendMode.srcIn),
                   ),
                 ],
               ),
@@ -301,8 +350,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               final article = entry.value;
               final isExpanded = _expandedArticle == i;
               return Container(
-                decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: AppColors.inputBorder)),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
                 ),
                 child: Column(
                   children: [
@@ -312,21 +361,13 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
                         child: Row(
                           children: [
-                            SvgPicture.asset(
-                              'assets/images/update.svg',
-                              width: 14,
-                              height: 14,
-                              colorFilter: const ColorFilter.mode(AppColors.blueLight, BlendMode.srcIn),
-                            ),
-                            const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                article['question']!,
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  color: AppColors.onLight,
-                                  fontSize: 13,
-                                  fontFamily: AppTextStyles.fontFamily,
+                                article['question'] ?? '',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontWeight: FontWeight.w500,
+                                  fontFamily: AppTextStyles.fontFamilyPoppins,
                                 ),
                               ),
                             ),
@@ -334,38 +375,39 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                               isExpanded ? 'assets/images/caret-up.svg' : 'assets/images/CaretDown.svg',
                               width: 16,
                               height: 16,
-                              colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
+                              colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.onSurface, BlendMode.srcIn),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    if (isExpanded && article['answer']!.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.only(left: 40, right: 16, bottom: 16),
+                    if (isExpanded) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              article['answer']!,
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.textSecondary,
-                                fontSize: 13,
-                                fontFamily: AppTextStyles.fontFamilyPoppins,
-                                height: 1.7,
+                            if ((article['answer'] ?? '').isNotEmpty)
+                              Text(
+                                article['answer']!,
+                                style: AppTextStyles.caption.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                  height: 1.5,
+                                  fontFamily: AppTextStyles.fontFamilyPoppins,
+                                ),
                               ),
-                            ),
                             const SizedBox(height: 12),
                             Row(
                               children: [
-                                _buildFeedbackButton('assets/images/ThumbsUp.svg', 'Helpful', iconColor: AppColors.textDark),
+                                _buildFeedbackButton('assets/images/thumbs-up.svg', 'Helpful', iconColor: AppColors.textSecondary),
                                 const SizedBox(width: 8),
-                                _buildFeedbackButton('assets/images/ThumbsDown.svg', 'Not helpful', iconColor: AppColors.error),
+                                _buildFeedbackButton('assets/images/thumbs-down.svg', 'Not helpful', iconColor: AppColors.error),
                               ],
                             ),
                           ],
                         ),
                       ),
+                    ],
                   ],
                 ),
               );
@@ -403,11 +445,16 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     );
   }
 
-  Widget _buildCollapsedCategory(Map<String, dynamic> cat) {
+  Widget _buildCollapsedCategory(Map<String, dynamic> cat, int index) {
+    final l10n = AppLocalizations.of(context)!;
+    final title = _getCategoryTitle(index, cat['title'] as String, l10n);
+    final countNum = cat['count'].toString().split(' ').first;
+    final count = '$countNum ${l10n.articles_count}';
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.inputBorder),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Container(
@@ -438,17 +485,17 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    cat['title'] as String,
+                    title,
                     style: AppTextStyles.bodyMediumBold.copyWith(
-                      color: AppColors.onLight,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                       fontFamily: AppTextStyles.fontFamilyPoppins,
                     ),
                   ),
                   Text(
-                    cat['count'] as String,
+                    count,
                     style: AppTextStyles.caption.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       fontWeight: FontWeight.w500,
                       fontFamily: AppTextStyles.fontFamilyPoppins,
                     ),
@@ -460,7 +507,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               'assets/images/arrow-right.svg',
               width: 16,
               height: 16,
-              colorFilter: const ColorFilter.mode(AppColors.onLight, BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.onSurface, BlendMode.srcIn),
             ),
           ],
         ),
@@ -469,10 +516,11 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   }
 
   Widget _buildStillNeedHelp() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.inputBorder),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -480,25 +528,25 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.inputBorder)),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Still need help?',
+                  l10n.still_need_help,
                   style: AppTextStyles.bodyMediumBold.copyWith(
-                    color: AppColors.onLight,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 14,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Our support team is available 24/7',
+                  l10n.support_available_247,
                   style: AppTextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     fontSize: 12,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                   ),
@@ -510,15 +558,15 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             bgColor: AppColors.unread,
             svgPath: 'assets/images/message.svg',
             iconColor: AppColors.blueLight,
-            title: 'Live Chat',
-            subtitle: 'Avg response: 2 min',
+            title: l10n.live_chat,
+            subtitle: l10n.avg_response,
           ),
-          const Divider(height: 1, color: AppColors.inputBgSecondary),
+          Divider(height: 1, color: Theme.of(context).dividerColor),
           _buildContactRow(
             bgColor: AppColors.successSecondaryBg,
             svgPath: 'assets/images/phone.svg',
             iconColor: AppColors.success,
-            title: 'Call Us',
+            title: l10n.call_us,
             subtitle: '1800-XXX-XXXX · Free',
           ),
         ],
@@ -561,7 +609,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 Text(
                   title,
                   style: AppTextStyles.bodyMediumBold.copyWith(
-                    color: AppColors.onLight,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 14,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                     fontWeight: FontWeight.w600,
@@ -570,7 +618,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 Text(
                   subtitle,
                   style: AppTextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     fontSize: 11,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                     fontWeight: FontWeight.w500,
@@ -583,7 +631,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             'assets/images/arrow-up-right.svg',
             width: 14,
             height: 14,
-            colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
+            colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), BlendMode.srcIn),
           ),
         ],
       ),

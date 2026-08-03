@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/bank_account/domain/entities/bank_account.dart';
@@ -15,6 +16,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final bankAccountsAsync = ref.watch(bankAccountsProvider);
     final paymentMethodsAsync = ref.watch(paymentMethodsProvider);
@@ -38,7 +40,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
             onPressed: () => Navigator.maybePop(context),
           ),
           title: Text(
-            'Payment Methods',
+            l10n.saved_cards,
             style: AppTextStyles.titleLight.copyWith(
               color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w400,
@@ -52,7 +54,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Saved Cards',
+                l10n.saved_cards,
                 style: AppTextStyles.titleLight.copyWith(
                   color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w500,
@@ -63,9 +65,12 @@ class PaymentMethodsScreen extends ConsumerWidget {
               paymentMethodsAsync.when(
                 data: (methods) {
                   if (methods.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.only(bottom: 20),
-                      child: Text('No saved cards'),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Text(
+                        l10n.no_saved_cards,
+                        style: TextStyle(color: theme.colorScheme.secondary),
+                      ),
                     );
                   }
                   return Column(
@@ -112,7 +117,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
               const SizedBox(height: 10),
 
               OutlineAddButton(
-                label: 'Add New Card',
+                label: l10n.add_new_card,
                 onTap: () {
                   showModalBottomSheet(
                     context: context,
@@ -128,7 +133,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               Text(
-                'UPI IDs',
+                l10n.upi_ids,
                 style: AppTextStyles.titleLight.copyWith(
                   color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w500,
@@ -143,12 +148,12 @@ class PaymentMethodsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
 
-              OutlineAddButton(label: 'Link UPI ID', onTap: () {}),
+              OutlineAddButton(label: l10n.link_upi_id, onTap: () {}),
 
               const SizedBox(height: 32),
 
               Text(
-                'Bank Accounts',
+                l10n.bank_accounts,
                 style: AppTextStyles.titleLight.copyWith(
                   color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w500,
@@ -159,7 +164,10 @@ class PaymentMethodsScreen extends ConsumerWidget {
               bankAccountsAsync.when(
                 data: (accounts) {
                   if (accounts.isEmpty) {
-                    return const Text('No bank accounts saved');
+                    return Text(
+                      'No bank accounts saved',
+                      style: TextStyle(color: theme.colorScheme.secondary),
+                    );
                   }
                   return Column(
                     children: accounts.map((account) {
@@ -170,12 +178,23 @@ class PaymentMethodsScreen extends ConsumerWidget {
                     }).toList(),
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, stack) => Text('Error: $err'),
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: 20),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+                error: (err, stack) => Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Text('Error: $err'),
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
 
-              OutlineAddButton(label: 'Add Bank Account', onTap: () {}),
+              OutlineAddButton(
+                label: l10n.add_bank_account,
+                onTap: () {},
+              ),
             ],
           ),
         ),
@@ -213,7 +232,7 @@ class _CardTile extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isDefault ? theme.colorScheme.primary : theme.dividerColor,
@@ -251,7 +270,7 @@ class _CardTile extends StatelessWidget {
                 Text(
                   maskedNumber,
                   style: AppTextStyles.bodyMediumBold.copyWith(
-                    color: AppColors.textDark,
+                    color: theme.colorScheme.primary,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                   ),
                 ),

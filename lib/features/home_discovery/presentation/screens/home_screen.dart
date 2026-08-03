@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
@@ -205,7 +206,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       child: Text(
                         locationText,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 14,
                           fontFamily: 'Inter Display',
                           fontWeight: FontWeight.w500,
@@ -278,9 +279,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 22, 16, 12),
-              child: Text('Explore Services', style: AppTextStyles.h3),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),
+              child: Text(
+                AppLocalizations.of(context)!.explore_services,
+                style: AppTextStyles.h3.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
             ),
             SizedBox(
               height: 44,
@@ -290,6 +296,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 itemBuilder: (context, index) {
                   final cat = categories[index];
                   final isSelected = index == safeCategoryIndex;
+                  final isDarkMode = Theme.of(context).brightness == Brightness.dark;
                   return GestureDetector(
                     onTap: () {
                       setState(() {
@@ -307,7 +314,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           bottom: BorderSide(
                             width: 1,
                             color: isSelected
-                                ? Theme.of(context).colorScheme.primary
+                                ? (isDarkMode ? Colors.white : Theme.of(context).colorScheme.primary)
                                 : Theme.of(context).dividerColor,
                           ),
                         ),
@@ -330,7 +337,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             cat.name,
                             style: AppTextStyles.bodyLarge.copyWith(
                               color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
+                                  ? (isDarkMode ? Colors.white : Theme.of(context).colorScheme.primary)
                                   : Theme.of(context).colorScheme.secondary,
                             ),
                           ),
@@ -369,6 +376,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         : 0;
                     final type = serviceTypes[index];
                     final isSelected = index == safeSubTypeIndex;
+                    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
                     return GestureDetector(
                       onTap: () {
                         setState(() {
@@ -394,8 +402,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           type.name,
                           style: AppTextStyles.bodyMedium.copyWith(
                             color: isSelected
-                                ? Theme.of(context).colorScheme.onPrimary
-                                : Theme.of(context).colorScheme.primary,
+                                ? Colors.white
+                                : (isDarkMode ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.primary),
                           ),
                         ),
                       ),
@@ -601,6 +609,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildServicesForYouSection() {
+    final l10n = AppLocalizations.of(context)!;
     final searchAsync = ref.watch(searchResultsProvider(const SearchFilters()));
     final allServices = searchAsync.maybeWhen(
       data: (searchResponse) => searchResponse.services,
@@ -615,14 +624,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 20, 16, 0),
-          child: Text('Service for you', style: AppTextStyles.h3),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+          child: Text(l10n.service_for_you, style: AppTextStyles.h3),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Text(
-            'Verified technicians, guaranteed quality',
+            l10n.verified_technicians_desc,
             style: AppTextStyles.labelMedium.copyWith(
               color: Theme.of(context).colorScheme.secondary,
             ),
@@ -637,9 +646,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               _currentBannerPage = index;
             }),
             itemBuilder: (context, index) {
+              String bannerTitle;
+              String bannerSub;
+              switch (index) {
+                case 0:
+                  bannerTitle = l10n.first_service_offer_title;
+                  bannerSub = l10n.first_service_offer_sub;
+                  break;
+                case 1:
+                  bannerTitle = l10n.promo_refer_earn_title;
+                  bannerSub = l10n.promo_refer_earn_sub;
+                  break;
+                case 2:
+                  bannerTitle = l10n.promo_free_inspection_title;
+                  bannerSub = l10n.promo_free_inspection_sub;
+                  break;
+                case 3:
+                default:
+                  bannerTitle = l10n.promo_flash_sale_title;
+                  bannerSub = l10n.promo_flash_sale_sub;
+                  break;
+              }
               return _buildPromoBanner(
-                _promoBanners[index]['title']!,
-                _promoBanners[index]['subtitle']!,
+                bannerTitle,
+                bannerSub,
                 firstService,
               );
             },
@@ -727,7 +757,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       vertical: 10,
                     ),
                   ),
-                  child: const Text('Book Now', style: AppTextStyles.bodyLarge),
+                  child: Text(
+                    AppLocalizations.of(context)!.book_now,
+                    style: AppTextStyles.bodyLarge,
+                  ),
                 ),
               ],
             ),
@@ -761,14 +794,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 32, 16, 0),
-              child: Text('Service for you', style: AppTextStyles.h3),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 32, 16, 0),
+              child: Text(
+                AppLocalizations.of(context)!.service_for_you,
+                style: AppTextStyles.h3,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Text(
-                'Verified technicians, guaranteed quality',
+                AppLocalizations.of(context)!.verified_technicians_desc,
                 style: AppTextStyles.labelMedium.copyWith(
                   color: Theme.of(context).colorScheme.secondary,
                 ),
@@ -837,7 +873,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   'assets/images/arrow-up-right.svg',
                                   height: 18,
                                   width: 18,
-                                  color: Theme.of(context).colorScheme.primary,
+                                  colorFilter: ColorFilter.mode(
+                                    Theme.of(context).colorScheme.onSurface,
+                                    BlendMode.srcIn,
+                                  ),
                                 ),
                               ),
                             ),
@@ -858,7 +897,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'from ₹${serviceItem.startingPrice}',
+                                    '${AppLocalizations.of(context)!.regular_service_from} ₹${serviceItem.startingPrice}',
                                     style: AppTextStyles.labelMedium.copyWith(
                                       color: Colors.white,
                                     ),
@@ -907,9 +946,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w400,
                 ),
-                decoration: const InputDecoration(
-                  hintText: 'Search services, providers...',
-                  hintStyle: TextStyle(
+                decoration: InputDecoration(
+                  hintText: AppLocalizations.of(context)!.home_search_hint,
+                  hintStyle: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 15,
                     fontFamily: 'Inter',
@@ -1149,11 +1188,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'from ₹${serviceItem.startingPrice}',
+                              '${AppLocalizations.of(context)!.regular_service_from} ₹${serviceItem.startingPrice}',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             if (serviceItem.availableProvidersCount > 0)
@@ -1189,11 +1228,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text(
-                            'Book',
-                            style: TextStyle(
+                          child: Text(
+                            AppLocalizations.of(context)!.book_now,
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
                         ),

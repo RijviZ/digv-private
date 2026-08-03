@@ -28,7 +28,7 @@ class SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg ?? Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.inputBorder),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,9 +37,11 @@ class SectionCard extends StatelessWidget {
             width: double.infinity,
             padding: titlePadding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.inputBgSecondary,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.inputBgSecondaryDark
+                  : AppColors.inputBgSecondary,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-              border: titleBorder == null ? const Border(bottom: BorderSide(color: AppColors.inputBorder)) : null,
+              border: titleBorder == null ? Border(bottom: BorderSide(color: Theme.of(context).dividerColor)) : null,
             ),
             child: Text(
               label,

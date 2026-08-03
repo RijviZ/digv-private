@@ -94,10 +94,16 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   ),
                   child: Row(
                     children: [
-                      SvgPicture.asset('assets/images/CaretLeft.svg'),
+                      SvgPicture.asset(
+                        'assets/images/CaretLeft.svg',
+                        colorFilter: ColorFilter.mode(
+                          Theme.of(context).colorScheme.primary,
+                          BlendMode.srcIn,
+                        ),
+                      ),
                       const SizedBox(width: 8),
                       Text(
-                        'Back',
+                        l10n.back,
                         style: AppTextStyles.bodyLarge.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                         ),
@@ -120,7 +126,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                     color: Theme.of(context).colorScheme.secondary,
                   ),
                   children: [
-                    const TextSpan(text: '6-digit code sent to '),
+                    TextSpan(text: l10n.code_sent_to),
                     TextSpan(
                       text: widget.phoneNumber,
                       style: AppTextStyles.labelLarge.copyWith(
@@ -252,8 +258,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Text(
-                              "Verify & Continue",
+                          : Text(
+                              l10n.verify_continue,
                               style: AppTextStyles.button,
                             ),
                     ),
@@ -263,7 +269,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        _canResend ? "Didn't receive code? " : "Resend OTP in ",
+                        _canResend ? l10n.didnt_receive_code : l10n.resend_otp_in,
                         style: AppTextStyles.caption.copyWith(
                           color: Theme.of(context).colorScheme.secondary,
                         ),
@@ -297,7 +303,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                   }
                                 },
                           child: Text(
-                            "Resend",
+                            l10n.resend,
                             style: AppTextStyles.labelMedium.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.w600,

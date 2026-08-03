@@ -135,9 +135,9 @@ class _RescheduleBottomSheetState extends ConsumerState<RescheduleBottomSheet> {
         : null;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
         ),
@@ -332,10 +332,14 @@ class _RescheduleBottomSheetState extends ConsumerState<RescheduleBottomSheet> {
               duration: const Duration(milliseconds: 200),
               width: 68,
               decoration: BoxDecoration(
-                color: selected ? Theme.of(context).colorScheme.primary : Colors.white,
+                color: selected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: selected ? Theme.of(context).colorScheme.primary : AppColors.dropDownBorder,
+                  color: selected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).dividerColor,
                   width: 1,
                 ),
               ),

@@ -278,13 +278,15 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
             textColor = Theme.of(context).colorScheme.onPrimary;
             monthColor = AppColors.textGray;
           } else if (!isAvailable) {
-            bgColor = AppColors.inputBgSecondary;
-            borderColor = AppColors.inputBorder;
+            bgColor = Theme.of(context).brightness == Brightness.dark
+                ? AppColors.inputBgSecondaryDark
+                : AppColors.inputBgSecondary;
+            borderColor = Theme.of(context).dividerColor;
             textColor = AppColors.textGray;
             monthColor = AppColors.textGray;
           } else {
-            bgColor = Colors.white;
-            borderColor = AppColors.dropDownBorder;
+            bgColor = Theme.of(context).colorScheme.surface;
+            borderColor = Theme.of(context).dividerColor;
             textColor = Theme.of(context).colorScheme.primary;
             monthColor = Theme.of(context).colorScheme.secondary;
           }
@@ -387,17 +389,19 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
 
     if (selected) {
       bgColor = Theme.of(context).colorScheme.primary;
-      borderColor = AppColors.dropDownBorder;
+      borderColor = Theme.of(context).dividerColor;
       textColor = Theme.of(context).colorScheme.onPrimary;
       iconColor = Theme.of(context).colorScheme.onPrimary;
     } else if (unavailable) {
-      bgColor = AppColors.inputBgSecondary;
-      borderColor = AppColors.inputBorder;
+      bgColor = Theme.of(context).brightness == Brightness.dark
+          ? AppColors.inputBgSecondaryDark
+          : AppColors.inputBgSecondary;
+      borderColor = Theme.of(context).dividerColor;
       textColor = AppColors.textGray;
       iconColor = AppColors.textGray;
     } else {
       bgColor = Theme.of(context).colorScheme.surface;
-      borderColor = AppColors.dropDownBorder;
+      borderColor = Theme.of(context).dividerColor;
       textColor = Theme.of(context).colorScheme.primary;
       iconColor = Theme.of(context).colorScheme.primary;
     }

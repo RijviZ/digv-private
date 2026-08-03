@@ -269,7 +269,7 @@ class _PaymentTypeScreenState extends ConsumerState<PaymentTypeScreen> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
+            border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -388,7 +388,9 @@ class _PaymentTypeScreenState extends ConsumerState<PaymentTypeScreen> {
     width: double.infinity,
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: AppColors.inputBgSecondary,
+      color: Theme.of(context).brightness == Brightness.dark
+          ? AppColors.inputBgSecondaryDark
+          : AppColors.inputBgSecondary,
       borderRadius: BorderRadius.circular(8),
       border: Border.all(color: Theme.of(context).dividerColor),
     ),

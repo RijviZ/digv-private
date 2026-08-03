@@ -1,4 +1,4 @@
-import 'package:digv/core/theme/app_colors.dart';
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
@@ -20,8 +20,11 @@ class _EnableLocationAccessScreenState
     extends ConsumerState<EnableLocationAccessScreen> {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -37,23 +40,25 @@ class _EnableLocationAccessScreenState
                       height: 80,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: AppColors.dropDownBorder),
+                        border: Border.all(color: theme.dividerColor),
                       ),
                       child: Center(
                         child: SvgPicture.asset('assets/images/MapPin.svg'),
                       ),
                     ),
                     const SizedBox(height: 32),
-                    const Text(
-                      "Enable Location Access",
-                      style: AppTextStyles.h3,
+                    Text(
+                      l10n.enable_location,
+                      style: AppTextStyles.h3.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       "DigV needs your location to find the best verified technicians closest to you.",
                       textAlign: TextAlign.center,
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: Theme.of(context).colorScheme.secondary,
+                        color: theme.colorScheme.secondary,
                       ),
                     ),
                   ],
@@ -177,9 +182,11 @@ class _EnableLocationAccessScreenState
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Text(
-                              'Allow location access',
-                              style: AppTextStyles.button,
+                          : Text(
+                              l10n.enable_location,
+                              style: AppTextStyles.button.copyWith(
+                                color: theme.colorScheme.onPrimary,
+                              ),
                             ),
                     ),
                   ),
@@ -191,17 +198,17 @@ class _EnableLocationAccessScreenState
                       onPressed: () => context.push('/home'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: theme.colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(26),
                         ),
-                        side: BorderSide(color: Theme.of(context).dividerColor),
+                        side: BorderSide(color: theme.dividerColor),
                         elevation: 0,
                       ),
                       child: Text(
-                        'Not Now',
+                        l10n.skip,
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
                     ),

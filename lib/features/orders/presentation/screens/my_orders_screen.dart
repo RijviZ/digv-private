@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/orders/domain/models/order_item.dart';
@@ -33,16 +34,17 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
     }
   }
 
-  String _tabLabel(OrderTab tab) {
+  String _tabLabel(OrderTab tab, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     switch (tab) {
       case OrderTab.active:
-        return 'Active';
+        return l10n.active;
       case OrderTab.past:
-        return 'Past';
+        return l10n.past;
       case OrderTab.cancelled:
-        return 'Cancelled';
+        return l10n.cancelled;
       case OrderTab.upcoming:
-        return 'Upcoming';
+        return l10n.upcoming;
     }
   }
 
@@ -58,7 +60,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: Column(
         children: [
-          SafeArea(bottom: false, child: _buildTopBar()),
+          SafeArea(bottom: false, child: _buildTopBar(context)),
           _buildTabBar(),
           Expanded(
             child: _buildOrderList(),
@@ -68,14 +70,16 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
     );
   }
 
-  Widget _buildTopBar() {
+  Widget _buildTopBar(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Text(
-        'My Orders',
+        l10n.my_orders_title,
         style: AppTextStyles.h3.copyWith(
-          color: AppColors.onLight,
+          color: theme.colorScheme.onSurface,
           height: 1.40,
         ),
       ),
@@ -108,6 +112,8 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
       OrderTab.cancelled: cancelledAsync.value?.length ?? 0,
     };
 
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -119,7 +125,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: OrderTab.values.map((tab) {
-             final isSelected = tab == _selectedTab;
+            final isSelected = tab == _selectedTab;
             final count = counts[tab] ?? 0;
             return GestureDetector(
               onTap: () {
@@ -135,17 +141,18 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                     bottom: BorderSide(
                       width: isSelected ? 2 : 1,
                       color: isSelected
-                          ? Theme.of(context).primaryColor
+                          ? (isDarkMode ? Colors.white : Theme.of(context).colorScheme.primary)
                           : Theme.of(context).dividerColor,
                     ),
                   ),
                 ),
                 child: Text(
-                  '${_tabLabel(tab)} ($count)',
+                  '${_tabLabel(tab, context)} ($count)',
                   style: AppTextStyles.bodyLarge.copyWith(
                     color: isSelected
-                        ? Theme.of(context).primaryColor
-                        : AppColors.textSecondary,
+                        ? (isDarkMode ? Colors.white : Theme.of(context).colorScheme.primary)
+                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ),
@@ -180,9 +187,9 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No ${_tabLabel(_selectedTab).toLowerCase()} orders',
+                    'No ${_tabLabel(_selectedTab, context).toLowerCase()} orders',
                     style: AppTextStyles.bodyLarge.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).colorScheme.secondary,
                     ),
                   ),
                 ],
@@ -276,9 +283,9 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
       padding: const EdgeInsets.all(16),
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: AppColors.dropDownBorder),
+          side: BorderSide(width: 1, color: Theme.of(context).dividerColor),
           borderRadius: BorderRadius.circular(8),
         ),
         shadows: const [
@@ -323,7 +330,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
               Text(
                 order.serviceName,
                 style: AppTextStyles.bodyMediumBold.copyWith(
-                  color: AppColors.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontFamily: AppTextStyles.fontFamilyPoppins,
                 ),
                 maxLines: 1,
@@ -333,7 +340,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
               Text(
                 order.orderId,
                 style: AppTextStyles.labelMedium.copyWith(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   fontFamily: AppTextStyles.fontFamilyPoppins,
                 ),
               ),
@@ -470,7 +477,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                 Text(
                   order.technicianName,
                   style: AppTextStyles.labelMedium.copyWith(
-                    color: AppColors.textDark,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w600,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                   ),
@@ -480,7 +487,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
             Text(
               order.price,
               style: AppTextStyles.bodyMediumBold.copyWith(
-                color: AppColors.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w800,
                 fontFamily: AppTextStyles.fontFamilyPoppins,
               ),
@@ -535,7 +542,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
       children: [
         Expanded(
           child: _buildPrimaryButton(
-            label: 'Track Order',
+            label: AppLocalizations.of(context)!.track_order_btn,
             onTap: () => context.push('/order_tracking',
                 extra: order),
           ),

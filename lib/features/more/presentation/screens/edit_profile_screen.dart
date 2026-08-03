@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
@@ -108,6 +109,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (!_isInitialized) {
       _initializeData();
     }
@@ -128,14 +130,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             icon: SvgPicture.asset(
               'assets/images/CaretLeft.svg',
               colorFilter: ColorFilter.mode(
-                theme.colorScheme.secondary,
+                theme.colorScheme.onSurface,
                 BlendMode.srcIn,
               ),
             ),
             onPressed: () => Navigator.maybePop(context),
           ),
           title: Text(
-            'Edit Profile',
+            l10n.edit_profile_title,
             style: AppTextStyles.titleLight.copyWith(
               color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w400,
@@ -158,7 +160,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             onTap: _pickImage,
                             child: CircleAvatar(
                               radius: 40,
-                              backgroundColor: AppColors.inputBorder,
+                              backgroundColor: theme.dividerColor,
                               backgroundImage: _imageFile != null
                                   ? FileImage(_imageFile!)
                                   : (profileAsync.value?.avatarUrl != null
@@ -170,9 +172,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           GestureDetector(
                             onTap: _pickImage,
                             child: Text(
-                              'Change Photo',
+                              l10n.change_photo,
                               style: AppTextStyles.captionMedium.copyWith(
-                                color: AppColors.blueDeep,
+                                color: theme.colorScheme.onSurface,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -183,12 +185,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     const SizedBox(height: 28),
                     _ProfileField(
                       controller: _nameCtrl,
-                      hint: 'Full Name',
+                      hint: l10n.first_name,
                     ),
                     const SizedBox(height: 12),
                     _ProfileField(
                       controller: _emailCtrl,
-                      hint: 'Email',
+                      hint: l10n.email_address,
                       keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 12),
@@ -206,19 +208,25 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _selectedGender,
+                          dropdownColor: theme.colorScheme.surface,
                           hint: Text(
-                            'Select Gender',
+                            l10n.select_gender,
                             style: AppTextStyles.bodyMedium.copyWith(
                               color: theme.colorScheme.secondary,
                             ),
                           ),
                           isExpanded: true,
                           items: ['male', 'female', 'other'].map((String value) {
+                            final label = value == 'male' 
+                                ? l10n.male 
+                                : (value == 'female' ? l10n.female : l10n.other);
                             return DropdownMenuItem<String>(
                               value: value,
                               child: Text(
-                                value.substring(0, 1).toUpperCase() + value.substring(1),
-                                style: AppTextStyles.bodyMedium,
+                                label,
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: theme.colorScheme.onSurface,
+                                ),
                               ),
                             );
                           }).toList(),
@@ -289,15 +297,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     elevation: 0,
                   ),
                   child: authState.isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: theme.colorScheme.onPrimary,
                           ),
                         )
-                      : const Text('Save Changes', style: AppTextStyles.button),
+                      : Text(
+                          l10n.save_changes,
+                          style: AppTextStyles.button.copyWith(
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -359,7 +372,7 @@ class _PhoneField extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: theme.dividerColor),
       ),

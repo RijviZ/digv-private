@@ -34,7 +34,9 @@ class PaymentSection extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.inputBgSecondary,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.inputBgSecondaryDark
+                  : AppColors.inputBgSecondary,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
               border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
             ),

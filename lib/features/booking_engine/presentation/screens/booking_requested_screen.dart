@@ -2,6 +2,7 @@ import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/orders/domain/models/order_item.dart';
 import 'package:digv/features/orders/presentation/widgets/cancel_bottom_sheet.dart';
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -16,9 +17,10 @@ class BookingRequestedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final String name = order?.technicianName ?? 'Arjun Kumar';
     final String orderId = order?.orderId ?? 'ORD-8063';
-    final String service = order?.serviceName ?? 'Regular Service';
+    final String service = order?.serviceName ?? l10n.regular_service;
     final String schedule = order?.scheduledTime ?? 'Tomorrow · 10:00 AM';
     final String location = order?.location ?? 'Home — Jl. Ngagelrejo No.34';
     final String price = order?.price ?? '₹199';
@@ -48,7 +50,7 @@ class BookingRequestedScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.dropDownBorder),
+                          border: Border.all(color: Theme.of(context).dividerColor),
                         ),
                         child: Center(
                           child: SizedBox(
@@ -65,7 +67,7 @@ class BookingRequestedScreen extends StatelessWidget {
 
                       // Title 
                       Text(
-                        'Booking Requested!',
+                        l10n.booking_requested,
                         style: AppTextStyles.h3.copyWith(
                           color: Theme.of(context).colorScheme.onSurface,
                           letterSpacing: 0,
@@ -88,14 +90,14 @@ class BookingRequestedScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).brightness == Brightness.dark ? AppColors.inputBgSecondaryDark : Colors.white,
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: AppColors.inputBorder)),
+                          border: Border.all(color: Theme.of(context).dividerColor)),
 
                         child: Text(
                           'Order ID: $orderId',
                           style: AppTextStyles.captionMedium.copyWith(
-                            color: AppColors.textDark,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0,
                             height: 1.5,
@@ -111,30 +113,30 @@ class BookingRequestedScreen extends StatelessWidget {
                           BookingDetailItem(
                             icon: 'assets/images/checkmark.svg',
                             iconColor: const Color(0xFF22C55E),
-                            label: 'Service',
+                            label: l10n.service,
                             value: service,
                           ),
                           BookingDetailItem(
                             icon: 'assets/images/CalendarBlank.svg',
                             iconColor: const Color(0xFF3B82F6),
-                            label: 'Schedule',
+                            label: l10n.schedule,
                             value: schedule,
                           ),
                           BookingDetailItem(
                             icon: 'assets/images/pin_g.svg',
                             iconColor: const Color(0xFF6B7280),
-                            label: 'Address',
+                            label: l10n.address,
                             value: location,
                           ),
                           BookingDetailItem(
                             icon: 'assets/images/card.svg',
                             iconColor: const Color(0xFF6B7280),
-                            label: 'Payment',
+                            label: l10n.payment,
                             value: order != null
                                 ? (order!.price.contains('Postpaid')
                                     ? order!.price
-                                    : '${order!.price} · ${order!.paymentMethod ?? 'UPI'} Paid')
-                                : '$price · UPI Paid',
+                                    : '${order!.price} · ${order!.paymentMethod ?? 'UPI'} ${l10n.upi_paid}')
+                                : '$price · ${l10n.upi_paid}',
                           ),
                         ],
                       ),
@@ -197,7 +199,7 @@ class BookingRequestedScreen extends StatelessWidget {
                           elevation: 0,
                         ),
                         child: Text(
-                          'Go to home',
+                          l10n.go_to_home,
                           style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.primary),
                         ),
                       ),

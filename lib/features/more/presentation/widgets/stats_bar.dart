@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
@@ -15,6 +16,7 @@ class StatsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
@@ -26,11 +28,11 @@ class StatsBar extends StatelessWidget {
       child: IntrinsicHeight(
         child: Row(
           children: [
-            _StatCell(value: bookings, label: 'Bookings'),
+            _StatCell(value: bookings, label: l10n.recent_bookings),
             VerticalDivider(width: 1, color: theme.dividerColor),
             _StatCell(value: avgRating, label: 'Avg Rating'),
             VerticalDivider(width: 1, color: theme.dividerColor),
-            _StatCell(value: spent, label: 'Spent'),
+            _StatCell(value: spent, label: l10n.total_spent),
           ],
         ),
       ),
@@ -55,7 +57,7 @@ class _StatCell extends StatelessWidget {
             Text(
               value,
               style: AppTextStyles.title.copyWith(
-                color: theme.colorScheme.primary,
+                color: theme.colorScheme.onSurface,
                 fontFamily: AppTextStyles.fontFamilyPoppins,
                 fontWeight: FontWeight.w800,
               ),

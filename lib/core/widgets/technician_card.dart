@@ -19,10 +19,10 @@ class TechnicianCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: isSelected ? AppColors.blue : AppColors.dropDownBorder,
+          color: isSelected ? AppColors.blue : Theme.of(context).dividerColor,
           width: isSelected ? 2 : 1,
         ),
       ),

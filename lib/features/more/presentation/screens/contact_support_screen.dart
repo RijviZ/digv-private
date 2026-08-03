@@ -1,20 +1,31 @@
+import 'package:digv/I10n/app_localizations.dart';
+import 'package:digv/core/network/file_upload_service.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/core/widgets/app_top_bar.dart';
+import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
+import 'package:digv/features/more/data/sources/support_ticket_remote_data_source.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:image_picker/image_picker.dart';
 
-class ContactSupportScreen extends StatefulWidget {
+class ContactSupportScreen extends ConsumerStatefulWidget {
   const ContactSupportScreen({super.key});
 
   @override
-  State<ContactSupportScreen> createState() => _ContactSupportScreenState();
+  ConsumerState<ContactSupportScreen> createState() => _ContactSupportScreenState();
 }
 
-class _ContactSupportScreenState extends State<ContactSupportScreen> {
+class _ContactSupportScreenState extends ConsumerState<ContactSupportScreen> {
   int _selectedTabIndex = 0; // 0 = Contact Channels, 1 = Send Message
   String? _selectedSubject;
   final TextEditingController _orderIdController = TextEditingController();
+  final TextEditingController _messageController = TextEditingController();
+
+  String? _uploadedAttachmentUrl;
+  bool _isUploadingAttachment = false;
+  bool _isSubmittingTicket = false;
 
   final List<String> _subjects = [
     'Booking Issue',
@@ -27,15 +38,118 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
   ];
 
   @override
+  void dispose() {
+    _orderIdController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickAndUploadAttachment() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    setState(() {
+      _isUploadingAttachment = true;
+    });
+
+    try {
+      final uploadService = ref.read(fileUploadServiceProvider);
+      final url = await uploadService.uploadFile(picked.path, category: 'SUPPORT_TICKET');
+      setState(() {
+        _uploadedAttachmentUrl = url;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Attachment uploaded successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingAttachment = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _submitSupportTicket() async {
+    if (_selectedSubject == null || _selectedSubject!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a subject')),
+      );
+      return;
+    }
+
+    final messageText = _messageController.text.trim();
+    if (messageText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your message')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmittingTicket = true;
+    });
+
+    try {
+      final dataSource = ref.read(supportTicketRemoteDataSourceProvider);
+      final ticket = await dataSource.createTicket(
+        subject: _selectedSubject!,
+        referenceNumber: _orderIdController.text.trim().isNotEmpty ? _orderIdController.text.trim() : null,
+        message: messageText,
+        attachmentUrl: _uploadedAttachmentUrl,
+      );
+
+      ref.invalidate(mySupportTicketsProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ticket #${ticket.supportTicketNo} created successfully!')),
+        );
+        _messageController.clear();
+        _orderIdController.clear();
+        setState(() {
+          _selectedSubject = null;
+          _uploadedAttachmentUrl = null;
+          _selectedTabIndex = 0; // Switch to Tickets list
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit ticket: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmittingTicket = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
-            const AppTopBar(
-              title: 'Contact Support',
-              subtitle: "We're here to help 24/7",
+            AppTopBar(
+              title: l10n.contact_support_title,
+              subtitle: l10n.support_subtitle,
             ),
             _buildTabBar(),
             Expanded(
@@ -53,51 +167,62 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
   }
 
   Widget _buildBottomButton() {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 44),
-      decoration: const BoxDecoration(
-        color: AppColors.bg,
-        border: Border(top: BorderSide(color: AppColors.inputBorder)),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(top: BorderSide(color: theme.dividerColor)),
       ),
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: (_isSubmittingTicket || _isUploadingAttachment) ? null : _submitSupportTicket,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.onLight,
+          backgroundColor: theme.colorScheme.primary,
           foregroundColor: Colors.white,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              'assets/images/send.svg',
-              width: 20,
-              height: 20,
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Send Message',
-              style: TextStyle(
-                fontSize: 16,
-                fontFamily: AppTextStyles.fontFamily,
-                fontWeight: FontWeight.w500,
+        child: _isSubmittingTicket
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SvgPicture.asset(
+                    'assets/images/send.svg',
+                    width: 20,
+                    height: 20,
+                    colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.send_message_btn,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontFamily: AppTextStyles.fontFamily,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
   Widget _buildTabBar() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppColors.inputBorder),
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
         ),
       ),
       child: Row(
@@ -110,7 +235,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: _selectedTabIndex == 0 ? AppColors.onLight : Colors.transparent,
+                      color: _selectedTabIndex == 0 ? Theme.of(context).colorScheme.primary : Colors.transparent,
                       width: 2,
                     ),
                   ),
@@ -123,18 +248,26 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                       width: 20,
                       height: 20,
                       colorFilter: ColorFilter.mode(
-                        _selectedTabIndex == 0 ? AppColors.onLight : AppColors.textSecondary,
+                        _selectedTabIndex == 0
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.primary)
+                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         BlendMode.srcIn,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Contact Channels',
+                      l10n.contact_channels,
                       style: TextStyle(
-                        color: _selectedTabIndex == 0 ? AppColors.onLight : AppColors.textSecondary,
+                        color: _selectedTabIndex == 0
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.primary)
+                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         fontSize: 16,
                         fontFamily: AppTextStyles.fontFamily,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -150,7 +283,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: _selectedTabIndex == 1 ? AppColors.onLight : Colors.transparent,
+                      color: _selectedTabIndex == 1 ? Theme.of(context).colorScheme.primary : Colors.transparent,
                       width: 2,
                     ),
                   ),
@@ -163,18 +296,26 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                       width: 20,
                       height: 20,
                       colorFilter: ColorFilter.mode(
-                        _selectedTabIndex == 1 ? AppColors.onLight : AppColors.textSecondary,
+                        _selectedTabIndex == 1
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.primary)
+                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         BlendMode.srcIn,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Send Message',
+                      l10n.send_message_btn,
                       style: TextStyle(
-                        color: _selectedTabIndex == 1 ? AppColors.onLight : AppColors.textSecondary,
+                        color: _selectedTabIndex == 1
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.primary)
+                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         fontSize: 16,
                         fontFamily: AppTextStyles.fontFamily,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -188,15 +329,18 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
   }
 
   Widget _buildContactChannelsTab() {
+    final l10n = AppLocalizations.of(context)!;
+    final myTicketsAsync = ref.watch(mySupportTicketsProvider);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'YOUR RECENT TICKET',
+            l10n.your_recent_ticket,
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               fontSize: 11,
               fontFamily: AppTextStyles.fontFamilyPoppins,
               fontWeight: FontWeight.w700,
@@ -204,235 +348,221 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.inputBorder),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Refund not received',
-                        style: TextStyle(
-                          color: AppColors.textDark,
-                          fontSize: 13,
-                          fontFamily: AppTextStyles.fontFamilyPoppins,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Ticket #TKT-4821 · Feb 20, 2026',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 11,
-                          fontFamily: AppTextStyles.fontFamilyPoppins,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+          myTicketsAsync.when(
+            data: (tickets) {
+              if (tickets.isEmpty) {
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.warningBg,
+                    color: Theme.of(context).colorScheme.surface,
+                    border: Border.all(color: Theme.of(context).dividerColor),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'In Progress',
+                    'No open support tickets',
                     style: TextStyle(
-                      color: AppColors.warningText,
-                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      fontSize: 13,
                       fontFamily: AppTextStyles.fontFamilyPoppins,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                );
+              }
+              final ticket = tickets.first;
+              return Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  border: Border.all(color: Theme.of(context).dividerColor),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            ticket.subject,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 13,
+                              fontFamily: AppTextStyles.fontFamilyPoppins,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Ticket #${ticket.supportTicketNo} · ${ticket.createdAt.split("T").first}',
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                              fontFamily: AppTextStyles.fontFamilyPoppins,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: ticket.ticketStatus == 'RESOLVED'
+                            ? Colors.green.withValues(alpha: 0.15)
+                            : AppColors.warningBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        ticket.ticketStatus,
+                        style: TextStyle(
+                          color: ticket.ticketStatus == 'RESOLVED'
+                              ? Colors.green
+                              : AppColors.warningText,
+                          fontSize: 11,
+                          fontFamily: AppTextStyles.fontFamilyPoppins,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, stack) => Text('Error loading tickets: $err'),
           ),
           const SizedBox(height: 24),
           Text(
-            'CHOOSE A CHANNEL',
+            l10n.choose_a_channel,
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               fontSize: 11,
               fontFamily: AppTextStyles.fontFamilyPoppins,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.60,
             ),
           ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.inputBorder),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              children: [
-                _buildChannelItem(
-                  svgPath: 'assets/images/message.svg',
-                  iconColor: AppColors.blueLight,
-                  iconBgColor: AppColors.unread,
-                  title: 'Live Chat',
-                  subtitle: 'Avg. reply in 2 minutes',
-                  badgeText: 'Fastest',
-                  badgeColorText: AppColors.successText,
-                  badgeBgColor: AppColors.successSecondaryBg,
-                  isOnline: true,
-                ),
-                const Divider(height: 1, color: AppColors.inputBgSecondary),
-                _buildChannelItem(
-                  svgPath: 'assets/images/message.svg',
-                  iconColor: AppColors.successText,
-                  iconBgColor: AppColors.successSecondaryBg,
-                  title: 'WhatsApp Support',
-                  subtitle: 'Chat on WhatsApp',
-                  badgeText: 'Popular',
-                  badgeColorText: AppColors.successText,
-                  badgeBgColor: AppColors.successSecondaryBg,
-                  isOnline: true,
-                ),
-                const Divider(height: 1, color: AppColors.inputBgSecondary),
-                _buildChannelItem(
-                  svgPath: 'assets/images/phone.svg',
-                  iconColor: AppColors.warningText,
-                  iconBgColor: AppColors.warningBg,
-                  title: 'Call Support',
-                  subtitle: '1800-XXX-XXXX · Free · 24/7',
-                  isOnline: true,
-                ),
-                const Divider(height: 1, color: AppColors.inputBgSecondary),
-                _buildChannelItem(
-                  svgPath: 'assets/images/message.svg',
-                  iconColor: const Color(0xFF7C3AED),
-                  iconBgColor: const Color(0xFFEDE9FE),
-                  title: 'Email Support',
-                  subtitle: 'support@homeserv.app',
-                  badgeText: '< 4 hrs',
-                  badgeColorText: const Color(0xFF7C3AED),
-                  badgeBgColor: const Color(0xFFEDE9FE),
-                  isOnline: true,
-                ),
-              ],
-            ),
+          const SizedBox(height: 12),
+          _buildChannelItem(
+            icon: 'assets/images/message.svg',
+            title: l10n.live_chat_title,
+            subtitle: l10n.live_chat_desc,
+            onTap: () {},
+          ),
+          const SizedBox(height: 12),
+          _buildChannelItem(
+            icon: 'assets/images/whatsapp.svg',
+            title: l10n.whatsapp_title,
+            subtitle: l10n.whatsapp_desc,
+            onTap: () {},
+          ),
+          const SizedBox(height: 12),
+          _buildChannelItem(
+            icon: 'assets/images/phone.svg',
+            title: l10n.call_support_title,
+            subtitle: l10n.call_support_desc,
+            onTap: () {},
+          ),
+          const SizedBox(height: 12),
+          _buildChannelItem(
+            icon: 'assets/images/mail.svg',
+            title: l10n.email_support_title,
+            subtitle: l10n.email_support_desc,
+            onTap: () {},
           ),
           const SizedBox(height: 24),
           _buildSupportHours(),
+          const SizedBox(height: 24),
         ],
       ),
     );
   }
 
   Widget _buildChannelItem({
-    required String svgPath,
-    required Color iconColor,
-    required Color iconBgColor,
+    required String icon,
     required String title,
     required String subtitle,
-    String? badgeText,
-    Color? badgeColorText,
-    Color? badgeBgColor,
-    bool isOnline = false,
+    required VoidCallback onTap,
   }) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: iconBgColor,
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: Center(
-              child: SvgPicture.asset(
-                svgPath,
-                width: 20,
-                height: 20,
-                colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: AppColors.textDark,
-                        fontSize: 14,
-                        fontFamily: AppTextStyles.fontFamilyPoppins,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (badgeText != null) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: badgeBgColor,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          badgeText,
-                          style: TextStyle(
-                            color: badgeColorText,
-                            fontSize: 10,
-                            fontFamily: AppTextStyles.fontFamilyPoppins,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                    fontFamily: AppTextStyles.fontFamilyPoppins,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (isOnline)
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: Border.all(color: Theme.of(context).dividerColor),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
             Container(
-              width: 8,
-              height: 8,
+              width: 44,
+              height: 44,
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.successText,
-                borderRadius: BorderRadius.circular(4),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1E293B)
+                    : const Color(0xFFEFF6FF),
+                shape: BoxShape.circle,
+              ),
+              child: SvgPicture.asset(
+                icon,
+                colorFilter: ColorFilter.mode(
+                  Theme.of(context).colorScheme.primary,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 14,
+                      fontFamily: AppTextStyles.fontFamilyPoppins,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      fontSize: 11,
+                      fontFamily: AppTextStyles.fontFamilyPoppins,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SvgPicture.asset(
+              'assets/images/CaretRight.svg',
+              width: 16,
+              height: 16,
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                BlendMode.srcIn,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSupportHours() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.inputBorder),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -442,15 +572,18 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
             children: [
               SvgPicture.asset(
                 'assets/images/clock.svg',
-                width: 14,
-                height: 14,
-                colorFilter: const ColorFilter.mode(AppColors.textDark, BlendMode.srcIn),
+                width: 18,
+                height: 18,
+                colorFilter: ColorFilter.mode(
+                  Theme.of(context).colorScheme.primary,
+                  BlendMode.srcIn,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
-                'Support Hours',
+                l10n.support_hours,
                 style: TextStyle(
-                  color: AppColors.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 14,
                   fontFamily: AppTextStyles.fontFamilyPoppins,
                   fontWeight: FontWeight.w700,
@@ -476,7 +609,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
         Text(
           label,
           style: TextStyle(
-            color: AppColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             fontSize: 13,
             fontFamily: AppTextStyles.fontFamilyPoppins,
             fontWeight: FontWeight.w400,
@@ -485,7 +618,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
         Text(
           value,
           style: TextStyle(
-            color: AppColors.textDark,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 13,
             fontFamily: AppTextStyles.fontFamilyPoppins,
             fontWeight: valueWeight,
@@ -496,6 +629,9 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
   }
 
   Widget _buildSendMessageTab() {
+    final l10n = AppLocalizations.of(context)!;
+    final currentUser = ref.watch(profileProvider).value;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -504,17 +640,17 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.inputBorder),
+              color: Theme.of(context).colorScheme.surface,
+              border: Border.all(color: Theme.of(context).dividerColor),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'YOUR DETAILS',
+                  l10n.your_details,
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     fontSize: 11,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                     fontWeight: FontWeight.w700,
@@ -522,11 +658,11 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _buildSupportHourRow('Name', 'Rahul Das', valueWeight: FontWeight.w600),
+                _buildSupportHourRow('Name', currentUser?.fullName ?? 'User', valueWeight: FontWeight.w600),
                 const SizedBox(height: 8),
-                _buildSupportHourRow('Phone', '+880 1711 234567', valueWeight: FontWeight.w600),
+                _buildSupportHourRow('Phone', currentUser?.phoneNumber ?? '', valueWeight: FontWeight.w600),
                 const SizedBox(height: 8),
-                _buildSupportHourRow('Email', 'rahul@example.com', valueWeight: FontWeight.w600),
+                _buildSupportHourRow('Email', currentUser?.email ?? '', valueWeight: FontWeight.w600),
               ],
             ),
           ),
@@ -538,58 +674,74 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
           ),
           const SizedBox(height: 16),
           _buildFormSection(
-            title: 'RELATED ORDER ID (OPTIONAL)',
+            title: l10n.related_order_id_optional,
             child: _buildOrderIdField(),
           ),
           const SizedBox(height: 16),
           _buildFormSection(
             title: 'YOUR MESSAGE ',
             isRequired: true,
-            trailingWidget: const Text(
-              '0/500',
+            trailingWidget: Text(
+              '${_messageController.text.length}/500',
               style: TextStyle(
-                color: Color(0xFF9CA3AF),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 fontSize: 11,
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.w400,
               ),
             ),
-            child: _buildInputContainer(
-              text: 'Describe your issue in detail. The more info you give, the faster we can help... (min 20 characters)',
-              height: 132,
-              alignment: Alignment.topLeft,
-            ),
+            child: _buildMessageField(),
           ),
           const SizedBox(height: 16),
           _buildFormSection(
-            title: 'ATTACHMENT (OPTIONAL)',
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: AppColors.inputBorder),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SvgPicture.asset(
-                    'assets/images/attachment.svg',
-                    width: 16,
-                    height: 16,
-                    colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Attach screenshot or photo',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                      fontFamily: AppTextStyles.fontFamilyPoppins,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+            title: l10n.attachment_optional,
+            child: GestureDetector(
+              onTap: _isUploadingAttachment ? null : _pickAndUploadAttachment,
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  border: Border.all(color: Theme.of(context).dividerColor),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_isUploadingAttachment) ...[
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Uploading...'),
+                    ] else ...[
+                      SvgPicture.asset(
+                        'assets/images/attachment.svg',
+                        width: 16,
+                        height: 16,
+                        colorFilter: ColorFilter.mode(
+                          Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _uploadedAttachmentUrl != null
+                            ? 'Attachment Added ✓'
+                            : l10n.attach_screenshot_photo,
+                        style: TextStyle(
+                          color: _uploadedAttachmentUrl != null
+                              ? Colors.green
+                              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                          fontSize: 14,
+                          fontFamily: AppTextStyles.fontFamily,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -597,6 +749,41 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
           _buildSupportHours(),
           const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMessageField() {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 132),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: TextField(
+        controller: _messageController,
+        maxLines: 5,
+        maxLength: 500,
+        onChanged: (_) => setState(() {}),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontSize: 14,
+          fontFamily: AppTextStyles.fontFamilyPoppins,
+          fontWeight: FontWeight.w400,
+        ),
+        decoration: InputDecoration(
+          counterText: '',
+          border: InputBorder.none,
+          hintText: AppLocalizations.of(context)!.describe_issue_hint,
+          hintStyle: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+            fontSize: 14,
+            fontFamily: AppTextStyles.fontFamilyPoppins,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
       ),
     );
   }
@@ -619,7 +806,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   TextSpan(
                     text: title,
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       fontSize: 11,
                       fontFamily: AppTextStyles.fontFamilyPoppins,
                       fontWeight: FontWeight.w700,
@@ -652,8 +839,8 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
   Widget _buildSubjectDropdown() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.inputBorder),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
       child: DropdownButtonFormField<String>(
@@ -661,7 +848,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
         hint: Text(
           'Select a subject...',
           style: TextStyle(
-            color: AppColors.textDark.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
             fontSize: 14,
             fontFamily: AppTextStyles.fontFamilyPoppins,
             fontWeight: FontWeight.w400,
@@ -671,15 +858,18 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
           'assets/images/CaretDown.svg',
           width: 20,
           height: 20,
-          colorFilter: const ColorFilter.mode(AppColors.textSecondary, BlendMode.srcIn),
+          colorFilter: ColorFilter.mode(
+            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            BlendMode.srcIn,
+          ),
         ),
         decoration: const InputDecoration(
           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: InputBorder.none,
         ),
-        dropdownColor: Colors.white,
+        dropdownColor: Theme.of(context).colorScheme.surface,
         style: TextStyle(
-          color: AppColors.textDark,
+          color: Theme.of(context).colorScheme.onSurface,
           fontSize: 14,
           fontFamily: AppTextStyles.fontFamilyPoppins,
           fontWeight: FontWeight.w400,
@@ -687,7 +877,10 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
         items: _subjects.map((subject) {
           return DropdownMenuItem<String>(
             value: subject,
-            child: Text(subject),
+            child: Text(
+              subject,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
           );
         }).toList(),
         onChanged: (value) {
@@ -700,14 +893,14 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
   Widget _buildOrderIdField() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.inputBorder),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
       child: TextField(
         controller: _orderIdController,
         style: TextStyle(
-          color: AppColors.textDark,
+          color: Theme.of(context).colorScheme.onSurface,
           fontSize: 14,
           fontFamily: AppTextStyles.fontFamilyPoppins,
           fontWeight: FontWeight.w400,
@@ -717,36 +910,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
           border: InputBorder.none,
           hintText: 'e.g. ORD-7845',
           hintStyle: TextStyle(
-            color: AppColors.textDark.withOpacity(0.5),
-            fontSize: 14,
-            fontFamily: AppTextStyles.fontFamilyPoppins,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInputContainer({
-    required String text,
-    double? height,
-    Alignment alignment = Alignment.centerLeft,
-  }) {
-    return Container(
-      constraints: height != null ? BoxConstraints(minHeight: height) : const BoxConstraints(minHeight: 48),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.inputBorder),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      alignment: alignment,
-      child: Opacity(
-        opacity: 0.5,
-        child: Text(
-          text,
-          style: TextStyle(
-            color: AppColors.textDark,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
             fontSize: 14,
             fontFamily: AppTextStyles.fontFamilyPoppins,
             fontWeight: FontWeight.w400,

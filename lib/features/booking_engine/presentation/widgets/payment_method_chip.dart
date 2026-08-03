@@ -1,4 +1,3 @@
-import 'package:digv/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
@@ -25,10 +24,14 @@ class PaymentMethodChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+          color: selected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(2),
           border: Border.all(
-            color: selected ? Theme.of(context).colorScheme.primary : AppColors.dropDownBorder,
+            color: selected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).dividerColor,
           ),
         ),
         child: Row(
@@ -37,20 +40,24 @@ class PaymentMethodChip extends StatelessWidget {
             SizedBox(
               width: 18,
               height: 18,
-              child: ColorFiltered(
-                colorFilter: ColorFilter.mode(
-                  !selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
-                  BlendMode.srcIn,
-                ),
-                child: icon,
-              ),
+              child: selected
+                  ? ColorFiltered(
+                      colorFilter: ColorFilter.mode(
+                        Theme.of(context).colorScheme.onPrimary,
+                        BlendMode.srcIn,
+                      ),
+                      child: icon,
+                    )
+                  : icon,
             ),
             const SizedBox(width: 6),
             Text(
               label,
               style: AppTextStyles.captionMedium.copyWith(
                 fontWeight: FontWeight.w500,
-                color: !selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                color: !selected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onPrimary,
               ),
             ),
           ],

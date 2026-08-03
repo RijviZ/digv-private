@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/notifications/presentation/providers/notification_settings_provider.dart';
@@ -18,6 +19,7 @@ class _NotificationSettingsScreenState
     extends ConsumerState<NotificationSettingsScreen> {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final settingsAsync = ref.watch(notificationSettingsProvider);
 
@@ -35,14 +37,14 @@ class _NotificationSettingsScreenState
               height: 18,
               width: 18,
               colorFilter: ColorFilter.mode(
-                theme.colorScheme.secondary,
+                theme.colorScheme.onSurface,
                 BlendMode.srcIn,
               ),
             ),
             onPressed: () => Navigator.maybePop(context),
           ),
           title: Text(
-            'Notification Settings',
+            l10n.notification_settings_title,
             style: AppTextStyles.titleLight.copyWith(
               color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w400,
@@ -61,8 +63,8 @@ class _NotificationSettingsScreenState
                     iconData: 'assets/images/notification.svg',
                     iconBg: AppColors.unread,
                     iconColor: AppColors.blueDeep,
-                    title: 'Push Notifications',
-                    subtitle: 'Allow DigV to send notifications',
+                    title: l10n.push_notifications,
+                    subtitle: l10n.allow_notifications_desc,
                     value: settings.pushEnabled,
                     onChanged: (v) => ref.read(notificationSettingsProvider.notifier).togglePush(v),
                     isBold: true,
@@ -73,7 +75,7 @@ class _NotificationSettingsScreenState
 
                   // ── Notification Types section ──
                   Text(
-                    'Notification Types',
+                    l10n.notification_types,
                     style: AppTextStyles.h4.copyWith(
                       color: theme.colorScheme.onSurface,
                       fontSize: 20,
@@ -85,7 +87,7 @@ class _NotificationSettingsScreenState
 
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: theme.dividerColor),
                     ),
@@ -95,14 +97,17 @@ class _NotificationSettingsScreenState
                         final item = entry.value;
                         final isLast = idx == settings.settings.length - 1;
 
+                        final title = _getItemTitle(item.key, item.title, l10n);
+                        final subtitle = _getItemDesc(item.key, item.description, l10n);
+
                         return Column(
                           children: [
                             _NotifRow(
                               iconData: _getIconForKey(item.key),
                               iconBg: AppColors.unread,
                               iconColor: AppColors.blueDeep,
-                              title: item.title,
-                              subtitle: item.description,
+                              title: title,
+                              subtitle: subtitle,
                               value: item.enabled,
                               onChanged: (v) => ref.read(notificationSettingsProvider.notifier).toggleSettingItem(item.key, v),
                               theme: theme,
@@ -134,6 +139,36 @@ class _NotificationSettingsScreenState
         ),
       ),
     );
+  }
+
+  String _getItemTitle(String key, String fallback, AppLocalizations l10n) {
+    switch (key) {
+      case 'ORDER_UPDATES':
+        return l10n.order_updates_title;
+      case 'OFFERS_PROMOTIONS':
+        return l10n.offers_promotions_title;
+      case 'APP_ANNOUNCEMENTS':
+        return l10n.app_announcements_title;
+      case 'CHAT_MESSAGES':
+        return l10n.chat_messages_title;
+      default:
+        return fallback;
+    }
+  }
+
+  String _getItemDesc(String key, String fallback, AppLocalizations l10n) {
+    switch (key) {
+      case 'ORDER_UPDATES':
+        return l10n.order_updates_desc;
+      case 'OFFERS_PROMOTIONS':
+        return l10n.offers_promotions_desc;
+      case 'APP_ANNOUNCEMENTS':
+        return l10n.app_announcements_desc;
+      case 'CHAT_MESSAGES':
+        return l10n.chat_messages_desc;
+      default:
+        return fallback;
+    }
   }
 
   String _getIconForKey(String key) {
@@ -188,7 +223,7 @@ class _NotifCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.dividerColor),
       ),
@@ -217,7 +252,7 @@ class _NotifCard extends StatelessWidget {
                 Text(
                   title,
                   style: AppTextStyles.h6.copyWith(
-                    color: AppColors.textDark,
+                    color: theme.colorScheme.onSurface,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                     fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
                     height: 1.5,
@@ -290,7 +325,7 @@ class _NotifRow extends StatelessWidget {
                 Text(
                   title,
                   style: AppTextStyles.h6.copyWith(
-                    color: AppColors.textDark,
+                    color: theme.colorScheme.primary,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                     fontWeight: FontWeight.w600,
                     height: 1.5,

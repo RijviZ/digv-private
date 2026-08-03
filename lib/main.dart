@@ -3,6 +3,7 @@ import 'package:digv/core/router/app_router.dart';
 import 'package:digv/I10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:digv/features/more/presentation/providers/settings_provider.dart';
 import 'package:digv/features/profile_settings/presentation/providers/theme_provider.dart';
 import 'package:digv/features/profile_settings/presentation/providers/locale_provider.dart';
 import 'package:digv/core/theme/app_theme.dart';
@@ -29,6 +30,8 @@ class DigV extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Eagerly initialize settings provider
+    ref.watch(settingsProvider);
     final isDarkMode = ref.watch(themeProvider);
     final locale = ref.watch(localeProvider);
 
@@ -43,9 +46,7 @@ class DigV extends ConsumerWidget {
       locale: locale,
       routerConfig: appRouter,
       supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-      // Localization (Placeholder - assuming routerConfig is handled elsewhere or needed)
-      // routerConfig: ... 
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
     );
   }
 }

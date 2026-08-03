@@ -21,13 +21,19 @@ class AppPrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEnabled = onTap != null;
+    final buttonBgColor = isEnabled
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.15);
+    final buttonTextColor = isEnabled
+        ? Theme.of(context).colorScheme.onPrimary
+        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.4);
 
     Widget button = AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: isEnabled ? Theme.of(context).colorScheme.primary: Theme.of(context).colorScheme.primary.withAlpha(128),
+        color: buttonBgColor,
         borderRadius: BorderRadius.circular(36),
       ),
       child: Material(
@@ -39,10 +45,10 @@ class AppPrimaryButton extends StatelessWidget {
             child: Text(
               text,
               style: textStyle ??
-                  const TextStyle(
+                  TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white,
+                    color: buttonTextColor,
                   ),
             ),
           ),

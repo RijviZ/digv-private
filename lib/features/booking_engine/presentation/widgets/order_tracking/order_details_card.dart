@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/booking_engine/domain/models/order_status.dart';
@@ -31,6 +32,7 @@ class OrderDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final service = order?.serviceName ?? 'Deep Cleaning';
     final schedule = order?.scheduledTime ?? 'Today · 10:00 AM';
     final address = order?.location ?? 'Home — Jl. Ngagelrejo No.34,\nKhulna — 9000';
@@ -39,33 +41,37 @@ class OrderDetailsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.inputBorder),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Order Details',
+            l10n.order_summary,
             style: AppTextStyles.captionMedium.copyWith(
               fontWeight: FontWeight.w700,
-              color: AppColors.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 14),
-          DetailRow(label: 'Service', value: service),
-          if (order == null) const DetailRow(label: 'Type', value: 'Split'),
-          DetailRow(label: 'Schedule', value: schedule),
+          DetailRow(label: l10n.service, value: service),
+          DetailRow(label: l10n.schedule, value: schedule),
           DetailRow(
-            label: 'Address',
+            label: l10n.address,
             value: address,
           ),
           DetailRow(
-            label: 'Payment',
+            label: l10n.payment,
             value: _isPrepaid
-                ? '$price · ${_getPaymentMethodLabel()} · Paid'
-                : '$price · Postpaid (Pay after service)',
-            valueColor: _isPrepaid ? null : AppColors.alertText,
+                ? '$price · ${_getPaymentMethodLabel()} · ${l10n.paid}'
+                : '$price · ${l10n.pay_after_service}',
+            valueColor: _isPrepaid
+                ? null
+                : (Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFFFB923C)
+                    : AppColors.alertText),
           ),
         ],
       ),
@@ -108,7 +114,7 @@ class DetailRow extends StatelessWidget {
               textAlign: TextAlign.end,
               style: AppTextStyles.labelMedium.copyWith(
                 fontWeight: FontWeight.w600,
-                color: valueColor ?? AppColors.textDark,
+                color: valueColor ?? Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),

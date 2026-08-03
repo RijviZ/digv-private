@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/chat/domain/models/chat_message.dart' as chat_models;
@@ -99,24 +100,25 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
   }
 
   Future<void> _handlePickImage() async {
+    final l10n = AppLocalizations.of(context)!;
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (image == null) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Row(
           children: [
-            SizedBox(
+            const SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
             ),
-            SizedBox(width: 12),
-            Text('Uploading attachment...', style: TextStyle(color: Colors.white)),
+            const SizedBox(width: 12),
+            Text(l10n.uploading_attachment, style: const TextStyle(color: Colors.white)),
           ],
         ),
-        duration: Duration(seconds: 15),
+        duration: const Duration(seconds: 15),
       ),
     );
 
@@ -124,17 +126,20 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
       final uploadService = ref.read(fileUploadServiceProvider);
       final url = await uploadService.uploadFile(image.path, category: 'message-files');
       
+      if (!mounted) return;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       // Send image message
       await ref.read(activeChatNotifierProvider(widget.peerUserId).notifier).sendMessage(
-        'Sent an image attachment',
+        l10n.sent_image_attachment,
         type: 'image',
         attachmentUrls: [url],
       );
 
+      if (!mounted) return;
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -147,6 +152,7 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final chatState = ref.watch(activeChatNotifierProvider(widget.peerUserId));
     final profileAsync = ref.watch(profileProvider);
 
@@ -159,6 +165,10 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
         }
       },
     );
+
+    final inputBg = Theme.of(context).brightness == Brightness.dark
+        ? AppColors.inputBgSecondaryDark
+        : AppColors.inputBgSecondary;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
@@ -181,7 +191,7 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.3),
+                color: Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -197,8 +207,8 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                     height: 48,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFFE5E7EB),
-                      border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
+                      color: inputBg,
+                      border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
                       image: widget.peerAvatarUrl != null && widget.peerAvatarUrl!.isNotEmpty
                           ? DecorationImage(
                               image: NetworkImage(widget.peerAvatarUrl!),
@@ -207,7 +217,7 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                           : null,
                     ),
                     child: widget.peerAvatarUrl == null || widget.peerAvatarUrl!.isEmpty
-                        ? const Icon(Icons.person, color: Color(0xFF9CA3AF), size: 28)
+                        ? Icon(Icons.person, color: Theme.of(context).colorScheme.secondary, size: 28)
                         : null,
                   ),
                   const SizedBox(width: 10),
@@ -224,7 +234,7 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '● Online',
+                          l10n.online_status,
                           style: AppTextStyles.caption.copyWith(
                             color: AppColors.success,
                             fontWeight: FontWeight.w600,
@@ -240,8 +250,8 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                     child: Container(
                       width: 30,
                       height: 30,
-                      decoration: const BoxDecoration(
-                        color: AppColors.inputBgSecondary,
+                      decoration: BoxDecoration(
+                        color: inputBg,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -254,7 +264,7 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                 ],
               ),
             ),
-            const Divider(height: 1, color: AppColors.inputBorder),
+            Divider(height: 1, color: Theme.of(context).dividerColor),
             
             // Messages Area
             Expanded(
@@ -281,7 +291,7 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                               onPressed: () {
                                 ref.invalidate(activeChatNotifierProvider(widget.peerUserId));
                               },
-                              child: const Text('Retry'),
+                              child: Text(l10n.retry),
                             ),
                           ],
                         ),
@@ -302,7 +312,7 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'No messages yet. Send a message to start.',
+                            l10n.no_messages_yet,
                             style: AppTextStyles.caption.copyWith(
                               color: Theme.of(context).colorScheme.secondary,
                             ),
@@ -335,7 +345,7 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
-                border: const Border(top: BorderSide(color: AppColors.inputBorder)),
+                border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
               ),
               child: Row(
                 children: [
@@ -346,9 +356,9 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: AppColors.inputBgSecondary,
+                        color: inputBg,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.inputBorder),
+                        border: Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: Icon(
                         Icons.image_outlined,
@@ -364,15 +374,18 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                     child: Container(
                       height: 52,
                       decoration: BoxDecoration(
-                        color: AppColors.inputBgSecondary,
+                        color: inputBg,
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: TextField(
                         controller: _controller,
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => _handleSend(),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         decoration: InputDecoration(
-                          hintText: 'Type a message...',
+                          hintText: l10n.type_a_message,
                           hintStyle: AppTextStyles.captionMedium.copyWith(
                             color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
                             fontSize: 13,
@@ -401,6 +414,10 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                           'assets/images/send.svg',
                           width: 16,
                           height: 16,
+                          colorFilter: ColorFilter.mode(
+                            Theme.of(context).colorScheme.onPrimary,
+                            BlendMode.srcIn,
+                          ),
                         ),
                       ),
                     ),
@@ -425,6 +442,13 @@ class _ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final String timeString = DateFormat('hh:mm a').format(message.createdAt.toLocal());
     final hasAttachment = message.attachmentUrls.isNotEmpty;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bubbleBg = isMe
+        ? Theme.of(context).colorScheme.primary
+        : (isDark ? AppColors.inputBgSecondaryDark : AppColors.inputBgSecondary);
+    final textColor = isMe
+        ? Theme.of(context).colorScheme.onPrimary
+        : Theme.of(context).colorScheme.primary;
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -439,9 +463,7 @@ class _ChatBubble extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isMe
-                    ? Theme.of(context).colorScheme.primary
-                    : AppColors.inputBgSecondary,
+                color: bubbleBg,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -526,7 +548,7 @@ class _ChatBubble extends StatelessWidget {
                     Text(
                       message.content!,
                       style: AppTextStyles.captionMedium.copyWith(
-                        color: isMe ? Colors.white : AppColors.textDark,
+                        color: textColor,
                         fontSize: 14,
                         height: 1.3,
                       ),
@@ -536,7 +558,7 @@ class _ChatBubble extends StatelessWidget {
                     Text(
                       message.content!,
                       style: AppTextStyles.captionMedium.copyWith(
-                        color: isMe ? Colors.white : AppColors.textDark,
+                        color: textColor,
                         fontSize: 14,
                         height: 1.3,
                       ),

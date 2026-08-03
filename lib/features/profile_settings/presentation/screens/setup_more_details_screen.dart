@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
@@ -274,64 +275,25 @@ class _SetupMoreDetailsScreenState extends ConsumerState<SetupMoreDetailsScreen>
                     elevation: 0,
                   ),
                   child: ref.watch(authProvider).isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 24,
                           width: 24,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onPrimary,
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text("Continue", style: AppTextStyles.button),
+                      : Text(
+                          AppLocalizations.of(context)!.continue_btn,
+                          style: AppTextStyles.button.copyWith(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 8),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGenderOption(
-    BuildContext context,
-    String label,
-    bool isSelected,
-  ) {
-    return Expanded(
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).dividerColor,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              isSelected
-                  ? 'assets/images/CircleSelected.svg'
-                  : 'assets/images/CircleNotSelected.svg',
-              height: 16,
-              width: 16,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: AppTextStyles.bodyLarge.copyWith(
-                color: isSelected
-                    ? Theme.of(context).colorScheme.onPrimary
-                    : Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ],
         ),
       ),
     );

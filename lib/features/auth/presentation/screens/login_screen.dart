@@ -294,7 +294,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'Continue with Google',
+                        l10n.continue_with_google,
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                           height: 1.5,
@@ -312,16 +312,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     color: Theme.of(context).colorScheme.secondary,
                     height: 1.5,
                   ),
-                  children: const [
-                    TextSpan(text: 'By continuing, you agree to our '),
+                  children: [
+                    TextSpan(text: l10n.by_continuing),
                     TextSpan(
-                      text: 'Terms of Service',
-                      style: TextStyle(decoration: TextDecoration.underline),
+                      text: l10n.terms_of_service,
+                      style: const TextStyle(decoration: TextDecoration.underline),
                     ),
-                    TextSpan(text: ' & '),
+                    TextSpan(text: l10n.and),
                     TextSpan(
-                      text: 'Privacy Policy',
-                      style: TextStyle(decoration: TextDecoration.underline),
+                      text: l10n.privacy_policy,
+                      style: const TextStyle(decoration: TextDecoration.underline),
                     ),
                   ],
                 ),

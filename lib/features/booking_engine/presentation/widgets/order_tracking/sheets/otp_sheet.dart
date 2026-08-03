@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -31,6 +32,11 @@ class _OtpSheetState extends State<OtpSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final inputBg = Theme.of(context).brightness == Brightness.dark
+        ? AppColors.inputBgSecondaryDark
+        : AppColors.inputBgSecondary;
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -49,7 +55,7 @@ class _OtpSheetState extends State<OtpSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFFE5E7EB),
+                color: Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(100),
               ),
             ),
@@ -73,24 +79,26 @@ class _OtpSheetState extends State<OtpSheet> {
                     colorFilter: const ColorFilter.mode(AppColors.blue, BlendMode.srcIn),
                   ),
                   const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Service Completed!',
-                        style: AppTextStyles.labelMedium.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.blue,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.service_completed_title,
+                          style: AppTextStyles.labelMedium.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.blue,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'AC Regular Service by Arjun Kumar',
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.blue,
+                        const SizedBox(height: 4),
+                        Text(
+                          '${l10n.regular_service} by Arjun Kumar',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.blue,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -98,7 +106,7 @@ class _OtpSheetState extends State<OtpSheet> {
 
             const SizedBox(height: 20),
             Text(
-              'YOUR DELIVERY OTP',
+              l10n.your_delivery_otp,
               style: AppTextStyles.bodyMedium.copyWith(
                 color: Theme.of(context).colorScheme.secondary,
               ),
@@ -114,41 +122,39 @@ class _OtpSheetState extends State<OtpSheet> {
                   width: 60,
                   height: 66,
                   decoration: BoxDecoration(
-                    color: AppColors.inputBgSecondary,
+                    color: inputBg,
                     borderRadius: BorderRadius.circular(2),
                     border: Border.all(
-                      color: AppColors.inputBorder,
+                      color: Theme.of(context).dividerColor,
                       width: 1,
                     ),
                   ),
                   child: TextField(
-                      controller: _controllers[i],
-                      focusNode: _nodes[i],
-                      textAlign: TextAlign.center,
-                      maxLength: 1,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      style: AppTextStyles.bodyLarge.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      textAlignVertical: TextAlignVertical.center,
-
-                      decoration: InputDecoration(
-                        counterText: '',
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                        hintText: '0',
-                        hintStyle: AppTextStyles.bodyLarge.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      onChanged: (val) {
-                        if (val.isNotEmpty && i < 3) {
-                          _nodes[i + 1].requestFocus();
-                        }
-                      },
+                    controller: _controllers[i],
+                    focusNode: _nodes[i],
+                    textAlign: TextAlign.center,
+                    maxLength: 1,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                  
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration(
+                      counterText: '',
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      hintText: '0',
+                      hintStyle: AppTextStyles.bodyLarge.copyWith(
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                    onChanged: (val) {
+                      if (val.isNotEmpty && i < 3) {
+                        _nodes[i + 1].requestFocus();
+                      }
+                    },
+                  ),
                 );
               }),
             ),
@@ -164,12 +170,16 @@ class _OtpSheetState extends State<OtpSheet> {
                   colorFilter: ColorFilter.mode(
                     Theme.of(context).colorScheme.secondary,
                     BlendMode.srcIn,
-                  ),),
-                  const SizedBox(width: 4),
-                Text(
-                  'Share this OTP only with your assigned technician',
-                  style: AppTextStyles.caption.copyWith(
-                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    l10n.share_otp_notice,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.caption.copyWith(
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
                   ),
                 ),
               ],
@@ -195,7 +205,7 @@ class _OtpSheetState extends State<OtpSheet> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      'Never share this OTP with anyone other than your assigned technician. This confirms service completion.',
+                      l10n.otp_warning,
                       style: AppTextStyles.caption.copyWith(
                         color: AppColors.dangerText,
                       ),
@@ -212,16 +222,18 @@ class _OtpSheetState extends State<OtpSheet> {
               child: ElevatedButton(
                 onPressed: widget.onDone,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF030712),
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(100),
                   ),
                 ),
-                child: const Text(
-                  'Confirm OTP',
-                  style: AppTextStyles.button,
+                child: Text(
+                  l10n.confirm_otp,
+                  style: AppTextStyles.button.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
                 ),
               ),
             ),

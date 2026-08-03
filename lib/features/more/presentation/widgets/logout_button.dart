@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ class LogoutButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final authState = ref.watch(authProvider);
     final isLoading = authState.isLoading;
@@ -61,7 +63,7 @@ class LogoutButton extends ConsumerWidget {
                   ),
                   const SizedBox(width: 16),
                   Text(
-                    'Logout',
+                    l10n.logout,
                     style: TextStyle(
                       color: theme.colorScheme.error,
                       fontSize: 14,

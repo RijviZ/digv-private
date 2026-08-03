@@ -479,16 +479,16 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
     });
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
             const AppTopBar(title: 'Payment Gateway'),
             _tabBar(),
-            const Divider(
+            Divider(
               height: 1,
               thickness: 1,
-              color: AppColors.inputBorder,
+              color: Theme.of(context).dividerColor,
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -505,7 +505,7 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            border: Border(top: BorderSide(color: AppColors.dropDownBorder)),
+            border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -574,7 +574,7 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
   }
 
   Widget _tabBar() => Container(
-    color: Colors.white,
+    color: Theme.of(context).colorScheme.surface,
     child: Row(
       children: PayTab.values.map((tab) {
         final active = _tab == tab;
@@ -605,7 +605,7 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
                       width: 20,
                       colorFilter: ColorFilter.mode(
                         active
-                            ? AppColors.onLight
+                            ? Theme.of(context).colorScheme.primary
                             : Theme.of(context).colorScheme.secondary,
                         BlendMode.srcIn,
                       ),

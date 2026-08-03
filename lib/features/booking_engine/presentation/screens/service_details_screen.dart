@@ -199,8 +199,8 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
-                border: const Border(
-                  top: BorderSide(color: AppColors.dropDownBorder),
+                border: Border(
+                  top: BorderSide(color: Theme.of(context).dividerColor),
                 ),
               ),
               child: AppPrimaryButton(
@@ -248,7 +248,7 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(2),
-        border: Border.all(color: AppColors.dropDownBorder),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Row(
         children: [
@@ -265,8 +265,10 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               clipBehavior: Clip.antiAlias,
-              decoration: const BoxDecoration(
-                color: AppColors.inputBgSecondary,
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.inputBgSecondaryDark
+                    : AppColors.inputBgSecondary,
               ),
               child: Text(
                 '–',
@@ -299,8 +301,10 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               clipBehavior: Clip.antiAlias,
-              decoration: const BoxDecoration(
-                color: AppColors.inputBgSecondary,
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.inputBgSecondaryDark
+                    : AppColors.inputBgSecondary,
               ),
               child: Text(
                 '+',
@@ -321,7 +325,13 @@ class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          SvgPicture.asset('assets/images/checkmark-circle.svg'),
+          SvgPicture.asset(
+            'assets/images/checkmark-circle.svg',
+            colorFilter: ColorFilter.mode(
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              BlendMode.srcIn,
+            ),
+          ),
           const SizedBox(width: 10),
           Text(
             text,

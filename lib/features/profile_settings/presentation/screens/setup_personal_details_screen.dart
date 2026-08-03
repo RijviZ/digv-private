@@ -1,3 +1,4 @@
+import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
@@ -333,7 +334,12 @@ class _SetupPersonalDetailsScreenState
                     ),
                     elevation: 0,
                   ),
-                  child: const Text("Continue", style: AppTextStyles.button),
+                  child: Text(
+                    AppLocalizations.of(context)!.continue_btn,
+                    style: AppTextStyles.button.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 8),

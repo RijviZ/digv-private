@@ -14,72 +14,62 @@ final settingsProvider = AsyncNotifierProvider<SettingsNotifier, AppSettings>(()
 class SettingsNotifier extends AsyncNotifier<AppSettings> {
   @override
   FutureOr<AppSettings> build() async {
-    final settings = await _fetchSettings();
-    _syncGlobalState(settings);
-    return settings;
-  }
+    final isDark = ref.watch(themeProvider);
+    final locale = ref.watch(localeProvider);
 
-  Future<AppSettings> _fetchSettings() async {
-    final repository = ref.read(settingsRepositoryProvider);
-    return await repository.getSettings();
-  }
-
-  void _syncGlobalState(AppSettings settings) {
-    ref.read(localeProvider.notifier).setLocale(Locale(settings.appLanguage.toLowerCase()));
-    ref.read(themeProvider.notifier).setDarkMode(settings.themeMode == 'DARK');
+    try {
+      final repository = ref.read(settingsRepositoryProvider);
+      final remoteSettings = await repository.getSettings();
+      return remoteSettings;
+    } catch (_) {
+      return AppSettings(
+        userId: '',
+        userSettingsId: 'local_settings',
+        appLanguage: locale.languageCode.toUpperCase(),
+        themeMode: isDark ? 'DARK' : 'LIGHT',
+      );
+    }
   }
 
   Future<void> updateLanguage(String languageCode) async {
-    final previousState = state;
-    
-    // Optimistic update
-    ref.read(localeProvider.notifier).setLocale(Locale(languageCode.toLowerCase()));
+    final code = languageCode.toLowerCase();
+    await ref.read(localeProvider.notifier).setLocale(Locale(code));
+
     if (state.hasValue) {
-      state = AsyncValue.data(state.value!.copyWith(appLanguage: languageCode));
-    }
-
-    final result = await AsyncValue.guard(() async {
-      final repository = ref.read(settingsRepositoryProvider);
-      return await repository.updateSettings(appLanguage: languageCode);
-    });
-
-    if (result.hasError) {
-      state = previousState;
-      if (previousState.hasValue) {
-        ref.read(localeProvider.notifier).setLocale(Locale(previousState.value!.appLanguage.toLowerCase()));
-      }
+      state = AsyncValue.data(state.value!.copyWith(appLanguage: languageCode.toUpperCase()));
     } else {
-      state = result;
-      if (result.hasValue) {
-        _syncGlobalState(result.value!);
-      }
+      state = AsyncValue.data(AppSettings(
+        userId: '',
+        userSettingsId: 'local_settings',
+        appLanguage: languageCode.toUpperCase(),
+        themeMode: ref.read(themeProvider) ? 'DARK' : 'LIGHT',
+      ));
     }
+
+    try {
+      final repository = ref.read(settingsRepositoryProvider);
+      await repository.updateSettings(appLanguage: languageCode.toUpperCase());
+    } catch (_) {}
   }
 
   Future<void> updateTheme(String themeMode) async {
-    final previousState = state;
+    final isDark = themeMode.toUpperCase() == 'DARK';
+    await ref.read(themeProvider.notifier).setDarkMode(isDark);
 
-    // Optimistic update
-    ref.read(themeProvider.notifier).setDarkMode(themeMode == 'DARK');
     if (state.hasValue) {
-      state = AsyncValue.data(state.value!.copyWith(themeMode: themeMode));
-    }
-
-    final result = await AsyncValue.guard(() async {
-      final repository = ref.read(settingsRepositoryProvider);
-      return await repository.updateSettings(themeMode: themeMode);
-    });
-
-    if (result.hasError) {
-      state = previousState;
-      if (previousState.hasValue) {
-        ref.read(themeProvider.notifier).setDarkMode(previousState.value!.themeMode == 'DARK');
-      }
+      state = AsyncValue.data(state.value!.copyWith(themeMode: themeMode.toUpperCase()));
     } else {
-      state = result;
-      if (result.hasValue) {
-        _syncGlobalState(result.value!);
-      }
+      state = AsyncValue.data(AppSettings(
+        userId: '',
+        userSettingsId: 'local_settings',
+        appLanguage: ref.read(localeProvider).languageCode.toUpperCase(),
+        themeMode: themeMode.toUpperCase(),
+      ));
     }
+
+    try {
+      final repository = ref.read(settingsRepositoryProvider);
+      await repository.updateSettings(themeMode: themeMode.toUpperCase());
+    } catch (_) {}
   }
 }

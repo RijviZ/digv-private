@@ -153,7 +153,7 @@ class _EnableLocationAccessScreenState
                                     .read(authProvider.notifier)
                                     .updateLocation(data);
                                 if (context.mounted) {
-                                  context.push('/home');
+                                  context.go('/home');
                                 }
                               } catch (e) {
                                 if (context.mounted) {
@@ -195,7 +195,7 @@ class _EnableLocationAccessScreenState
                     width: double.infinity,
                     height: 52,
                     child: OutlinedButton(
-                      onPressed: () => context.push('/home'),
+                      onPressed: () => context.go('/home'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         foregroundColor: theme.colorScheme.primary,

@@ -422,6 +422,7 @@ abstract class AppLocalizations {
   String get track_order_btn;
   String get active_badge;
   String get bookings_suffix;
+  String get min_suffix;
   String get read_all;
   String get new_section;
   String get link_upi_id;

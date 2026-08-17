@@ -54,7 +54,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           context.go('/home');
         } else if (!user.isProfileSetupCompleted) {
           context.go('/setup_welcome', extra: user.phoneNumber);
-        } else if (user.latestLocation == null && !user.isLocationAccessSkipped) {
+        } else if (user.latestLocation == null &&
+            !user.isLocationAccessSkipped) {
           context.go('/enable_location_access');
         } else {
           context.go('/home');
@@ -93,7 +94,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       height: 88,
                       clipBehavior: Clip.antiAlias,
                       decoration: ShapeDecoration(
-                        color: const Color(0xFF2563EB), // Vibrant Primary Blue
+                        color: theme.colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(28),
                         ),
@@ -125,7 +126,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     Text(
                       l10n.splash_welcome,
                       style: AppTextStyles.bodyLarge.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
                     ),
                   ],

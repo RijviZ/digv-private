@@ -287,7 +287,7 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
           paymentStatus: 'PAID',
           paymentMethod: _tab == PayTab.upi ? 'UPI' : 'CARD',
         );
-        context.push('/booking_requested', extra: orderItem);
+        context.go('/booking_requested', extra: orderItem);
       }
     } catch (e) {
       if (mounted) {

@@ -3,9 +3,13 @@ import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/bank_account/domain/entities/bank_account.dart';
 import 'package:digv/features/bank_account/presentation/providers/bank_account_provider.dart';
+import 'package:digv/features/bank_account/presentation/widgets/add_bank_account_bottom_sheet.dart';
 import 'package:digv/features/more/presentation/widgets/outline_add_button.dart';
+import 'package:digv/features/payment_method/domain/entities/saved_upi.dart';
 import 'package:digv/features/payment_method/presentation/providers/payment_method_provider.dart';
+import 'package:digv/features/payment_method/presentation/providers/upi_provider.dart';
 import 'package:digv/features/payment_method/presentation/widgets/add_card_bottom_sheet.dart';
+import 'package:digv/features/payment_method/presentation/widgets/link_upi_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +24,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final bankAccountsAsync = ref.watch(bankAccountsProvider);
     final paymentMethodsAsync = ref.watch(paymentMethodsProvider);
+    final upiList = ref.watch(upiListProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
@@ -111,7 +116,10 @@ class PaymentMethodsScreen extends ConsumerWidget {
                 ),
                 error: (err, stack) => Padding(
                   padding: const EdgeInsets.only(bottom: 20),
-                  child: Text('Error: $err'),
+                  child: Text(
+                    l10n.no_saved_cards,
+                    style: TextStyle(color: theme.colorScheme.secondary),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -130,7 +138,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
                 },
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               Text(
                 l10n.upi_ids,
@@ -141,16 +149,49 @@ class PaymentMethodsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
 
-              const _UpiTile(
-                emoji: '🪙',
-                name: 'Google Pay',
-                upiId: 'rahul@okaxis',
+              if (upiList.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'No UPI IDs linked',
+                    style: TextStyle(color: theme.colorScheme.secondary),
+                  ),
+                )
+              else
+                Column(
+                  children: upiList.map((upi) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _UpiTile(
+                        upi: upi,
+                        onSetDefault: () {
+                          ref.read(upiListProvider.notifier).setDefaultUpi(upi.id);
+                        },
+                        onDelete: () {
+                          ref.read(upiListProvider.notifier).deleteUpi(upi.id);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+
+              const SizedBox(height: 10),
+
+              OutlineAddButton(
+                label: l10n.link_upi_id,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    builder: (context) => const LinkUpiBottomSheet(),
+                  );
+                },
               ),
-              const SizedBox(height: 20),
 
-              OutlineAddButton(label: l10n.link_upi_id, onTap: () {}),
-
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               Text(
                 l10n.bank_accounts,
@@ -164,16 +205,27 @@ class PaymentMethodsScreen extends ConsumerWidget {
               bankAccountsAsync.when(
                 data: (accounts) {
                   if (accounts.isEmpty) {
-                    return Text(
-                      'No bank accounts saved',
-                      style: TextStyle(color: theme.colorScheme.secondary),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        'No bank accounts saved',
+                        style: TextStyle(color: theme.colorScheme.secondary),
+                      ),
                     );
                   }
                   return Column(
                     children: accounts.map((account) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: _BankAccountTile(account: account),
+                        child: _BankAccountTile(
+                          account: account,
+                          onSetDefault: () {
+                            ref.read(bankAccountsProvider.notifier).setDefaultBankAccount(account.userBankAccountId);
+                          },
+                          onDelete: () {
+                            ref.read(bankAccountsProvider.notifier).deleteBankAccount(account.userBankAccountId);
+                          },
+                        ),
                       );
                     }).toList(),
                   );
@@ -185,15 +237,27 @@ class PaymentMethodsScreen extends ConsumerWidget {
                   ),
                 ),
                 error: (err, stack) => Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: Text('Error: $err'),
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'No bank accounts saved',
+                    style: TextStyle(color: theme.colorScheme.secondary),
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               OutlineAddButton(
                 label: l10n.add_bank_account,
-                onTap: () {},
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    builder: (context) => const AddBankAccountBottomSheet(),
+                  );
+                },
               ),
             ],
           ),
@@ -329,60 +393,96 @@ class _CardTile extends StatelessWidget {
 }
 
 class _UpiTile extends StatelessWidget {
-  final String emoji;
-  final String name;
-  final String upiId;
+  final SavedUpi upi;
+  final VoidCallback? onSetDefault;
+  final VoidCallback? onDelete;
 
   const _UpiTile({
-    required this.emoji,
-    required this.name,
-    required this.upiId,
+    required this.upi,
+    this.onSetDefault,
+    this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.dividerColor, width: 1.08),
-      ),
-      child: Row(
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 24)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: AppTextStyles.h6.copyWith(
-                    color: AppColors.textDark,
+    return GestureDetector(
+      onTap: (!upi.isDefault && onSetDefault != null) ? onSetDefault : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: upi.isDefault ? theme.colorScheme.primary : theme.dividerColor,
+            width: upi.isDefault ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(upi.emoji, style: const TextStyle(fontSize: 24)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    upi.name,
+                    style: AppTextStyles.h6.copyWith(
+                      color: AppColors.textDark,
+                      fontFamily: AppTextStyles.fontFamilyPoppins,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    upi.upiId,
+                    style: AppTextStyles.labelMedium.copyWith(
+                      color: theme.colorScheme.secondary,
+                      fontFamily: AppTextStyles.fontFamilyPoppins,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (upi.isDefault)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.unread,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Default',
+                  style: AppTextStyles.captionSmall.copyWith(
+                    color: AppColors.blueDeep,
                     fontFamily: AppTextStyles.fontFamilyPoppins,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                Text(
-                  upiId,
-                  style: AppTextStyles.labelMedium.copyWith(
-                    color: theme.colorScheme.secondary,
-                    fontFamily: AppTextStyles.fontFamilyPoppins,
+              )
+            else
+              GestureDetector(
+                onTap: onDelete,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.errorBg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: SvgPicture.asset(
+                    'assets/images/delete.svg',
+                    height: 14,
+                    width: 14,
                   ),
                 ),
-              ],
-            ),
-          ),
-          SvgPicture.asset(
-            'assets/images/checkmark.svg',
-            height: 18,
-            width: 18,
-          ),
-        ],
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -390,100 +490,115 @@ class _UpiTile extends StatelessWidget {
 
 class _BankAccountTile extends StatelessWidget {
   final BankAccount account;
+  final VoidCallback? onSetDefault;
+  final VoidCallback? onDelete;
 
-  const _BankAccountTile({required this.account});
+  const _BankAccountTile({
+    required this.account,
+    this.onSetDefault,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final String maskedNumber =
-        '•••• ${account.accountNumber.substring(account.accountNumber.length - 4)}';
+        '•••• ${account.accountNumber.length > 4 ? account.accountNumber.substring(account.accountNumber.length - 4) : account.accountNumber}';
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: account.isDefault ? theme.colorScheme.primary : theme.dividerColor,
-          width: account.isDefault ? 1.5 : 1,
+    return GestureDetector(
+      onTap: (!account.isDefault && onSetDefault != null) ? onSetDefault : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: account.isDefault ? theme.colorScheme.primary : theme.dividerColor,
+            width: account.isDefault ? 1.5 : 1,
+          ),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            alignment: Alignment.center,
-            child: SvgPicture.asset(
-              'assets/images/bank.svg',
-              height: 24,
-              width: 24,
-              colorFilter: ColorFilter.mode(
-                theme.colorScheme.primary,
-                BlendMode.srcIn,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  account.bankName,
-                  style: AppTextStyles.bodyMediumBold.copyWith(
-                    color: AppColors.textDark,
-                    fontFamily: AppTextStyles.fontFamilyPoppins,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  maskedNumber,
-                  style: AppTextStyles.labelMedium.copyWith(
-                    color: theme.colorScheme.secondary,
-                    fontFamily: AppTextStyles.fontFamilyPoppins,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (account.isDefault)
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: AppColors.unread,
-                borderRadius: BorderRadius.circular(6),
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                'Default',
-                style: AppTextStyles.captionSmall.copyWith(
-                  color: AppColors.blueDeep,
-                  fontFamily: AppTextStyles.fontFamilyPoppins,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          if (account.isVerified)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
+              alignment: Alignment.center,
               child: SvgPicture.asset(
-                'assets/images/checkmark.svg',
-                height: 18,
-                width: 18,
-                colorFilter: const ColorFilter.mode(
-                  Colors.green,
+                'assets/images/bank.svg',
+                height: 24,
+                width: 24,
+                colorFilter: ColorFilter.mode(
+                  theme.colorScheme.primary,
                   BlendMode.srcIn,
                 ),
               ),
             ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    account.bankName,
+                    style: AppTextStyles.bodyMediumBold.copyWith(
+                      color: AppColors.textDark,
+                      fontFamily: AppTextStyles.fontFamilyPoppins,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    maskedNumber,
+                    style: AppTextStyles.labelMedium.copyWith(
+                      color: theme.colorScheme.secondary,
+                      fontFamily: AppTextStyles.fontFamilyPoppins,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (account.isDefault)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.unread,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Default',
+                  style: AppTextStyles.captionSmall.copyWith(
+                    color: AppColors.blueDeep,
+                    fontFamily: AppTextStyles.fontFamilyPoppins,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              )
+            else
+              GestureDetector(
+                onTap: onDelete,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.errorBg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: SvgPicture.asset(
+                    'assets/images/delete.svg',
+                    height: 14,
+                    width: 14,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

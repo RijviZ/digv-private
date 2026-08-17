@@ -84,7 +84,7 @@ class SetupWelcomeScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed: () => context.push('/home'),
+                      onPressed: () => context.go('/home'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         foregroundColor: theme.colorScheme.primary,

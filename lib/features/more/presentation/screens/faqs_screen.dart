@@ -18,6 +18,8 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategoryKey = 'ALL';
   int? _expandedFaqIndex;
+  final Map<String, bool> _userVotes = {};
+  final Set<String> _submittingFaqIds = {};
 
   @override
   void dispose() {
@@ -49,7 +51,7 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
                 title: 'FAQS',
                 subtitle: 'Loading questions...',
               ),
-              error: (_, __) => const AppTopBar(
+              error: (_, _) => const AppTopBar(
                 title: 'FAQS',
                 subtitle: 'Error loading FAQs',
               ),
@@ -143,30 +145,56 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
   }
 
   Future<void> _handleFeedback(String faqId, bool isHelpful) async {
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Submitting feedback...'),
-          duration: Duration(milliseconds: 500),
-        ),
-      );
-      
-      await ref.read(faqProvider.notifier).submitFeedback(faqId: faqId, isHelpful: isHelpful);
-      
+    if (_submittingFaqIds.contains(faqId)) return;
+
+    if (_userVotes.containsKey(faqId)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isHelpful ? 'Thank you for your helpful feedback!' : 'Feedback submitted successfully.'),
+          content: const Text('You have already submitted feedback for this question.'),
           backgroundColor: Theme.of(context).colorScheme.primary,
           duration: const Duration(seconds: 2),
         ),
       );
+      return;
+    }
+
+    setState(() {
+      _submittingFaqIds.add(faqId);
+    });
+
+    try {
+      await ref.read(faqProvider.notifier).submitFeedback(faqId: faqId, isHelpful: isHelpful);
+      if (mounted) {
+        setState(() {
+          _userVotes[faqId] = isHelpful;
+        });
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isHelpful ? 'Thank you for your helpful feedback!' : 'Feedback submitted successfully.'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to submit feedback: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit feedback: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submittingFaqIds.remove(faqId);
+        });
+      }
     }
   }
 
@@ -318,6 +346,9 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
   }
 
   Widget _buildFaqItem(FaqItem item, bool isExpanded, int index) {
+    final userVote = _userVotes[item.faqId];
+    final isSubmitting = _submittingFaqIds.contains(item.faqId);
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -456,15 +487,25 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
                       _buildFeedbackButton(
                         'assets/images/ThumbsUp.svg',
                         'Helpful (${item.helpfulCount})',
-                        color: AppColors.textDark,
-                        onTap: () => _handleFeedback(item.faqId, true),
+                        color: userVote == true ? AppColors.blueDeep : AppColors.textDark,
+                        isSelected: userVote == true,
+                        isDisabled: userVote != null || isSubmitting,
+                        activeBgColor: AppColors.unread,
+                        activeBorderColor: AppColors.inputBorderSecondary,
+                        activeTextColor: AppColors.blueDeep,
+                        onTap: isSubmitting ? null : () => _handleFeedback(item.faqId, true),
                       ),
                       const SizedBox(width: 8),
                       _buildFeedbackButton(
                         'assets/images/ThumbsDown.svg',
                         'Not helpful (${item.notHelpfulCount})',
-                        color: AppColors.error,
-                        onTap: () => _handleFeedback(item.faqId, false),
+                        color: userVote == false ? AppColors.dangerText : AppColors.error,
+                        isSelected: userVote == false,
+                        isDisabled: userVote != null || isSubmitting,
+                        activeBgColor: AppColors.dangerBg,
+                        activeBorderColor: AppColors.dangerBorder,
+                        activeTextColor: AppColors.dangerText,
+                        onTap: isSubmitting ? null : () => _handleFeedback(item.faqId, false),
                       ),
                     ],
                   ),
@@ -477,29 +518,53 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
     );
   }
 
-  Widget _buildFeedbackButton(String svgPath, String label, {required Color color, VoidCallback? onTap}) {
+  Widget _buildFeedbackButton(
+    String svgPath,
+    String label, {
+    required Color color,
+    bool isSelected = false,
+    bool isDisabled = false,
+    Color activeBgColor = AppColors.unread,
+    Color activeBorderColor = AppColors.inputBorderSecondary,
+    Color activeTextColor = AppColors.blueDeep,
+    VoidCallback? onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(4),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.bg,
-          border: Border.all(color: AppColors.inputBorder),
+          color: isSelected ? activeBgColor : AppColors.bg,
+          border: Border.all(
+            color: isSelected ? activeBorderColor : AppColors.inputBorder,
+            width: isSelected ? 1.5 : 1.0,
+          ),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SvgPicture.asset(svgPath, width: 14, height: 14, colorFilter: ColorFilter.mode(color, BlendMode.srcIn)),
+            SvgPicture.asset(
+              svgPath,
+              width: 14,
+              height: 14,
+              colorFilter: ColorFilter.mode(
+                isSelected ? color : (isDisabled ? AppColors.textGray : color),
+                BlendMode.srcIn,
+              ),
+            ),
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: isSelected
+                    ? activeTextColor
+                    : (isDisabled ? AppColors.textGray : AppColors.textSecondary),
                 fontSize: 11,
                 fontFamily: AppTextStyles.fontFamilyPoppins,
-                fontWeight: FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 height: 1.50,
               ),
             ),

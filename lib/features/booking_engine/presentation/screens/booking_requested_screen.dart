@@ -171,7 +171,7 @@ class BookingRequestedScreen extends StatelessWidget {
                             context,
                             dummyOrder,
                             onCancelSuccess: () {
-                              context.push('/orders');
+                              context.go('/orders');
                             },
                           );
                         },
@@ -190,7 +190,7 @@ class BookingRequestedScreen extends StatelessWidget {
                       width: double.infinity,
                       height: 52,
                       child: OutlinedButton(
-                        onPressed: () => context.push('/home'),
+                        onPressed: () => context.go('/home'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           foregroundColor: Theme.of(context).colorScheme.primary,

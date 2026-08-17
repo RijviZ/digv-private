@@ -163,9 +163,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               backgroundColor: theme.dividerColor,
                               backgroundImage: _imageFile != null
                                   ? FileImage(_imageFile!)
-                                  : (profileAsync.value?.avatarUrl != null
+                                  : ((profileAsync.value?.avatarUrl != null &&
+                                          profileAsync.value!.avatarUrl!.isNotEmpty)
                                       ? NetworkImage(profileAsync.value!.avatarUrl!)
-                                      : const NetworkImage('https://i.pravatar.cc/96?img=11')) as ImageProvider,
+                                      : const NetworkImage(
+                                          'https://upload.wikimedia.org/wikipedia/commons/9/9e/Placeholder_Person.jpg'))
+                                      as ImageProvider,
                             ),
                           ),
                           const SizedBox(height: 10),

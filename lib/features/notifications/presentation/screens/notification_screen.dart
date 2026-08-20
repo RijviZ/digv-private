@@ -349,16 +349,32 @@ class NotificationsScreen extends ConsumerWidget {
       }
     }
 
-    // 2. Extract serviceRequestId and/or serviceRequestNumber (SBR123456)
-    String? serviceRequestId = notification.data?['serviceRequestId'] as String?;
-    String? serviceRequestNumber = notification.data?['serviceRequestNumber'] as String?;
+    // 2. Extract serviceRequestId and/or serviceRequestNumber (e.g. SBR123456)
+    String? serviceRequestId = notification.data?['serviceRequestId'] as String? ??
+        notification.data?['service_request_id'] as String? ??
+        notification.data?['id'] as String?;
+    String? serviceRequestNumber = notification.data?['serviceRequestNumber'] as String? ??
+        notification.data?['serviceNumber'] as String? ??
+        notification.data?['service_number'] as String? ??
+        notification.data?['orderId'] as String? ??
+        notification.data?['order_id'] as String?;
     
-    // Also try parsing tracking ID from title/body if not in data (e.g. SBR723695)
+    // Also try parsing tracking/service ID from title/body if not in data (e.g. SBR723695, ORD-1234)
     if (serviceRequestNumber == null) {
-      final sbrRegex = RegExp(r'\bSBR\d+\b');
-      final match = sbrRegex.firstMatch(notification.title) ?? sbrRegex.firstMatch(notification.body);
+      final idRegex = RegExp(r'\b(SBR|ORD|SR)[0-9A-Z-]+\b', caseSensitive: false);
+      final match = idRegex.firstMatch(notification.title) ?? idRegex.firstMatch(notification.body);
       if (match != null) {
         serviceRequestNumber = match.group(0);
+      } else if (notification.data != null) {
+        for (final val in notification.data!.values) {
+          if (val is String) {
+            final dataMatch = idRegex.firstMatch(val);
+            if (dataMatch != null) {
+              serviceRequestNumber = dataMatch.group(0);
+              break;
+            }
+          }
+        }
       }
     }
 
@@ -376,6 +392,24 @@ class NotificationsScreen extends ConsumerWidget {
       return;
     }
 
+    // Check if notification itself indicates a review/rating request
+    final typeUpper = notification.type.toUpperCase();
+    final clickActionLower = (notification.clickAction ?? '').toLowerCase();
+    final titleLower = notification.title.toLowerCase();
+    final bodyLower = notification.body.toLowerCase();
+
+    final isExplicitReviewNotification = typeUpper == 'SERVICE_REQUEST_COMPLETED' ||
+        typeUpper.contains('REVIEW') ||
+        typeUpper.contains('RATING') ||
+        typeUpper.contains('FEEDBACK') ||
+        clickActionLower.contains('review') ||
+        clickActionLower.contains('postpaid_payment_success') ||
+        clickActionLower.contains('rate') ||
+        titleLower.contains('review') ||
+        titleLower.contains('rate') ||
+        bodyLower.contains('review') ||
+        bodyLower.contains('rate');
+
     // Show progress dialog
     if (!context.mounted) return;
     showDialog(
@@ -388,19 +422,38 @@ class NotificationsScreen extends ConsumerWidget {
 
     try {
       final ordersRepo = ref.read(ordersRepositoryProvider);
-      // Fetch all service requests to find the match
-      final orders = await ordersRepo.getServiceRequests();
-      
       OrderItem? matchedOrder;
-      for (final order in orders) {
-        if (serviceRequestId != null && order.id == serviceRequestId) {
-          matchedOrder = order;
-          break;
-        }
-        if (serviceRequestNumber != null && order.orderId == serviceRequestNumber) {
-          matchedOrder = order;
-          break;
-        }
+
+      // Fetch across all statuses to ensure completed/past orders are found
+      final targetKey = serviceRequestId ?? serviceRequestNumber;
+      final statusesToSearch = [null, 'PAST', 'ACTIVE', 'UPCOMING', 'CANCELLED'];
+
+      for (final status in statusesToSearch) {
+        try {
+          final orders = await ordersRepo.getServiceRequests(status: status);
+          for (final order in orders) {
+            if (serviceRequestId != null && order.id == serviceRequestId) {
+              matchedOrder = order;
+              break;
+            }
+            if (serviceRequestNumber != null &&
+                (order.orderId == serviceRequestNumber ||
+                    order.orderId.replaceAll(' ', '').toUpperCase() ==
+                        serviceRequestNumber.replaceAll(' ', '').toUpperCase())) {
+              matchedOrder = order;
+              break;
+            }
+            if (targetKey != null &&
+                (order.id == targetKey ||
+                    order.orderId == targetKey ||
+                    order.orderId.replaceAll(' ', '').toUpperCase() ==
+                        targetKey.replaceAll(' ', '').toUpperCase())) {
+              matchedOrder = order;
+              break;
+            }
+          }
+          if (matchedOrder != null) break;
+        } catch (_) {}
       }
 
       // Pop the loading dialog
@@ -408,23 +461,39 @@ class NotificationsScreen extends ConsumerWidget {
         Navigator.of(context).pop();
       }
 
+      final isReview = isExplicitReviewNotification || (matchedOrder?.status == OrderBadgeStatus.completed);
+
       if (matchedOrder != null) {
         if (context.mounted) {
-          context.push('/order_tracking', extra: matchedOrder);
+          if (isReview) {
+            context.push('/postpaid_payment_success', extra: matchedOrder);
+          } else {
+            context.push('/order_tracking', extra: matchedOrder);
+          }
         }
       } else {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Order not found or access denied')),
-          );
+          final fallbackId = serviceRequestId ?? serviceRequestNumber;
+          if (isReview && fallbackId != null) {
+            context.push('/postpaid_payment_success', extra: fallbackId);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Order not found or access denied')),
+            );
+          }
         }
       }
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load order: $e')),
-        );
+        final fallbackId = serviceRequestId ?? serviceRequestNumber;
+        if (isExplicitReviewNotification && fallbackId != null) {
+          context.push('/postpaid_payment_success', extra: fallbackId);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to load order: $e')),
+          );
+        }
       }
     }
   }

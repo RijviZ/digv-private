@@ -239,8 +239,55 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/postpaid_payment_success',
       builder: (context, state) {
-        final serviceRequestId = state.extra as String? ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111';
-        return PostpaidPaymentSuccessScreen(serviceRequestId: serviceRequestId);
+        final extra = state.extra;
+        String? serviceRequestId;
+        if (extra is String) {
+          serviceRequestId = extra;
+        } else if (extra is Map<String, dynamic>) {
+          serviceRequestId = extra['serviceRequestId'] as String? ??
+              extra['serviceRequestNumber'] as String? ??
+              extra['serviceNumber'] as String?;
+        } else if (extra is OrderItem) {
+          serviceRequestId = extra.id;
+        }
+        serviceRequestId ??= state.uri.queryParameters['serviceRequestId'] ??
+            state.uri.queryParameters['serviceNumber'] ??
+            state.uri.queryParameters['serviceRequestNumber'] ??
+            state.uri.queryParameters['service_number'] ??
+            state.uri.queryParameters['orderId'] ??
+            state.uri.queryParameters['id'];
+
+        return PostpaidPaymentSuccessScreen(
+          serviceRequestId: serviceRequestId ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111',
+          initialOrder: extra is OrderItem ? extra : null,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/review',
+      builder: (context, state) {
+        final extra = state.extra;
+        String? serviceRequestId;
+        if (extra is String) {
+          serviceRequestId = extra;
+        } else if (extra is Map<String, dynamic>) {
+          serviceRequestId = extra['serviceRequestId'] as String? ??
+              extra['serviceRequestNumber'] as String? ??
+              extra['serviceNumber'] as String?;
+        } else if (extra is OrderItem) {
+          serviceRequestId = extra.id;
+        }
+        serviceRequestId ??= state.uri.queryParameters['serviceRequestId'] ??
+            state.uri.queryParameters['serviceNumber'] ??
+            state.uri.queryParameters['serviceRequestNumber'] ??
+            state.uri.queryParameters['service_number'] ??
+            state.uri.queryParameters['orderId'] ??
+            state.uri.queryParameters['id'];
+
+        return PostpaidPaymentSuccessScreen(
+          serviceRequestId: serviceRequestId ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111',
+          initialOrder: extra is OrderItem ? extra : null,
+        );
       },
     ),
     GoRoute(

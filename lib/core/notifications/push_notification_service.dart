@@ -61,43 +61,11 @@ class PushNotificationService {
           if (response.payload != null && response.payload!.isNotEmpty) {
             try {
               final Map<String, dynamic> data = jsonDecode(response.payload!) as Map<String, dynamic>;
-              String? serviceRequestId = data['serviceRequestId'] as String?;
-              String? serviceRequestNumber = data['serviceRequestNumber'] as String?;
-
-              if (serviceRequestId == null && data['clickAction'] != null) {
-                final clickAction = data['clickAction'] as String;
-                final uriParts = clickAction.split('/');
-                if (uriParts.isNotEmpty) {
-                  final lastPart = uriParts.last;
-                  if (lastPart.length >= 32) {
-                    serviceRequestId = lastPart;
-                  }
-                }
-              }
-
-              // Fallback to scan values for SBR ID
-              if (serviceRequestNumber == null) {
-                final sbrRegex = RegExp(r'\bSBR\d+\b');
-                for (final val in data.values) {
-                  if (val is String) {
-                    final match = sbrRegex.firstMatch(val);
-                    if (match != null) {
-                      serviceRequestNumber = match.group(0);
-                      break;
-                    }
-                  }
-                }
-              }
-
-              if (serviceRequestId != null) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  appRouter.push('/order_tracking', extra: serviceRequestId);
-                });
-              } else if (serviceRequestNumber != null) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  appRouter.push('/order_tracking', extra: serviceRequestNumber);
-                });
-              }
+              _handleNotificationRedirect(
+                data: data,
+                title: data['title'] as String?,
+                body: data['body'] as String?,
+              );
             } catch (e) {
               print('[NOTIF_DEBUG] Error handling local notification tap: $e');
             }
@@ -142,40 +110,11 @@ class PushNotificationService {
           .getInitialMessage();
       if (initialMessage != null) {
         print('[NOTIF_DEBUG] App opened from terminated state notification: ${initialMessage.notification?.title}');
-        final data = initialMessage.data;
-        String? serviceRequestId = data['serviceRequestId'] as String?;
-        String? serviceRequestNumber = data['serviceRequestNumber'] as String?;
-
-        if (serviceRequestId == null && data['clickAction'] != null) {
-          final clickAction = data['clickAction'] as String;
-          final uriParts = clickAction.split('/');
-          if (uriParts.isNotEmpty) {
-            final lastPart = uriParts.last;
-            if (lastPart.length >= 32) {
-              serviceRequestId = lastPart;
-            }
-          }
-        }
-
-        if (serviceRequestNumber == null) {
-          final sbrRegex = RegExp(r'\bSBR\d+\b');
-          final title = initialMessage.notification?.title ?? '';
-          final body = initialMessage.notification?.body ?? '';
-          final match = sbrRegex.firstMatch(title) ?? sbrRegex.firstMatch(body);
-          if (match != null) {
-            serviceRequestNumber = match.group(0);
-          }
-        }
-
-        if (serviceRequestId != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            appRouter.push('/order_tracking', extra: serviceRequestId);
-          });
-        } else if (serviceRequestNumber != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            appRouter.push('/order_tracking', extra: serviceRequestNumber);
-          });
-        }
+        _handleNotificationRedirect(
+          data: initialMessage.data,
+          title: initialMessage.notification?.title,
+          body: initialMessage.notification?.body,
+        );
       }
 
       // Get and print the FCM token immediately during init
@@ -219,7 +158,11 @@ class PushNotificationService {
                 presentSound: true,
               ),
             ),
-            payload: jsonEncode(message.data),
+            payload: jsonEncode({
+              ...message.data,
+              'title': notification.title,
+              'body': notification.body,
+            }),
           );
           print('[NOTIF_DEBUG] ✅ Local notification show() called');
         } else {
@@ -231,40 +174,11 @@ class PushNotificationService {
       // Handle message clicks when app is opened from a notification
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         print('[NOTIF_DEBUG] User tapped on notification: ${message.notification?.title}');
-        final data = message.data;
-        String? serviceRequestId = data['serviceRequestId'] as String?;
-        String? serviceRequestNumber = data['serviceRequestNumber'] as String?;
-
-        if (serviceRequestId == null && data['clickAction'] != null) {
-          final clickAction = data['clickAction'] as String;
-          final uriParts = clickAction.split('/');
-          if (uriParts.isNotEmpty) {
-            final lastPart = uriParts.last;
-            if (lastPart.length >= 32) {
-              serviceRequestId = lastPart;
-            }
-          }
-        }
-
-        if (serviceRequestNumber == null) {
-          final sbrRegex = RegExp(r'\bSBR\d+\b');
-          final title = message.notification?.title ?? '';
-          final body = message.notification?.body ?? '';
-          final match = sbrRegex.firstMatch(title) ?? sbrRegex.firstMatch(body);
-          if (match != null) {
-            serviceRequestNumber = match.group(0);
-          }
-        }
-
-        if (serviceRequestId != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            appRouter.push('/order_tracking', extra: serviceRequestId);
-          });
-        } else if (serviceRequestNumber != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            appRouter.push('/order_tracking', extra: serviceRequestNumber);
-          });
-        }
+        _handleNotificationRedirect(
+          data: message.data,
+          title: message.notification?.title,
+          body: message.notification?.body,
+        );
       });
 
       // Listen for token refresh
@@ -278,6 +192,80 @@ class PushNotificationService {
       print('[NOTIF_DEBUG] ❌ INITIALIZATION FAILED: $e');
       print('[NOTIF_DEBUG] ❌ Stack trace: $stackTrace');
     }
+  }
+
+  void _handleNotificationRedirect({
+    required Map<String, dynamic> data,
+    String? title,
+    String? body,
+  }) {
+    String? serviceRequestId = data['serviceRequestId'] as String?;
+    String? serviceRequestNumber = data['serviceRequestNumber'] as String? ??
+        data['serviceNumber'] as String? ??
+        data['service_number'] as String? ??
+        data['orderId'] as String?;
+
+    if (serviceRequestId == null && data['clickAction'] != null) {
+      final clickAction = data['clickAction'] as String;
+      final uriParts = clickAction.split('/');
+      if (uriParts.isNotEmpty) {
+        final lastPart = uriParts.last;
+        if (lastPart.length >= 32) {
+          serviceRequestId = lastPart;
+        }
+      }
+    }
+
+    if (serviceRequestNumber == null) {
+      final sbrRegex = RegExp(r'\bSBR\d+\b', caseSensitive: false);
+      if (title != null) {
+        final match = sbrRegex.firstMatch(title);
+        if (match != null) serviceRequestNumber = match.group(0);
+      }
+      if (serviceRequestNumber == null && body != null) {
+        final match = sbrRegex.firstMatch(body);
+        if (match != null) serviceRequestNumber = match.group(0);
+      }
+      if (serviceRequestNumber == null) {
+        for (final val in data.values) {
+          if (val is String) {
+            final match = sbrRegex.firstMatch(val);
+            if (match != null) {
+              serviceRequestNumber = match.group(0);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    final targetId = serviceRequestId ?? serviceRequestNumber;
+    if (targetId == null) return;
+
+    final type = (data['type'] as String? ?? '').toUpperCase();
+    final clickAction = (data['clickAction'] as String? ?? '').toLowerCase();
+    final fullText = '${title ?? ''} ${body ?? ''} ${data['action'] ?? ''}'.toLowerCase();
+
+    final isReview = type == 'SERVICE_REQUEST_COMPLETED' ||
+        type.contains('REVIEW') ||
+        type.contains('RATING') ||
+        type.contains('FEEDBACK') ||
+        clickAction.contains('review') ||
+        clickAction.contains('postpaid_payment_success') ||
+        clickAction.contains('rate') ||
+        fullText.contains('review') ||
+        fullText.contains('rate your') ||
+        fullText.contains('rate experience') ||
+        fullText.contains('feedback') ||
+        fullText.contains('completed');
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isReview) {
+        appRouter.push('/postpaid_payment_success', extra: targetId);
+      } else {
+        appRouter.push('/order_tracking', extra: targetId);
+      }
+    });
   }
 
   /// Gets the Firebase Cloud Messaging device token with a fallback.

@@ -12,10 +12,12 @@ import 'package:digv/features/orders/domain/models/order_item.dart';
 
 class PostpaidPaymentSuccessScreen extends ConsumerStatefulWidget {
   final String serviceRequestId;
+  final OrderItem? initialOrder;
 
   const PostpaidPaymentSuccessScreen({
     super.key,
     required this.serviceRequestId,
+    this.initialOrder,
   });
 
   @override
@@ -32,18 +34,42 @@ class _PostpaidPaymentSuccessScreenState
   bool _isSubmitting = false;
   bool _isLoadingReview = true;
   String? _existingReviewId;
+  OrderItem? _resolvedOrder;
 
   @override
   void initState() {
     super.initState();
+    _resolvedOrder = widget.initialOrder;
     _fetchExistingReview();
   }
 
   Future<void> _fetchExistingReview() async {
     try {
       final repository = ref.read(ordersRepositoryProvider);
+
+      if (_resolvedOrder == null) {
+        try {
+          final orders = await repository.getServiceRequests();
+          for (final order in orders) {
+            if (order.id == widget.serviceRequestId ||
+                order.orderId == widget.serviceRequestId ||
+                order.orderId.replaceAll(' ', '') ==
+                    widget.serviceRequestId.replaceAll(' ', '')) {
+              if (mounted) {
+                setState(() {
+                  _resolvedOrder = order;
+                });
+              }
+              break;
+            }
+          }
+        } catch (_) {}
+      }
+
+      final effectiveId = _resolvedOrder?.id ?? widget.serviceRequestId;
+
       final review = await repository.getGivenReviewByServiceRequestId(
-        serviceRequestId: widget.serviceRequestId,
+        serviceRequestId: effectiveId,
       );
       if (review != null && mounted) {
         setState(() {
@@ -67,12 +93,16 @@ class _PostpaidPaymentSuccessScreenState
   }
 
   OrderItem? _findOrder() {
+    if (_resolvedOrder != null) return _resolvedOrder;
     for (final status in [null, 'ACTIVE', 'PAST', 'UPCOMING', 'CANCELLED']) {
       try {
         final ordersAsync = ref.read(ordersProvider(status));
         if (ordersAsync is AsyncData<List<OrderItem>>) {
           for (final order in ordersAsync.value) {
-            if (order.id == widget.serviceRequestId) {
+            if (order.id == widget.serviceRequestId ||
+                order.orderId == widget.serviceRequestId ||
+                order.orderId.replaceAll(' ', '') ==
+                    widget.serviceRequestId.replaceAll(' ', '')) {
               return order;
             }
           }
@@ -129,6 +159,8 @@ class _PostpaidPaymentSuccessScreenState
         tags.addAll(['Late', 'Poor Communication']);
       }
 
+      final effectiveId = _resolvedOrder?.id ?? widget.serviceRequestId;
+
       if (_existingReviewId != null) {
         await repository.updateReview(
           id: _existingReviewId!,
@@ -139,7 +171,7 @@ class _PostpaidPaymentSuccessScreenState
         );
       } else {
         await repository.submitReview(
-          serviceRequestId: widget.serviceRequestId,
+          serviceRequestId: effectiveId,
           targetType: 'PROVIDER',
           rating: _rating,
           comment: _reviewController.text.trim(),

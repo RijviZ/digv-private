@@ -20,6 +20,9 @@ analyzer:
   exclude:
     - "bin/**"
     - "lib/generated_plugin_registrant.dart"
+    - build/**
+    - android/**
+    - ios/**
 
 linter:
   rules:

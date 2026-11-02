@@ -18,6 +18,28 @@ class FaqItem {
     required this.helpfulCount,
     required this.notHelpfulCount,
   });
+
+  FaqItem copyWith({
+    String? faqId,
+    String? type,
+    String? question,
+    String? answer,
+    int? sortOrder,
+    bool? isActive,
+    int? helpfulCount,
+    int? notHelpfulCount,
+  }) {
+    return FaqItem(
+      faqId: faqId ?? this.faqId,
+      type: type ?? this.type,
+      question: question ?? this.question,
+      answer: answer ?? this.answer,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isActive: isActive ?? this.isActive,
+      helpfulCount: helpfulCount ?? this.helpfulCount,
+      notHelpfulCount: notHelpfulCount ?? this.notHelpfulCount,
+    );
+  }
 }
 
 class FaqData {

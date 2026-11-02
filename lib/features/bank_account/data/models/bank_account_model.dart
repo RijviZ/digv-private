@@ -23,34 +23,58 @@ class BankAccountModel extends BankAccount {
 
   factory BankAccountModel.fromJson(Map<String, dynamic> json) {
     return BankAccountModel(
-      userBankAccountId: json['userBankAccountId'] as String,
-      userId: json['userId'] as String,
-      accountHolderName: json['accountHolderName'] as String,
-      bankName: json['bankName'] as String,
-      accountNumber: json['accountNumber'] as String,
-      ifscCode: json['ifscCode'] as String,
-      branchName: json['branchName'] as String,
-      accountType: json['accountType'] as String,
-      isVerified: json['isVerified'] as bool,
-      verifiedAt: json['verifiedAt'] != null 
-          ? DateTime.parse(json['verifiedAt'] as String) 
+      userBankAccountId: (json['userBankInfoId'] as String?) ??
+          (json['userBankAccountId'] as String?) ??
+          (json['id'] as String?) ??
+          '',
+      userId: (json['userId'] as String?) ?? '',
+      accountHolderName: (json['accountHolderName'] as String?) ?? '',
+      bankName: (json['bankName'] as String?) ?? '',
+      accountNumber: (json['accountNo'] as String?) ??
+          (json['accountNumber'] as String?) ??
+          '',
+      ifscCode: (json['ifscCode'] as String?) ?? '',
+      branchName: (json['branchName'] as String?) ?? '',
+      accountType: (json['accountType'] as String?) ?? '',
+      isVerified: (json['isVerified'] as bool?) ?? false,
+      verifiedAt: json['verifiedAt'] != null
+          ? DateTime.tryParse(json['verifiedAt'] as String)
           : null,
       verifiedByAdminId: json['verifiedByAdminId'] as String?,
       verificationNote: json['verificationNote'] as String?,
       verificationResponse: json['verificationResponse'] as Map<String, dynamic>?,
-      isDefault: json['isDefault'] as bool,
-      isActive: json['isActive'] as bool,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      isDefault: (json['isDefault'] as bool?) ?? false,
+      isActive: (json['isActive'] as bool?) ?? true,
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'] as String) ?? DateTime.now()
+          : DateTime.now(),
     );
+  }
+
+  /// Whitelisted payload for POST /users/bank-accounts as per Swagger DTO
+  Map<String, dynamic> toCreateJson() {
+    return {
+      'accountHolderName': accountHolderName,
+      'bankName': bankName,
+      'accountNo': accountNumber,
+      'ifscCode': ifscCode,
+      'branchName': branchName.isNotEmpty ? branchName : 'Main Branch',
+      'accountType': accountType.isNotEmpty ? accountType : 'SAVINGS',
+      'isDefault': isDefault,
+    };
   }
 
   Map<String, dynamic> toJson() {
     return {
       'userBankAccountId': userBankAccountId,
+      'userBankInfoId': userBankAccountId,
       'userId': userId,
       'accountHolderName': accountHolderName,
       'bankName': bankName,
+      'accountNo': accountNumber,
       'accountNumber': accountNumber,
       'ifscCode': ifscCode,
       'branchName': branchName,

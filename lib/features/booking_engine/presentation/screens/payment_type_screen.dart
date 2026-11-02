@@ -62,36 +62,28 @@ class _PaymentTypeScreenState extends ConsumerState<PaymentTypeScreen> {
       final date = updatedDetails['date'] as DateItem?;
       final address = updatedDetails['address'] as Address?;
       final timeStr = updatedDetails['time'] as String? ?? '';
+
+      if (address == null || address.userLocationId.isEmpty) {
+        throw Exception('Please select a valid address before proceeding.');
+      }
       
       final scheduledDateStr = date != null ? _formatScheduledDate(date) : '2026-05-10';
       
       final timeParts = timeStr.split('|');
       final slotId = timeParts.length > 1 ? timeParts[1] : '11111111-1111-4111-8111-111111111111';
       
-      final baseAmount = updatedDetails['amount'] as int? ?? 0;
       final quantity = updatedDetails['quantity'] as int? ?? 1;
-      final realAmount = baseAmount * quantity;
 
       final payload = {
         'providerId': technician?.providerId ?? '2f4a8f15-3c10-4d1a-9821-111111111111',
         'providerServiceId': technician?.providerServiceId ?? service?.serviceId ?? '7a8b9c10-1111-4d1a-9821-222222222222',
+        'userLocationId': address.userLocationId,
         'scheduledDate': scheduledDateStr,
         'availabilitySlotIds': [
           slotId
         ],
         'quantity': quantity,
         'description': 'Need service booking for ${service?.title ?? "Regular Service"}.',
-        'paymentMethod': updatedDetails['paymentMethod'] as String? ?? 'CASH',
-        'collectionType': updatedDetails['collectionType'] as String? ?? 'POSTPAID',
-        'gatewayReference': 'MANUAL-REF-001',
-        'paymentAmount': realAmount.toDouble().toStringAsFixed(2),
-        'addressLabel': address?.label ?? 'Home',
-        'addressLine': address?.addressLine ?? 'House 12, Road 5, Dhanmondi',
-        'city': address?.city ?? 'Dhaka',
-        'state': address?.state ?? 'Dhaka',
-        'postalCode': address?.postalCode ?? '1209',
-        'serviceLat': address?.lat ?? 23.7465,
-        'serviceLng': address?.lng ?? 90.376
       };
 
       // Make the service request POST call
@@ -99,16 +91,19 @@ class _PaymentTypeScreenState extends ConsumerState<PaymentTypeScreen> {
 
       if (mounted) {
         final createdId = bookingRes['serviceRequestId'] as String? ?? bookingRes['data']?['serviceRequestId'] as String? ?? '';
-        
+        final serviceRequestNumber = bookingRes['serviceRequestNumber'] as String? ??
+            bookingRes['data']?['serviceRequestNumber'] as String? ??
+            'ORD-${createdId.isNotEmpty ? (createdId.length >= 4 ? createdId.substring(0, 4).toUpperCase() : createdId.toUpperCase()) : '8063'}';
+
         final scheduledTime = date != null ? '${date.date} ${date.month} · ${timeStr.split('|')[0]}' : 'Tomorrow · 10:00 AM';
-        final locationStr = address != null ? '${address.label ?? 'Home'} — ${address.addressLine}' : 'Home';
+        final locationStr = '${address.label ?? 'Home'} — ${address.addressLine}';
         final priceStr = '₹${widget.amount}';
 
         final orderItem = OrderItem(
           id: createdId,
           providerId: technician?.providerId,
           serviceName: service?.title ?? 'Service Request',
-          orderId: 'ORD-${createdId.isNotEmpty ? createdId.substring(0, 4).toUpperCase() : '8063'}',
+          orderId: serviceRequestNumber,
           status: OrderBadgeStatus.active,
           scheduledTime: scheduledTime,
           location: locationStr,
@@ -125,7 +120,12 @@ class _PaymentTypeScreenState extends ConsumerState<PaymentTypeScreen> {
         try {
           final dynamic errorData = (e as dynamic).response?.data;
           if (errorData is Map && errorData['message'] != null) {
-            errorMessage = errorData['message'].toString();
+            final msg = errorData['message'];
+            if (msg is List) {
+              errorMessage = msg.join('\n');
+            } else {
+              errorMessage = msg.toString();
+            }
           } else {
             errorMessage = e.toString();
           }

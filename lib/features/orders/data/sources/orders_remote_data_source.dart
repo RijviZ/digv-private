@@ -30,6 +30,7 @@ abstract class OrdersRemoteDataSource {
     required List<String> tags,
     required List<String> photos,
   });
+  Future<Map<String, dynamic>> getServiceRequestById(String id);
 }
 
 class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
@@ -167,5 +168,18 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
       data: payload,
     );
     return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getServiceRequestById(String id) async {
+    final response = await _dio.get('/users/serviceRequest/$id');
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      if (data['data'] is Map<String, dynamic>) {
+        return data['data'] as Map<String, dynamic>;
+      }
+      return data;
+    }
+    return {};
   }
 }

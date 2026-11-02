@@ -34,6 +34,8 @@ class AppColors {
   static const Color blue = Color(0xFF1D4ED8);
   static const Color blueDeep = Color(0xFF1E40AF);
   static const Color unread = Color(0xFFEFF6FF);
+  static const Color purple = Color(0xFF7C3AED);
+  static const Color purpleBg = Color(0xFFF5F3FF);
 
   // Dark Mode colors (suggested/mapped)
   static const Color bgDark = Color(0xFF111827);

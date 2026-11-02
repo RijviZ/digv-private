@@ -190,6 +190,10 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
       final quantity = widget.bookingDetails['quantity'] as int? ?? 1;
       final baseAmount = (technician?.pricePerVisit ?? 0) * quantity;
 
+      if (address == null || address.userLocationId.isEmpty) {
+        throw Exception('Please select a valid address before proceeding.');
+      }
+
       // 4. Create the booking / service request first without passing client-side IDs
       final payload = {
         'providerId':
@@ -198,24 +202,12 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
             technician?.providerServiceId ??
             service?.serviceId ??
             '7a8b9c10-1111-4d1a-9821-222222222222',
+        'userLocationId': address.userLocationId,
         'scheduledDate': scheduledDateStr,
         'availabilitySlotIds': [slotId],
         'quantity': quantity,
         'description':
             'Need service booking for ${service?.title ?? "Regular Service"}.',
-        'paymentMethod':
-            widget.bookingDetails['paymentMethod'] as String? ?? 'CARD',
-        'collectionType':
-            widget.bookingDetails['collectionType'] as String? ?? 'PREPAID',
-        'gatewayReference': gatewayRef,
-        'paymentAmount': baseAmount.toDouble().toStringAsFixed(2),
-        'addressLabel': address?.label ?? 'Home',
-        'addressLine': address?.addressLine ?? 'House 12, Road 5, Dhanmondi',
-        'city': address?.city ?? 'Dhaka',
-        'state': address?.state ?? 'Dhaka',
-        'postalCode': address?.postalCode ?? '1209',
-        'serviceLat': address?.lat ?? 23.7465,
-        'serviceLng': address?.lng ?? 90.376,
       };
 
       final bookingRes = await ref
@@ -248,7 +240,6 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
             serviceRequestId: serviceRequestId,
             method: method,
             collectionType: 'PREPAID',
-            amount: baseAmount.toDouble().toStringAsFixed(2),
             gatewayReference: gatewayRef,
             note: 'Prepaid checkout payment',
           );
@@ -256,6 +247,8 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
       final paymentId =
           paymentRes['paymentId'] as String? ??
           paymentRes['data']?['paymentId'] as String? ??
+          paymentRes['id'] as String? ??
+          paymentRes['data']?['id'] as String? ??
           '';
 
       if (paymentId.isEmpty) {
@@ -267,20 +260,23 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
           .read(paymentsNotifierProvider.notifier)
           .confirmPayment(
             paymentId: paymentId,
-            gatewayTransactionId: gatewayRef,
             gatewayResponse: const {'provider': 'MANUAL', 'status': 'SUCCESS'},
           );
 
       if (mounted) {
+        final serviceRequestNumber = bookingRes['serviceRequestNumber'] as String? ??
+            bookingRes['data']?['serviceRequestNumber'] as String? ??
+            'ORD-${serviceRequestId.isNotEmpty ? (serviceRequestId.length >= 4 ? serviceRequestId.substring(0, 4).toUpperCase() : serviceRequestId.toUpperCase()) : '8063'}';
+
         final orderItem = OrderItem(
           id: serviceRequestId,
           providerId: technician?.providerId,
           serviceName: service?.title ?? 'Regular Service',
-          orderId: 'ORD-${serviceRequestId.substring(0, 4).toUpperCase()}',
+          orderId: serviceRequestNumber,
           status: OrderBadgeStatus.active,
           scheduledTime:
               '${date?.date ?? ""} ${date?.month ?? ""} · ${timeStr.split("|")[0]}',
-          location: address?.label ?? 'Home',
+          location: address.label ?? 'Home',
           technicianName: technician?.name ?? 'Arjun Kumar',
           technicianImageUrl: technician?.avatarUrl,
           price: '₹$baseAmount',
@@ -295,7 +291,12 @@ class _PaymentGatewayScreenState extends ConsumerState<PaymentGatewayScreen> {
         try {
           final dynamic errorData = (e as dynamic).response?.data;
           if (errorData is Map && errorData['message'] != null) {
-            errorMessage = errorData['message'].toString();
+            final msg = errorData['message'];
+            if (msg is List) {
+              errorMessage = msg.join('\n');
+            } else {
+              errorMessage = msg.toString();
+            }
           } else {
             errorMessage = e.toString();
           }

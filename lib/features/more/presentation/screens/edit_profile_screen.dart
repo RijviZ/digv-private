@@ -1,8 +1,5 @@
 import 'dart:io';
 
-import 'package:digv/I10n/app_localizations.dart';
-import 'package:digv/core/theme/app_colors.dart';
-import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,8 +7,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../I10n/app_localizations.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/snackbar_utils.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -24,7 +24,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  
+
   String? _selectedGender;
   DateTime? _selectedDob;
   File? _imageFile;
@@ -77,8 +77,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _saveChanges() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isNotEmpty && !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(email)) {
+      SnackBarUtils.showError(context, 'Please enter a valid email address');
+      return;
+    }
+
     final notifier = ref.read(authProvider.notifier);
-    
+
     try {
       String? avatarUrl;
       if (_imageFile != null) {
@@ -90,8 +96,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       final data = {
         "fullName": _nameCtrl.text.trim(),
         "gender": _selectedGender,
-        "email": _emailCtrl.text.trim(),
-        "dateOfBirth": _selectedDob != null ? DateFormat('yyyy-MM-dd').format(_selectedDob!) : null,
+        "email": email,
+        "dateOfBirth":
+            _selectedDob != null ? DateFormat('yyyy-MM-dd').format(_selectedDob!) : null,
         "avatarUrl": avatarUrl,
       };
 
@@ -102,7 +109,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        SnackBarUtils.showError(context, e.toString());
+        String errorMsg = e.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '').trim();
+        final lower = errorMsg.toLowerCase();
+        if (errorMsg == 'E' ||
+            errorMsg.length <= 1 ||
+            lower.contains('duplicate') ||
+            lower.contains('already exists') ||
+            lower.contains('already in use') ||
+            lower.contains('already registered') ||
+            lower.contains('409')) {
+          errorMsg = 'This email is already in use by another account. Please use a different email.';
+        }
+        SnackBarUtils.showError(context, errorMsg);
       }
     }
   }
@@ -199,7 +217,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     const SizedBox(height: 12),
                     _PhoneField(controller: _phoneCtrl),
                     const SizedBox(height: 12),
-                    
+
                     // Gender Dropdown
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -220,8 +238,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           ),
                           isExpanded: true,
                           items: ['male', 'female', 'other'].map((String value) {
-                            final label = value == 'male' 
-                                ? l10n.male 
+                            final label = value == 'male'
+                                ? l10n.male
                                 : (value == 'female' ? l10n.female : l10n.other);
                             return DropdownMenuItem<String>(
                               value: value,
@@ -372,68 +390,122 @@ class _PhoneField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final disabledBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
+    final disabledTextColor = theme.colorScheme.onSurface.withValues(alpha: 0.5);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.dividerColor),
-      ),
-      child: Row(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Phone number is linked to your account and cannot be changed',
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
+                backgroundColor: const Color(0xFF374151),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: disabledBg,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: theme.dividerColor.withValues(alpha: 0.8)),
+            ),
             child: Row(
               children: [
-                const Text('🇮🇳', style: TextStyle(fontSize: 18)),
-                const SizedBox(width: 6),
-                Text(
-                  '+91',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: theme.colorScheme.onSurface,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      const Text('🇮🇳', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 6),
+                      Text(
+                        '+91',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: disabledTextColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: theme.dividerColor.withValues(alpha: 0.8),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    enabled: false,
+                    readOnly: true,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: disabledTextColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: const InputDecoration(
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.lock_outline_rounded,
+                        size: 16,
+                        color: theme.colorScheme.secondary.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.successSecondaryBg,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'Verified',
+                          style: AppTextStyles.captionSmall.copyWith(
+                            color: AppColors.success,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          Container(width: 1, height: 40, color: theme.dividerColor),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              readOnly: true, // Phone number is usually not editable in profile edit
-              keyboardType: TextInputType.phone,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: theme.colorScheme.onSurface,
-              ),
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.all(16),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                suffixIconConstraints: const BoxConstraints(
-                  minHeight: 20,
-                  minWidth: 20,
-                  maxHeight: 20,
-                  maxWidth: 36,
-                ),
-                suffixIcon: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SvgPicture.asset(
-                    'assets/images/CheckCircle.svg',
-                    height: 20,
-                    width: 20,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.success,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                ),
-              ),
+        ),
+        const SizedBox(height: 4),
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            'Phone number cannot be changed',
+            style: TextStyle(
+              fontSize: 11,
+              fontFamily: AppTextStyles.fontFamilyPoppins,
+              color: theme.colorScheme.secondary.withValues(alpha: 0.8),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
-

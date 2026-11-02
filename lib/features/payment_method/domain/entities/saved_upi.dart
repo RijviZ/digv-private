@@ -28,4 +28,24 @@ class SavedUpi {
       isDefault: isDefault ?? this.isDefault,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'upiId': upiId,
+      'emoji': emoji,
+      'isDefault': isDefault,
+    };
+  }
+
+  factory SavedUpi.fromJson(Map<String, dynamic> json) {
+    return SavedUpi(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      upiId: json['upiId'] as String? ?? '',
+      emoji: json['emoji'] as String? ?? '🪙',
+      isDefault: json['isDefault'] as bool? ?? false,
+    );
+  }
 }

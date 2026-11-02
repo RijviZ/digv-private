@@ -17,6 +17,7 @@ import 'package:digv/features/booking_engine/presentation/screens/review_booking
 import 'package:digv/features/booking_engine/presentation/screens/select_date_and_time_screen.dart';
 import 'package:digv/features/booking_engine/presentation/screens/select_technician_screen.dart';
 import 'package:digv/features/booking_engine/presentation/screens/service_details_screen.dart';
+import 'package:digv/features/home_discovery/presentation/screens/services_list_screen.dart';
 import 'package:digv/features/more/presentation/screens/app_settings_screen.dart';
 import 'package:digv/features/more/presentation/screens/contact_support_screen.dart';
 import 'package:digv/features/more/presentation/screens/edit_profile_screen.dart';
@@ -25,13 +26,14 @@ import 'package:digv/features/more/presentation/screens/help_center_screen.dart'
 import 'package:digv/features/more/presentation/screens/manage_addresses_screen.dart';
 import 'package:digv/features/more/presentation/screens/notification_settings_screen.dart';
 import 'package:digv/features/more/presentation/screens/payment_methods_screen.dart';
+import 'package:digv/features/more/presentation/screens/support_ticket_detail_screen.dart';
 import 'package:digv/features/notifications/presentation/screens/notification_screen.dart';
-import 'package:digv/features/search/domain/entities/search_result.dart';
 import 'package:digv/features/orders/domain/models/order_item.dart';
 import 'package:digv/features/profile_settings/presentation/screens/enable_location_access_screen.dart';
 import 'package:digv/features/profile_settings/presentation/screens/setup_more_details_screen.dart';
 import 'package:digv/features/profile_settings/presentation/screens/setup_personal_details_screen.dart';
 import 'package:digv/features/profile_settings/presentation/screens/setup_welcome_screen.dart';
+import 'package:digv/features/search/domain/entities/search_result.dart';
 import 'package:digv/features/shell/presentation/main_shell.dart';
 import 'package:go_router/go_router.dart';
 
@@ -96,16 +98,76 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/faqs',
-      builder: (context, state) => const FaqsScreen(),
+      builder: (context, state) {
+        final query = state.uri.queryParameters['query'] ??
+            (state.extra as Map<String, dynamic>?)?['query'] as String?;
+        final category = state.uri.queryParameters['category'] ??
+            (state.extra as Map<String, dynamic>?)?['category'] as String?;
+        return FaqsScreen(initialQuery: query, initialCategory: category);
+      },
     ),
     GoRoute(
       path: '/contact_support',
-      builder: (context, state) => const ContactSupportScreen(),
+      builder: (context, state) {
+        final tabStr = state.uri.queryParameters['tab'];
+        final tab = tabStr != null ? int.tryParse(tabStr) ?? 0 : (state.extra as Map<String, dynamic>?)?['tab'] as int? ?? 0;
+        final subject = state.uri.queryParameters['subject'] ?? (state.extra as Map<String, dynamic>?)?['subject'] as String?;
+        return ContactSupportScreen(initialTabIndex: tab, initialSubject: subject);
+      },
+    ),
+    GoRoute(
+      path: '/support_ticket_detail',
+      builder: (context, state) {
+        final ticketId = state.uri.queryParameters['ticketId'] ?? (state.extra is String ? state.extra as String : '');
+        return SupportTicketDetailScreen(ticketId: ticketId);
+      },
+    ),
+    GoRoute(
+      path: '/support_ticket_details',
+      builder: (context, state) {
+        final ticketId = state.uri.queryParameters['ticketId'] ?? (state.extra is String ? state.extra as String : '');
+        return SupportTicketDetailScreen(ticketId: ticketId);
+      },
+    ),
+    GoRoute(
+      path: '/service_list',
+      builder: (context, state) {
+        final categoryId = state.uri.queryParameters['categoryId'] ??
+            (state.extra as Map<String, dynamic>?)?['categoryId'] as String? ??
+            (state.extra is String ? state.extra as String : null);
+        final query = state.uri.queryParameters['q'] ??
+            (state.extra as Map<String, dynamic>?)?['q'] as String?;
+        return ServicesListScreen(initialCategoryId: categoryId, initialQuery: query);
+      },
+    ),
+    GoRoute(
+      path: '/services',
+      builder: (context, state) {
+        final categoryId = state.uri.queryParameters['categoryId'] ??
+            (state.extra as Map<String, dynamic>?)?['categoryId'] as String? ??
+            (state.extra is String ? state.extra as String : null);
+        final query = state.uri.queryParameters['q'] ??
+            (state.extra as Map<String, dynamic>?)?['q'] as String?;
+        return ServicesListScreen(initialCategoryId: categoryId, initialQuery: query);
+      },
     ),
     GoRoute(
       path: '/service_details',
       builder: (context, state) {
-        final serviceItemId = state.extra as String;
+        if (state.extra is (String, int)) {
+          final (serviceItemId, quantity) = state.extra as (String, int);
+          return ServiceDetailsScreen(
+            serviceItemId: serviceItemId,
+            initialQuantity: quantity,
+          );
+        } else if (state.extra is Map<String, dynamic>) {
+          final map = state.extra as Map<String, dynamic>;
+          return ServiceDetailsScreen(
+            serviceItemId: map['serviceItemId'] as String? ?? '',
+            initialQuantity: map['quantity'] as int? ?? 1,
+          );
+        }
+        final serviceItemId = state.extra as String? ?? '';
         return ServiceDetailsScreen(serviceItemId: serviceItemId);
       },
     ),

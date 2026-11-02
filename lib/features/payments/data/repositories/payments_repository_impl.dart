@@ -11,7 +11,6 @@ class PaymentsRepositoryImpl implements PaymentsRepository {
     required String serviceRequestId,
     required String method,
     required String collectionType,
-    required String amount,
     required String gatewayReference,
     String? note,
   }) async {
@@ -19,7 +18,6 @@ class PaymentsRepositoryImpl implements PaymentsRepository {
       serviceRequestId: serviceRequestId,
       method: method,
       collectionType: collectionType,
-      amount: amount,
       gatewayReference: gatewayReference,
       note: note,
     );
@@ -28,13 +26,18 @@ class PaymentsRepositoryImpl implements PaymentsRepository {
   @override
   Future<Map<String, dynamic>> confirmPayment({
     required String paymentId,
-    required String gatewayTransactionId,
     required Map<String, dynamic> gatewayResponse,
+    String? gatewayTransactionId,
   }) async {
     return await remoteDataSource.confirmPayment(
       paymentId: paymentId,
-      gatewayTransactionId: gatewayTransactionId,
       gatewayResponse: gatewayResponse,
+      gatewayTransactionId: gatewayTransactionId,
     );
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getMyRefunds() async {
+    return await remoteDataSource.getMyRefunds();
   }
 }

@@ -5,9 +5,9 @@ import 'package:digv/core/widgets/app_top_bar.dart';
 import 'package:digv/features/booking_engine/domain/technician.dart';
 import 'package:digv/features/search/domain/entities/search_result.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/technician_card.dart';
@@ -32,6 +32,27 @@ class _SelectTechnicianScreenState extends ConsumerState<SelectTechnicianScreen>
   final List<String> _filters = ['All', 'Top rated', 'Nearest'];
   Technician? _selectedTechnician;
 
+  @override
+  void initState() {
+    super.initState();
+    // Always invalidate cached providers so rebook (and every navigation)
+    // fetches fresh technicians from the API instead of returning stale data.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(serviceDetailsProvider(widget.serviceItemId));
+      ref.invalidate(serviceProvidersProvider(ProvidersFilters(
+        serviceItemId: widget.serviceItemId,
+        filterType: 'ALL',
+      )));
+      ref.invalidate(serviceProvidersProvider(ProvidersFilters(
+        serviceItemId: widget.serviceItemId,
+        filterType: 'TOP_RATED',
+      )));
+      ref.invalidate(serviceProvidersProvider(ProvidersFilters(
+        serviceItemId: widget.serviceItemId,
+        filterType: 'NEAREST',
+      )));
+    });
+  }
   String get _currentFilterType {
     switch (_selectedFilter) {
       case 1:
@@ -43,9 +64,15 @@ class _SelectTechnicianScreenState extends ConsumerState<SelectTechnicianScreen>
     }
   }
 
-  List<Technician> _mapToTechnicians(List<SearchTechnicianEntity> providers, int durationMinutes) {
+  List<Technician> _mapToTechnicians(
+    List<SearchTechnicianEntity> providers,
+    int durationMinutes,
+    int basePrice,
+  ) {
     return providers.map((t) {
       final distanceKm = double.tryParse(t.distanceKm) ?? 0.0;
+      final providerPrice = double.tryParse(t.servicePrice)?.toInt() ?? 0;
+      final effectivePrice = providerPrice > 0 ? providerPrice : basePrice;
 
       return Technician(
         providerId: t.providerId,
@@ -56,7 +83,7 @@ class _SelectTechnicianScreenState extends ConsumerState<SelectTechnicianScreen>
         reviews: t.totalJobs * 2 + 3,
         jobs: t.totalJobs,
         experience: t.experienceYears,
-        pricePerVisit: double.tryParse(t.servicePrice)?.toInt() ?? 0,
+        pricePerVisit: effectivePrice,
         distanceKm: distanceKm,
         distanceLabel: t.distanceTag.isNotEmpty ? t.distanceTag : (distanceKm <= 1.99
             ? 'Nearby'
@@ -82,7 +109,14 @@ class _SelectTechnicianScreenState extends ConsumerState<SelectTechnicianScreen>
       data: (providers) {
         return detailsAsync.when(
           data: (details) {
-            final techniciansList = _mapToTechnicians(providers, details.durationMinutes ?? 30);
+            final effNum = double.tryParse(details.effectivePrice) ?? 0.0;
+            final fallbackBasePrice = effNum.toInt();
+
+            final techniciansList = _mapToTechnicians(
+              providers,
+              details.durationMinutes ?? 30,
+              fallbackBasePrice,
+            );
             final serviceEntity = details.toSearchServiceEntity();
 
             return Scaffold(

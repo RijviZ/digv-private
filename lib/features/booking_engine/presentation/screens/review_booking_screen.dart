@@ -35,7 +35,7 @@ class ReviewBookingScreen extends ConsumerStatefulWidget {
 
 class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
   late int _quantity;
-  int _selectedAddress = 0;
+  int? _selectedAddressIndex;
   bool _agreedToTerms = false;
 
   @override
@@ -89,8 +89,15 @@ class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
                     final addressState = ref.read(addressListProvider);
                     final addresses = addressState.value;
                     if (addresses != null && addresses.isNotEmpty) {
-                      final selectedIndex = _selectedAddress < addresses.length ? _selectedAddress : 0;
+                      final defaultIndex = addresses.indexWhere((a) => a.isDefault == true);
+                      final selectedIndex = (_selectedAddressIndex != null && _selectedAddressIndex! < addresses.length)
+                          ? _selectedAddressIndex!
+                          : (defaultIndex >= 0 ? defaultIndex : 0);
                       final address = addresses[selectedIndex];
+                      if (address.userLocationId.isEmpty) {
+                        SnackBarUtils.showError(context, 'Please select a valid address with a location ID');
+                        return;
+                      }
                       context.push('/review_and_pay', extra: (
                         widget.service,
                         widget.technician,
@@ -373,6 +380,11 @@ class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
               ],
             );
           }
+          final defaultIndex = addresses.indexWhere((a) => a.isDefault == true);
+          final activeIndex = (_selectedAddressIndex != null && _selectedAddressIndex! < addresses.length)
+              ? _selectedAddressIndex!
+              : (defaultIndex >= 0 ? defaultIndex : 0);
+
           return Column(
             children: [
               const SizedBox(height: 4),
@@ -383,11 +395,13 @@ class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: _buildAddressOption(
                     index: index,
+                    selected: activeIndex == index,
                     icon: address.label?.toLowerCase() == 'home'
                         ? 'assets/images/house.svg'
                         : 'assets/images/briefcase.svg',
-                    title: address.label??'',
+                    title: address.label ?? '',
                     subtitle: '${address.addressLine}, ${address.city} — ${address.postalCode}',
+                    onTap: () => setState(() => _selectedAddressIndex = index),
                   ),
                 );
               }),
@@ -403,14 +417,14 @@ class _ReviewBookingScreenState extends ConsumerState<ReviewBookingScreen> {
 
   Widget _buildAddressOption({
     required int index,
+    required bool selected,
     required String icon,
     required String title,
     required String subtitle,
+    required VoidCallback onTap,
   }) {
-    final selected = _selectedAddress == index;
-
     return GestureDetector(
-      onTap: () => setState(() => _selectedAddress = index),
+      onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),

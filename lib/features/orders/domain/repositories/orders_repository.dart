@@ -31,4 +31,5 @@ abstract class OrdersRepository {
     required List<String> tags,
     required List<String> photos,
   });
+  Future<Map<String, dynamic>> getServiceRequestById({required String id});
 }

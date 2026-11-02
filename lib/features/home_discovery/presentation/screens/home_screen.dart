@@ -1,11 +1,12 @@
-import 'dart:math';
 import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
 import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
+import 'package:digv/features/home_discovery/domain/entities/service_category_entity.dart';
 import 'package:digv/features/home_discovery/presentation/domain/quick_service_item.dart';
 import 'package:digv/features/home_discovery/presentation/providers/service_categories_provider.dart';
 import 'package:digv/features/home_discovery/presentation/widgets/location_dropdown_bottom_sheet.dart';
+import 'package:digv/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:digv/features/search/domain/entities/search_result.dart';
 import 'package:digv/features/search/presentation/providers/search_provider.dart';
 import 'package:flutter/material.dart';
@@ -27,7 +28,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   int _selectedSubTypeIndex = 0;
   late final PageController _promoBannerController;
   int _currentBannerPage = 0;
-  SearchServiceItemEntity? _randomService;
 
   final List<Map<String, String>> _promoBanners = [
     {'title': 'First Service 10% OFF', 'subtitle': 'New user exclusive offer'},
@@ -82,9 +82,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
-                  setState(() {
-                    _randomService = null;
-                  });
                   ref.invalidate(profileProvider);
                   ref.invalidate(serviceCategoriesProvider);
                   ref.invalidate(searchResultsProvider);
@@ -227,36 +224,69 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ),
           const SizedBox(width: 16),
-          GestureDetector(
-            onTap: () {
-              context.push('/notifications');
-            },
-            child: Container(
-              width: 40,
-              height: 40,
-              clipBehavior: Clip.antiAlias,
-              decoration: ShapeDecoration(
-                color: const Color(0xFFF3F4F6) /* bg-secondary */,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: 10,
-                    top: 10,
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      clipBehavior: Clip.antiAlias,
-                      decoration: const BoxDecoration(),
-                      child: SvgPicture.asset('assets/images/BellSimple.svg'),
+          Builder(
+            builder: (context) {
+              final unreadCount = ref.watch(unreadCountProvider).asData?.value ?? 0;
+              final hasUnread = unreadCount > 0;
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+
+              return GestureDetector(
+                onTap: () async {
+                  await context.push('/notifications');
+                  ref.invalidate(unreadCountProvider);
+                },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: ShapeDecoration(
+                    color: isDark
+                        ? AppColors.inputBgSecondaryDark
+                        : const Color(0xFFF3F4F6) /* bg-secondary */,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                ],
-              ),
-            ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: const BoxDecoration(),
+                        child: SvgPicture.asset(
+                          'assets/images/BellSimple.svg',
+                          colorFilter: ColorFilter.mode(
+                            Theme.of(context).colorScheme.primary,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ),
+                      if (hasUnread)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFB91C1C),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.inputBgSecondaryDark
+                                    : const Color(0xFFF3F4F6),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -268,13 +298,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     return categoriesAsync.when(
       data: (categories) {
-        if (categories.isEmpty) return const SizedBox.shrink();
+        final activeCategories = categories.where((c) => c.isActive).toList();
+        if (activeCategories.isEmpty) return const SizedBox.shrink();
 
-        final safeCategoryIndex = _selectedCategoryIndex < categories.length
+        final safeCategoryIndex = _selectedCategoryIndex < activeCategories.length
             ? _selectedCategoryIndex
             : 0;
-        final category = categories[safeCategoryIndex];
-        final serviceTypes = category.serviceTypes;
+        final category = activeCategories[safeCategoryIndex];
+        final serviceTypes = category.serviceTypes.where((t) => t.isActive).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,9 +323,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               height: 44,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: categories.length,
+                itemCount: activeCategories.length,
                 itemBuilder: (context, index) {
-                  final cat = categories[index];
+                  final cat = activeCategories[index];
                   final isSelected = index == safeCategoryIndex;
                   final isDarkMode = Theme.of(context).brightness == Brightness.dark;
                   return GestureDetector(
@@ -350,18 +381,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             const SizedBox(height: 16),
             if (serviceTypes.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    vertical: 40.0,
-                    horizontal: 20.0,
+              if (category.directItems.where((i) => i.isActive).isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: category.directItems.where((i) => i.isActive).map((item) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildServiceCard(item),
+                      );
+                    }).toList(),
                   ),
-                  child: Text(
-                    'No services available for this category.',
-                    style: TextStyle(color: Colors.grey),
+                )
+              else
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: 40.0,
+                      horizontal: 20.0,
+                    ),
+                    child: Text(
+                      'No services available for this category.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ),
-                ),
-              )
+                )
             else ...[
               SizedBox(
                 height: 40,
@@ -420,16 +464,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         _selectedSubTypeIndex < serviceTypes.length
                         ? _selectedSubTypeIndex
                         : 0;
+                    final selectedType = serviceTypes[safeSubTypeIndex];
+                    final dbItems = selectedType.items.where((i) => i.isActive).toList();
+
                     final searchAsync = ref.watch(
                       searchResultsProvider(
                         SearchFilters(
                           categoryId: category.categoryId,
-                          serviceTypeId:
-                              serviceTypes[safeSubTypeIndex].serviceTypeId,
+                          serviceTypeId: selectedType.serviceTypeId,
                         ),
                       ),
                     );
 
+                    // Lookup map from global search to enhance items with provider ratings/bookings/startingPrice
+                    final searchMap = searchAsync.maybeWhen(
+                      data: (searchResponse) => {
+                        for (final s in searchResponse.services) s.serviceItemId: s
+                      },
+                      orElse: () => <String, SearchServiceItemEntity>{},
+                    );
+
+                    // If items are in db, display all of them (enhanced with search results if available)
+                    if (dbItems.isNotEmpty) {
+                      return Column(
+                        children: dbItems.map((item) {
+                          final searchItem = searchMap[item.serviceItemId];
+                          final displayItem = searchItem != null
+                              ? item.copyWith(
+                                  rating: searchItem.rating ?? item.rating,
+                                  totalBookings: searchItem.totalBookings > 0
+                                      ? searchItem.totalBookings
+                                      : item.totalBookings,
+                                  startingPrice: searchItem.startingPrice.isNotEmpty
+                                      ? searchItem.startingPrice
+                                      : item.basePrice,
+                                )
+                              : item;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildServiceCard(displayItem),
+                          );
+                        }).toList(),
+                      );
+                    }
+
+                    // Fallback to search results if dbItems is empty
                     return searchAsync.when(
                       data: (searchResponse) {
                         final services = searchResponse.services;
@@ -447,7 +526,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           children: services.map((serviceItem) {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
-                              child: _buildServiceCard(serviceItem),
+                              child: _buildServiceCard(
+                                CategoryItemEntity(
+                                  serviceItemId: serviceItem.serviceItemId,
+                                  serviceTypeId: serviceItem.serviceTypeId,
+                                  categoryId: serviceItem.serviceCategoryId,
+                                  name: serviceItem.serviceItemName,
+                                  description: serviceItem.serviceItemDescription,
+                                  basePrice: serviceItem.basePrice,
+                                  startingPrice: serviceItem.startingPrice,
+                                  imageUrl: serviceItem.serviceItemImageUrl,
+                                  durationMinutes: serviceItem.durationMinutes,
+                                  rating: serviceItem.rating,
+                                  totalBookings: serviceItem.totalBookings,
+                                ),
+                              ),
                             );
                           }).toList(),
                         );
@@ -461,7 +554,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       error: (e, s) => const Center(
                         child: Padding(
                           padding: EdgeInsets.all(20.0),
-                          child: Text('Error loading providers'),
+                          child: Text('No services available for this type.'),
                         ),
                       ),
                     );
@@ -483,7 +576,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildServiceCard(SearchServiceItemEntity serviceItem) {
+  Widget _buildServiceCard(CategoryItemEntity serviceItem) {
     return GestureDetector(
       onTap: () {
         context.push('/service_details', extra: serviceItem.serviceItemId);
@@ -502,11 +595,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 borderRadius: BorderRadius.circular(16),
                 image: DecorationImage(
                   image:
-                      serviceItem.serviceItemImageUrl != null &&
-                          serviceItem.serviceItemImageUrl!.isNotEmpty
-                      ? NetworkImage(serviceItem.serviceItemImageUrl!)
-                      : const AssetImage('assets/images/Container.png')
-                            as ImageProvider,
+                      serviceItem.imageUrl != null &&
+                              serviceItem.imageUrl!.isNotEmpty
+                          ? NetworkImage(serviceItem.imageUrl!)
+                          : const AssetImage('assets/images/Container.png')
+                                as ImageProvider,
                   fit: BoxFit.cover,
                 ),
               ),
@@ -526,7 +619,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               left: 16,
               child: Container(
                 height: 36,
-                padding: const EdgeInsetsGeometry.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 9,
                 ),
@@ -538,7 +631,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 ),
                 child: Text(
-                  'from ₹ ${serviceItem.startingPrice}',
+                  'from ₹ ${serviceItem.displayPrice}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -577,7 +670,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    serviceItem.serviceItemName,
+                    serviceItem.name,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -592,7 +685,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       SvgPicture.asset('assets/images/star.svg'),
                       const SizedBox(width: 6),
                       Text(
-                        '${serviceItem.rating?.toStringAsFixed(1) ?? '0.0'} · ${serviceItem.totalBookings} bookings · ${serviceItem.durationMinutes ?? 0} min',
+                        '${serviceItem.rating?.toStringAsFixed(1) ?? '5.0'} · ${serviceItem.totalBookings ?? 0} bookings · ${serviceItem.durationMinutes ?? 0} min',
                         style: AppTextStyles.labelMedium.copyWith(
                           color: Colors.white,
                         ),
@@ -608,18 +701,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+
   Widget _buildServicesForYouSection() {
     final l10n = AppLocalizations.of(context)!;
-    final searchAsync = ref.watch(searchResultsProvider(const SearchFilters()));
-    final allServices = searchAsync.maybeWhen(
-      data: (searchResponse) => searchResponse.services,
-      orElse: () => <SearchServiceItemEntity>[],
-    );
-    if (allServices.isNotEmpty && _randomService == null) {
-      _randomService = allServices[Random().nextInt(allServices.length)];
-    }
-    final firstService =
-        _randomService ?? (allServices.isNotEmpty ? allServices.first : null);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,7 +754,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               return _buildPromoBanner(
                 bannerTitle,
                 bannerSub,
-                firstService,
               );
             },
           ),
@@ -688,7 +771,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               decoration: BoxDecoration(
                 color: _currentBannerPage == index
                     ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -701,10 +784,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget _buildPromoBanner(
     String title,
     String subTitle,
-    SearchServiceItemEntity? firstService,
   ) {
-    final hasService = firstService != null;
-
     Widget bannerContent = Container(
       margin: const EdgeInsetsGeometry.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -739,12 +819,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    if (hasService) {
-                      context.push(
-                        '/service_details',
-                        extra: firstService.serviceItemId,
-                      );
-                    }
+                    context.push('/service_list');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
@@ -769,15 +844,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ),
     );
 
-    if (hasService) {
-      return GestureDetector(
-        onTap: () {
-          context.push('/service_details', extra: firstService.serviceItemId);
-        },
-        child: bannerContent,
-      );
-    }
-    return bannerContent;
+    return GestureDetector(
+      onTap: () {
+        context.push('/service_list');
+      },
+      child: bannerContent,
+    );
   }
 
   Widget _buildQuickServicesSection() {
@@ -897,7 +969,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${AppLocalizations.of(context)!.regular_service_from} ₹${serviceItem.startingPrice}',
+                                    '${AppLocalizations.of(context)!.regular_service_from} ₹${serviceItem.displayPrice}',
                                     style: AppTextStyles.labelMedium.copyWith(
                                       color: Colors.white,
                                     ),
@@ -1188,7 +1260,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${AppLocalizations.of(context)!.regular_service_from} ₹${serviceItem.startingPrice}',
+                              '${AppLocalizations.of(context)!.regular_service_from} ₹${serviceItem.displayPrice}',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,

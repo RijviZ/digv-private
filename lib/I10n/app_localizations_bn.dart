@@ -149,6 +149,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get booking_requested => 'বুকিংয়ের অনুরোধ করা হয়েছে!';
 
   @override
+  String get booking_scheduling => 'বুকিং এবং শিডিউলিং';
+
+  @override
   String get pay_after_service => 'সার্ভিসের পর পে করুন';
 
   @override
@@ -710,4 +713,25 @@ class AppLocalizationsBn extends AppLocalizations {
   String get promo_flash_sale_sub => 'আজই আপনার ছাড় লুফে নিন';
   @override
   String get regular_service_from => 'শুরু';
+
+  @override
+  String get helpful => 'সহায়ক';
+  @override
+  String get not_helpful => 'সহায়ক নয়';
+  @override
+  String get hc_q1 => 'কীভাবে একটি সেবা বুক করব?';
+  @override
+  String get hc_a1 => 'DIGV অ্যাপ খুলুন, একটি সেবার ক্যাটাগরি বেছে নিন, একজন টেকনিশিয়ান নির্বাচন করুন, সুবিধাজনক সময় স্লট বেছে নিন এবং পেমেন্ট নিশ্চিত করুন। আপনার বুকিং সঙ্গে সঙ্গে নিশ্চিত হবে।';
+  @override
+  String get hc_q2 => 'আমি কি আমার বুকিং পুনর্নির্ধারণ করতে পারব?';
+  @override
+  String get hc_a2 => 'হ্যাঁ, আপনি নির্ধারিত সময় স্লটের ২ ঘণ্টা আগে পর্যন্ত অর্ডার স্ক্রিন থেকে বুকিং পুনর্নির্ধারণ করতে পারবেন।';
+  @override
+  String get hc_q3 => 'বাতিল করলে কী হয়?';
+  @override
+  String get hc_a3 => 'সেবার সময় স্লটের ২ ঘণ্টা আগে পর্যন্ত বিনামূল্যে বুকিং বাতিল করা যাবে। যেকোনো রিফান্ড আপনার মূল পেমেন্ট পদ্ধতিতে ফিরিয়ে দেওয়া হবে।';
+  @override
+  String get hc_q4 => 'আমি কীভাবে টেকনিশিয়ানকে ট্র্যাক করব?';
+  @override
+  String get hc_a4 => 'আপনার টেকনিশিয়ান রওনা দিলে, অর্ডার ট্যাব থেকে আপনার সক্রিয় অর্ডার খুলুন এবং লাইভ স্ট্যাটাস আপডেট ও যোগাযোগের তথ্য দেখুন।';
 }

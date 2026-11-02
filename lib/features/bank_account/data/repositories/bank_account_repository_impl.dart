@@ -47,7 +47,7 @@ class BankAccountRepositoryImpl implements BankAccountRepository {
       createdAt: account.createdAt,
       updatedAt: account.updatedAt,
     );
-    final response = await remoteDataSource.addBankAccount(model.toJson());
+    final response = await remoteDataSource.addBankAccount(model.toCreateJson());
     return BankAccountModel.fromJson(response);
   }
 

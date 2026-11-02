@@ -78,6 +78,7 @@ class SupportSection extends StatelessWidget {
                     svgAsset: 'assets/images/cancel.svg',
                     label: l10n.report_an_issue,
                     iconColor: theme.colorScheme.error,
+                    onTap: () => context.push('/contact_support?tab=1'),
                   ),
                   Divider(height: 1, color: theme.dividerColor),
 

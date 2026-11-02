@@ -23,7 +23,7 @@ class BankAccountsNotifier extends AsyncNotifier<List<BankAccount>> {
         state = AsyncValue.data([newAccount]);
       }
     } catch (e, stackTrace) {
-      state = AsyncValue.error(e, stackTrace);
+      state = previousState.hasValue ? previousState : AsyncValue.error(e, stackTrace);
       rethrow;
     }
   }
@@ -40,7 +40,7 @@ class BankAccountsNotifier extends AsyncNotifier<List<BankAccount>> {
         state = AsyncValue.data(newList);
       }
     } catch (e, stackTrace) {
-      state = AsyncValue.error(e, stackTrace);
+      state = previousState.hasValue ? previousState : AsyncValue.error(e, stackTrace);
       rethrow;
     }
   }
@@ -80,7 +80,7 @@ class BankAccountsNotifier extends AsyncNotifier<List<BankAccount>> {
         state = AsyncValue.data(newList);
       }
     } catch (e, stackTrace) {
-      state = AsyncValue.error(e, stackTrace);
+      state = previousState.hasValue ? previousState : AsyncValue.error(e, stackTrace);
       rethrow;
     }
   }

@@ -8,7 +8,14 @@ import '../../domain/entities/faq.dart';
 import '../providers/faq_provider.dart';
 
 class FaqsScreen extends ConsumerStatefulWidget {
-  const FaqsScreen({super.key});
+  final String? initialQuery;
+  final String? initialCategory;
+
+  const FaqsScreen({
+    super.key,
+    this.initialQuery,
+    this.initialCategory,
+  });
 
   @override
   ConsumerState<FaqsScreen> createState() => _FaqsScreenState();
@@ -20,6 +27,18 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
   int? _expandedFaqIndex;
   final Map<String, bool> _userVotes = {};
   final Set<String> _submittingFaqIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialQuery != null && widget.initialQuery!.trim().isNotEmpty) {
+      _searchController.text = widget.initialQuery!.trim();
+      _expandedFaqIndex = 0;
+    }
+    if (widget.initialCategory != null && widget.initialCategory!.trim().isNotEmpty) {
+      _selectedCategoryKey = widget.initialCategory!.trim().toUpperCase();
+    }
+  }
 
   @override
   void dispose() {
@@ -59,16 +78,21 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
             Expanded(
               child: faqAsync.when(
                 data: (faqData) {
+                  final query = _searchController.text.trim().toLowerCase();
+                  final categoryCount = faqData.tabs[_selectedCategoryKey] ?? 0;
+                  final effectiveCategory = (query.isNotEmpty && categoryCount == 0 && _selectedCategoryKey != 'ALL')
+                      ? 'ALL'
+                      : _selectedCategoryKey;
+
                   // Filter items locally by search query and tab selection
                   final filteredFaqs = faqData.items.where((item) {
                     // Category filter
-                    if (_selectedCategoryKey != 'ALL') {
-                      if (item.type.toUpperCase() != _selectedCategoryKey.toUpperCase()) {
+                    if (effectiveCategory != 'ALL') {
+                      if (item.type.toUpperCase() != effectiveCategory.toUpperCase()) {
                         return false;
                       }
                     }
                     // Search filter
-                    final query = _searchController.text.trim().toLowerCase();
                     if (query.isNotEmpty) {
                       final questionMatch = item.question.toLowerCase().contains(query);
                       final answerMatch = item.answer.toLowerCase().contains(query);
@@ -147,25 +171,21 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
   Future<void> _handleFeedback(String faqId, bool isHelpful) async {
     if (_submittingFaqIds.contains(faqId)) return;
 
-    if (_userVotes.containsKey(faqId)) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('You have already submitted feedback for this question.'),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
+    // Allow toggling: if the user clicks the same vote again, do nothing
+    if (_userVotes[faqId] == isHelpful) return;
+
+    final previousVote = _userVotes[faqId]; // capture before setState
 
     setState(() {
       _submittingFaqIds.add(faqId);
     });
 
     try {
-      await ref.read(faqProvider.notifier).submitFeedback(faqId: faqId, isHelpful: isHelpful);
+      await ref.read(faqProvider.notifier).submitFeedback(
+            faqId: faqId,
+            isHelpful: isHelpful,
+            previousVote: previousVote,
+          );
       if (mounted) {
         setState(() {
           _userVotes[faqId] = isHelpful;
@@ -489,11 +509,12 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
                         'Helpful (${item.helpfulCount})',
                         color: userVote == true ? AppColors.blueDeep : AppColors.textDark,
                         isSelected: userVote == true,
-                        isDisabled: userVote != null || isSubmitting,
+                        // Disable only the currently-selected button (or while submitting)
+                        isDisabled: userVote == true || isSubmitting,
                         activeBgColor: AppColors.unread,
                         activeBorderColor: AppColors.inputBorderSecondary,
                         activeTextColor: AppColors.blueDeep,
-                        onTap: isSubmitting ? null : () => _handleFeedback(item.faqId, true),
+                        onTap: (isSubmitting || userVote == true) ? null : () => _handleFeedback(item.faqId, true),
                       ),
                       const SizedBox(width: 8),
                       _buildFeedbackButton(
@@ -501,11 +522,12 @@ class _FaqsScreenState extends ConsumerState<FaqsScreen> {
                         'Not helpful (${item.notHelpfulCount})',
                         color: userVote == false ? AppColors.dangerText : AppColors.error,
                         isSelected: userVote == false,
-                        isDisabled: userVote != null || isSubmitting,
+                        // Disable only the currently-selected button (or while submitting)
+                        isDisabled: userVote == false || isSubmitting,
                         activeBgColor: AppColors.dangerBg,
                         activeBorderColor: AppColors.dangerBorder,
                         activeTextColor: AppColors.dangerText,
-                        onTap: isSubmitting ? null : () => _handleFeedback(item.faqId, false),
+                        onTap: (isSubmitting || userVote == false) ? null : () => _handleFeedback(item.faqId, false),
                       ),
                     ],
                   ),

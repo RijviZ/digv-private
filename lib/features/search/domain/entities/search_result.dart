@@ -80,6 +80,7 @@ class SearchServiceItemEntity {
   final String? serviceItemDescription;
   final int? durationMinutes;
   final String basePrice;
+  final String? customPrice;
   final String? serviceItemImageUrl;
   final String? serviceTypeId;
   final String? serviceTypeName;
@@ -97,6 +98,7 @@ class SearchServiceItemEntity {
     this.serviceItemDescription,
     this.durationMinutes,
     required this.basePrice,
+    this.customPrice,
     this.serviceItemImageUrl,
     this.serviceTypeId,
     this.serviceTypeName,
@@ -108,6 +110,31 @@ class SearchServiceItemEntity {
     this.rating,
     required this.totalBookings,
   });
+
+  String get effectivePrice {
+    final customNum = double.tryParse(customPrice ?? '') ?? 0.0;
+    if (customNum > 0) {
+      if (customNum == customNum.roundToDouble()) {
+        return customNum.toInt().toString();
+      }
+      return customNum.toStringAsFixed(2);
+    }
+    final baseNum = double.tryParse(basePrice) ?? 0.0;
+    if (baseNum > 0) {
+      if (baseNum == baseNum.roundToDouble()) {
+        return baseNum.toInt().toString();
+      }
+      return baseNum.toStringAsFixed(2);
+    }
+    final startNum = double.tryParse(startingPrice) ?? 0.0;
+    final price = startNum > 0 ? startNum : baseNum;
+    if (price == price.roundToDouble()) {
+      return price.toInt().toString();
+    }
+    return price.toStringAsFixed(2);
+  }
+
+  String get displayPrice => effectivePrice;
 }
 
 class SearchResponseEntity {
@@ -132,12 +159,15 @@ class SearchResponseEntity {
 
 extension SearchServiceItemMapping on SearchServiceItemEntity {
   SearchServiceEntity toSearchServiceEntity() {
+    final customNum = double.tryParse(customPrice ?? '') ?? 0.0;
+    final startNum = double.tryParse(startingPrice) ?? 0.0;
+    final baseNum = double.tryParse(basePrice) ?? 0.0;
+    final effectiveNum = customNum > 0 ? customNum : (startNum > 0 ? startNum : baseNum);
     return SearchServiceEntity(
       isActive: true,
       categoryId: serviceCategoryId ?? '',
       categoryName: serviceCategoryName ?? '',
-      priceOverride:
-          double.tryParse(startingPrice) ?? (double.tryParse(basePrice) ?? 0.0),
+      priceOverride: effectiveNum,
       serviceType: serviceTypeName ?? '',
       experienceYears: 5,
       title: serviceItemName,
@@ -204,6 +234,7 @@ class ServiceDetailsEntity {
   final String? serviceItemDescription;
   final int? durationMinutes;
   final String basePrice;
+  final String? customPrice;
   final String? serviceItemImageUrl;
   final String? serviceTypeId;
   final String? serviceCategoryId;
@@ -222,6 +253,7 @@ class ServiceDetailsEntity {
     this.serviceItemDescription,
     this.durationMinutes,
     required this.basePrice,
+    this.customPrice,
     this.serviceItemImageUrl,
     this.serviceTypeId,
     this.serviceCategoryId,
@@ -234,6 +266,31 @@ class ServiceDetailsEntity {
     required this.totalAvailableProviders,
     required this.selectableTypes,
   });
+
+  String get effectivePrice {
+    final customNum = double.tryParse(customPrice ?? '') ?? 0.0;
+    if (customNum > 0) {
+      if (customNum == customNum.roundToDouble()) {
+        return customNum.toInt().toString();
+      }
+      return customNum.toStringAsFixed(2);
+    }
+    final baseNum = double.tryParse(basePrice) ?? 0.0;
+    if (baseNum > 0) {
+      if (baseNum == baseNum.roundToDouble()) {
+        return baseNum.toInt().toString();
+      }
+      return baseNum.toStringAsFixed(2);
+    }
+    final startNum = double.tryParse(startingPrice) ?? 0.0;
+    final price = startNum > 0 ? startNum : baseNum;
+    if (price == price.roundToDouble()) {
+      return price.toInt().toString();
+    }
+    return price.toStringAsFixed(2);
+  }
+
+  String get displayPrice => effectivePrice;
 }
 
 class SearchTechnicianEntity {
@@ -270,12 +327,15 @@ class SearchTechnicianEntity {
 
 extension ServiceDetailsMapping on ServiceDetailsEntity {
   SearchServiceEntity toSearchServiceEntity() {
+    final customNum = double.tryParse(customPrice ?? '') ?? 0.0;
+    final startNum = double.tryParse(startingPrice) ?? 0.0;
+    final baseNum = double.tryParse(basePrice) ?? 0.0;
+    final effectiveNum = customNum > 0 ? customNum : (startNum > 0 ? startNum : baseNum);
     return SearchServiceEntity(
       isActive: true,
       categoryId: serviceCategoryId ?? '',
       categoryName: serviceCategoryName ?? '',
-      priceOverride:
-          double.tryParse(startingPrice) ?? (double.tryParse(basePrice) ?? 0.0),
+      priceOverride: effectiveNum,
       serviceType: serviceCategoryName ?? '',
       experienceYears: 5,
       title: serviceItemName,

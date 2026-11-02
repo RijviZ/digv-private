@@ -149,6 +149,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get booking_requested => 'बुकिंग का अनुरोध किया गया!';
 
   @override
+  String get booking_scheduling => 'बुकिंग और शेड्यूलिंग';
+
+  @override
   String get pay_after_service => 'सेवा के बाद भुगतान करें';
 
   @override
@@ -711,4 +714,25 @@ class AppLocalizationsHi extends AppLocalizations {
   String get promo_flash_sale_sub => 'आज ही अपनी छूट पाएं';
   @override
   String get regular_service_from => 'शुरुआत';
+
+  @override
+  String get helpful => 'सहायक';
+  @override
+  String get not_helpful => 'सहायक नहीं';
+  @override
+  String get hc_q1 => 'सेवा कैसे बुक करें?';
+  @override
+  String get hc_a1 => 'DIGV एप खोलें, सेवा श्रेणी चुनें, तकनीशियन चुनें, समय स्लॉट चुनें और भुगतान करें। आपकी बुकिंग तुरंत पुष्ट होगी।';
+  @override
+  String get hc_q2 => 'क्या मैं अपनी बुकिंग पुनर्निधारित कर सकता हूँ?';
+  @override
+  String get hc_a2 => 'हां, आप निर्धारित समय स्लॉट से 2 घंटे पहले तक ऑर्डर स्क्रीन से बुकिंग पुनर्निधारित कर सकते हैं।';
+  @override
+  String get hc_q3 => 'रद्द करने पर क्या होता है?';
+  @override
+  String get hc_a3 => 'सेवा स्लॉट से 2 घंटे पहले तक मुफ्त में बुकिंग रद्द कर सकते हैं। रिफंड आपकी मूल भुगतान विधि में वापस कर दिया जाएगा।';
+  @override
+  String get hc_q4 => 'मैं अपने तकनीशियन को कैसे ट्रैक करूं?';
+  @override
+  String get hc_a4 => 'जब आपका तकनीशियन रवाना होता है, ऑर्डर टैब से अपना सक्रिय ऑर्डर खोलें और लाइव स्टेटस अपडेट देखें।';
 }

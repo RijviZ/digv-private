@@ -7,6 +7,8 @@ import 'package:digv/core/widgets/app_primary_button.dart';
 import 'package:digv/core/utils/snackbar_utils.dart';
 import 'package:digv/features/orders/domain/models/order_item.dart';
 import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
+import 'package:digv/features/disputes/presentation/widgets/raise_dispute_bottom_sheet.dart';
+import 'package:go_router/go_router.dart';
 
 class CancelBottomSheet extends ConsumerStatefulWidget {
   final OrderItem order;
@@ -85,13 +87,76 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
         } catch (_) {
           errorMessage = e.toString();
         }
-        SnackBarUtils.showError(context, errorMessage);
+        final lower = errorMessage.toLowerCase();
+        if (lower.contains('dispute') ||
+            lower.contains('accepted') ||
+            lower.contains('processed') ||
+            lower.contains('cannot cancel')) {
+          Navigator.of(context).pop();
+          _showCannotCancelDialog(context, errorMessage);
+        } else {
+          SnackBarUtils.showError(context, errorMessage);
+        }
       }
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
     }
+  }
+
+  void _showCannotCancelDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Cannot Cancel Directly',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: Theme.of(ctx).colorScheme.onSurface,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              context.push(
+                '/contact_support',
+                extra: {
+                  'orderId': widget.order.orderId,
+                  'subject': 'Service Cancellation Issue',
+                },
+              );
+            },
+            child: const Text('Contact Support'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              RaiseDisputeBottomSheet.show(context, order: widget.order);
+            },
+            child: const Text('Raise Dispute'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -150,21 +215,56 @@ class _CancelBottomSheetState extends ConsumerState<CancelBottomSheet> {
                 color: Theme.of(context).colorScheme.surface,
                 border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
               ),
-              child: _isSubmitting
-                  ? Container(
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withAlpha(128),
-                        borderRadius: BorderRadius.circular(36),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _isSubmitting
+                      ? Container(
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withAlpha(128),
+                            borderRadius: BorderRadius.circular(36),
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(color: Colors.white),
+                          ),
+                        )
+                      : AppPrimaryButton(
+                          text: 'Cancel Request',
+                          onTap: _submitCancel,
+                        ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        RaiseDisputeBottomSheet.show(context, order: widget.order);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.gavel_outlined,
+                              size: 15,
+                              color: AppColors.alertText,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Service already started? Open a Dispute',
+                              style: AppTextStyles.captionMedium.copyWith(
+                                color: AppColors.alertText,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      ),
-                    )
-                  : AppPrimaryButton(
-                      text: 'Cancel Request',
-                      onTap: _submitCancel,
                     ),
+                  ),
+                ],
+              ),
             ),
             SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
           ],

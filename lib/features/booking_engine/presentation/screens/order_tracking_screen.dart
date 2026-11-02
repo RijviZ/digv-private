@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/core/utils/snackbar_utils.dart';
 import 'package:digv/features/booking_engine/domain/models/order_status.dart';
 import 'package:digv/features/booking_engine/domain/models/tracking_step.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/map_section.dart';
@@ -13,6 +15,9 @@ import 'package:digv/features/booking_engine/presentation/widgets/order_tracking
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/technician_card.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/tracking_app_bar.dart';
 import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/tracking_bottom_bars.dart';
+import 'package:digv/features/disputes/presentation/providers/disputes_provider.dart';
+import 'package:digv/features/disputes/presentation/widgets/dispute_status_card.dart';
+import 'package:digv/features/disputes/presentation/widgets/raise_dispute_bottom_sheet.dart';
 import 'package:digv/features/orders/domain/models/order_item.dart';
 import 'package:digv/features/orders/domain/models/order_tracking_data.dart';
 import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
@@ -46,7 +51,23 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   List<OrderTrackingLog>? _logs;
   OrderItem? _resolvedOrder;
   bool _initializedWithResolvedOrder = false;
+  bool _userConfirmedOtp = false;
   Timer? _refreshTimer;
+  String? _serverOtp;
+
+  String get _resolvedOtp {
+    if (_serverOtp != null && _serverOtp!.isNotEmpty) return _serverOtp!;
+    if (_order?.otp != null && _order!.otp!.isNotEmpty) return _order!.otp!;
+    if (_logs != null) {
+      for (final log in _logs!) {
+        if (log.action.contains('OTP') || log.note.contains('OTP')) {
+          final match = RegExp(r'\b\d{6}\b').firstMatch(log.note);
+          if (match != null) return match.group(0)!;
+        }
+      }
+    }
+    return '123456';
+  }
 
   OrderItem? get _order => widget.order ?? _resolvedOrder;
 
@@ -134,6 +155,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
   void _resolveStatusFromLogs(List<OrderTrackingLog> logs) {
     if (_order == null) return;
+
+    if (_userConfirmedOtp) {
+      _status = OrderStatus.completed;
+      return;
+    }
 
     // 1. Completed
     if (_order!.status == OrderBadgeStatus.completed ||
@@ -296,6 +322,40 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     );
   }
 
+  void _showDisputeDialog() {
+    final currentOrder = _order;
+    if (currentOrder == null) return;
+
+    final existingDisputes =
+        ref.read(disputesForOrderProvider(currentOrder.id)).value ?? [];
+    if (existingDisputes.isNotEmpty) {
+      SnackBarUtils.showSuccess(
+        context,
+        'A dispute is already active for this order (#${existingDisputes.first.displayDisputeNo}).',
+      );
+      return;
+    }
+
+    RaiseDisputeBottomSheet.show(
+      context,
+      order: currentOrder,
+      onDisputeSubmitted: () {
+        ref.invalidate(disputesForOrderProvider(currentOrder.id));
+        ref.invalidate(myDisputesProvider);
+      },
+    );
+  }
+
+  void _contactSupport() {
+    context.push(
+      '/contact_support',
+      extra: {
+        'orderId': _order?.orderId,
+        'subject': 'Service Issue',
+      },
+    );
+  }
+
   void _showChatSheet() {
     showModalBottomSheet(
       context: context,
@@ -316,9 +376,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => OtpSheet(
+        serviceName: _order?.serviceName,
+        technicianName: _order?.technicianName,
+        otp: _resolvedOtp,
         onDone: () {
           Navigator.pop(context);
-          setState(() => _status = OrderStatus.completed);
+          setState(() {
+            _userConfirmedOtp = true;
+            _status = OrderStatus.completed;
+          });
         },
       ),
     );
@@ -367,6 +433,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       return trackingAsync.when(
         data: (trackingData) {
           _logs = trackingData.logs;
+          _serverOtp = trackingData.otp;
           _resolveStatusFromLogs(trackingData.logs);
           return _buildContent(context);
         },
@@ -406,6 +473,8 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
             child: TrackingAppBar(
               statusLabel: _status.label,
               orderId: _order?.orderId ?? 'ORD-7845',
+              onDispute: _order != null ? _showDisputeDialog : null,
+              onSupport: _contactSupport,
             ),
           ),
           Expanded(
@@ -413,6 +482,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               onRefresh: () async {
                 if (_order != null) {
                   ref.invalidate(orderTrackingProvider(_order!.id));
+                  ref.invalidate(disputesForOrderProvider(_order!.id));
                   try {
                     await ref.read(orderTrackingProvider(_order!.id).future);
                   } catch (_) {}
@@ -445,6 +515,42 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     OrderProgressCard(steps: _steps),
                     const SizedBox(height: 10),
                     OrderDetailsCard(paymentType: _paymentType, order: _order),
+                    if (_order != null) ...[
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final disputesAsync =
+                              ref.watch(disputesForOrderProvider(_order!.id));
+                          return disputesAsync.when(
+                            data: (disputes) {
+                              if (disputes.isNotEmpty) {
+                                return Column(
+                                  children: [
+                                    const SizedBox(height: 12),
+                                    DisputeStatusCard(
+                                      dispute: disputes.first,
+                                      orderId: _order?.orderId,
+                                    ),
+                                  ],
+                                );
+                              }
+                              return Column(
+                                children: [
+                                  const SizedBox(height: 12),
+                                  _buildDisputeHelpCard(),
+                                ],
+                              );
+                            },
+                            loading: () => const SizedBox.shrink(),
+                            error: (error, _) => Column(
+                              children: [
+                                const SizedBox(height: 12),
+                                _buildDisputeHelpCard(),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                     if (!_isPrepaid) ...[
                       const SizedBox(height: 10),
                       PostpaidWarningBanner(price: _order?.price ?? '₹500'),
@@ -531,18 +637,78 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
     // Can cancel (postpaid: only onTheWay/arrived; prepaid: up to before completed)
     if (_canCancel) {
-      return BottomBarSingle(
-        label: 'Cancel Booking',
-        onTap: _showCancelDialog,
-        dark: true,
+      return BottomBarDual(
+        primary: 'Cancel Booking',
+        onPrimary: _showCancelDialog,
+        secondary: 'Raise Dispute',
+        onSecondary: _showDisputeDialog,
       );
     }
 
-    // Work started / OTP and beyond — cancel disabled
-    return const BottomBarSingle(
-      label: 'Cancel Booking',
-      onTap: null,
-      dark: false,
+    // Work started / OTP and beyond — cancel restricted, offer Dispute
+    return BottomBarDual(
+      primary: 'Raise Dispute',
+      onPrimary: _showDisputeDialog,
+      secondary: 'Cancel Booking',
+      onSecondary: _showCancelDialog,
+    );
+  }
+
+  Widget _buildDisputeHelpCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.alertBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.alertBorder),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.gavel_outlined,
+            size: 20,
+            color: AppColors.alertText,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Issue with your service?',
+                  style: AppTextStyles.bodyMediumBold.copyWith(
+                    color: AppColors.alertText,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  'If the service is unsatisfactory or cannot be cancelled, you can open a dispute.',
+                  style: AppTextStyles.captionMedium.copyWith(
+                    color: AppColors.alertText.withAlpha(200),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _showDisputeDialog,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              'Dispute',
+              style: AppTextStyles.captionMedium.copyWith(
+                color: AppColors.alertText,
+                fontWeight: FontWeight.w700,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

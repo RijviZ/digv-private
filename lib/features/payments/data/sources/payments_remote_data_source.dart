@@ -5,16 +5,17 @@ abstract class PaymentsRemoteDataSource {
     required String serviceRequestId,
     required String method,
     required String collectionType,
-    required String amount,
     required String gatewayReference,
     String? note,
   });
 
   Future<Map<String, dynamic>> confirmPayment({
     required String paymentId,
-    required String gatewayTransactionId,
     required Map<String, dynamic> gatewayResponse,
+    String? gatewayTransactionId,
   });
+
+  Future<List<Map<String, dynamic>>> getMyRefunds();
 }
 
 class PaymentsRemoteDataSourceImpl implements PaymentsRemoteDataSource {
@@ -27,7 +28,6 @@ class PaymentsRemoteDataSourceImpl implements PaymentsRemoteDataSource {
     required String serviceRequestId,
     required String method,
     required String collectionType,
-    required String amount,
     required String gatewayReference,
     String? note,
   }) async {
@@ -37,9 +37,8 @@ class PaymentsRemoteDataSourceImpl implements PaymentsRemoteDataSource {
         'serviceRequestId': serviceRequestId,
         'method': method,
         'collectionType': collectionType,
-        'amount': amount,
         'gatewayReference': gatewayReference,
-        'note': note ?? '',
+        if (note != null && note.isNotEmpty) 'note': note,
       },
     );
     return response.data as Map<String, dynamic>;
@@ -48,8 +47,8 @@ class PaymentsRemoteDataSourceImpl implements PaymentsRemoteDataSource {
   @override
   Future<Map<String, dynamic>> confirmPayment({
     required String paymentId,
-    required String gatewayTransactionId,
     required Map<String, dynamic> gatewayResponse,
+    String? gatewayTransactionId,
   }) async {
     final response = await _dio.post(
       '/payments/$paymentId/confirm',
@@ -58,5 +57,21 @@ class PaymentsRemoteDataSourceImpl implements PaymentsRemoteDataSource {
       },
     );
     return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getMyRefunds() async {
+    final response = await _dio.get('/refunds/my');
+    final data = response.data;
+    if (data is List) {
+      return data.whereType<Map<String, dynamic>>().toList();
+    } else if (data is Map<String, dynamic>) {
+      if (data['data'] is List) {
+        return (data['data'] as List).whereType<Map<String, dynamic>>().toList();
+      } else if (data['data'] is Map && data['data']['items'] is List) {
+        return (data['data']['items'] as List).whereType<Map<String, dynamic>>().toList();
+      }
+    }
+    return [];
   }
 }

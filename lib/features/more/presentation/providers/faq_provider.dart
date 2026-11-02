@@ -25,11 +25,45 @@ class FaqsNotifier extends AsyncNotifier<FaqData> {
     return await repository.getFaqs();
   }
 
-  Future<void> submitFeedback({required String faqId, required bool isHelpful}) async {
+  Future<void> submitFeedback({
+    required String faqId,
+    required bool isHelpful,
+    bool? previousVote, // null = first vote, true/false = switching from that vote
+  }) async {
+    // Optimistically update counts in state so the UI is instant
+    final currentData = state.value;
+    if (currentData != null) {
+      final updatedItems = currentData.items.map((item) {
+        if (item.faqId != faqId) return item;
+
+        int newHelpful = item.helpfulCount;
+        int newNotHelpful = item.notHelpfulCount;
+
+        // Undo the previous vote
+        if (previousVote == true) newHelpful = (newHelpful - 1).clamp(0, 999999);
+        if (previousVote == false) newNotHelpful = (newNotHelpful - 1).clamp(0, 999999);
+
+        // Apply the new vote
+        if (isHelpful) {
+          newHelpful += 1;
+        } else {
+          newNotHelpful += 1;
+        }
+
+        return item.copyWith(
+          helpfulCount: newHelpful,
+          notHelpfulCount: newNotHelpful,
+        );
+      }).toList();
+
+      state = AsyncValue.data(FaqData(items: updatedItems, tabs: currentData.tabs));
+    }
+
+    // Persist to server
     final repository = ref.read(faqRepositoryProvider);
     await repository.submitFeedback(faqId: faqId, isHelpful: isHelpful);
-    
-    // Refresh the FAQ data to update the counts in the UI
+
+    // Refresh from server to sync authoritative counts
     final updatedData = await repository.getFaqs();
     state = AsyncValue.data(updatedData);
   }

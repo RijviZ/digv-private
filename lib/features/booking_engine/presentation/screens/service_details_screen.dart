@@ -7,13 +7,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/network/dio_provider.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../../home_discovery/data/models/service_category_model.dart';
+import '../../../home_discovery/domain/entities/service_category_entity.dart';
+import '../../../home_discovery/presentation/providers/service_categories_provider.dart';
+import '../../../search/domain/entities/search_result.dart';
 import '../../../search/presentation/providers/search_provider.dart';
 
 class ServiceDetailsScreen extends ConsumerStatefulWidget {
   final String serviceItemId;
+  final int initialQuantity;
 
-  const ServiceDetailsScreen({super.key, required this.serviceItemId});
+  const ServiceDetailsScreen({
+    super.key,
+    required this.serviceItemId,
+    this.initialQuantity = 1,
+  });
 
   @override
   ConsumerState<ServiceDetailsScreen> createState() =>
@@ -21,221 +31,493 @@ class ServiceDetailsScreen extends ConsumerStatefulWidget {
 }
 
 class _ServiceDetailsScreenState extends ConsumerState<ServiceDetailsScreen> {
-  int _quantity = 1;
+  late int _quantity;
+  late String _currentServiceItemId;
   String? _selectedType;
+
+  // Cached data for smooth transitions when switching types
+  ServiceDetailsEntity? _lastLoadedDetails;
+  List<String>? _overrideFeatures;
+  String? _overridePrice;
+  String? _overrideName;
+  String? _overrideImage;
+  String? _overrideDescription;
+
+  @override
+  void initState() {
+    super.initState();
+    _quantity = widget.initialQuantity > 0 ? widget.initialQuantity : 1;
+    _currentServiceItemId = widget.serviceItemId;
+  }
+
+  String _formatPrice(ServiceDetailsEntity details) {
+    final isNewItemLoaded = details.serviceItemId == _currentServiceItemId;
+    final priceStr = (!isNewItemLoaded && _overridePrice != null)
+        ? _overridePrice!
+        : details.effectivePrice;
+
+    final unitPrice = double.tryParse(priceStr) ?? 0.0;
+    final total = unitPrice * _quantity;
+    if (total == total.roundToDouble()) {
+      return total.toInt().toString();
+    }
+    return total.toStringAsFixed(2);
+  }
+
+  bool _hasCustomPriceDiscount(ServiceDetailsEntity details) {
+    final isNewItemLoaded = details.serviceItemId == _currentServiceItemId;
+    if (!isNewItemLoaded && _overridePrice != null) return false;
+    final customNum = double.tryParse(details.customPrice ?? '') ?? 0.0;
+    final baseNum = double.tryParse(details.basePrice) ?? 0.0;
+    return customNum > 0 && baseNum > customNum;
+  }
+
+  String _formatOriginalBasePrice(ServiceDetailsEntity details) {
+    final baseNum = double.tryParse(details.basePrice) ?? 0.0;
+    final total = baseNum * _quantity;
+    if (total == total.roundToDouble()) {
+      return total.toInt().toString();
+    }
+    return total.toStringAsFixed(2);
+  }
+
+  Future<CategoryItemEntity?> _findItemForType(
+    String typeName,
+    ServiceDetailsEntity details,
+  ) async {
+    // 1. Check cached categories from serviceCategoriesProvider
+    List<ServiceCategoryEntity> categories =
+        ref.read(serviceCategoriesProvider).asData?.value ?? [];
+
+    if (categories.isEmpty) {
+      try {
+        categories = await ref.read(serviceCategoriesProvider.future);
+      } catch (_) {}
+    }
+
+    ServiceCategoryEntity? category;
+    if (details.serviceCategoryId != null && details.serviceCategoryId!.isNotEmpty) {
+      for (final cat in categories) {
+        if (cat.categoryId == details.serviceCategoryId) {
+          category = cat;
+          break;
+        }
+      }
+    }
+    if (category == null && details.serviceCategoryName != null && details.serviceCategoryName!.isNotEmpty) {
+      final catNameLower = details.serviceCategoryName!.toLowerCase().trim();
+      for (final cat in categories) {
+        if (cat.name.toLowerCase().trim() == catNameLower) {
+          category = cat;
+          break;
+        }
+      }
+    }
+
+    // 2. Fallback: fetch category directly from backend if not found in cache
+    if ((category == null || category.serviceTypes.isEmpty) &&
+        details.serviceCategoryId != null &&
+        details.serviceCategoryId!.isNotEmpty) {
+      try {
+        final dio = ref.read(dioProvider);
+        final res = await dio.get('/service-categories/${details.serviceCategoryId}');
+        if (res.statusCode == 200 && res.data['data'] != null) {
+          category = ServiceCategoryModel.fromJson(res.data['data'] as Map<String, dynamic>);
+        }
+      } catch (e) {
+        debugPrint('Could not fetch category ${details.serviceCategoryId}: $e');
+      }
+    }
+
+    if (category == null) return null;
+
+    final typeLower = typeName.toLowerCase().trim();
+    CategoryTypeEntity? targetType;
+    for (final t in category.serviceTypes) {
+      if (t.name.toLowerCase().trim() == typeLower) {
+        targetType = t;
+        break;
+      }
+    }
+
+    if (targetType == null || targetType.items.isEmpty) {
+      return null;
+    }
+
+    // Match item by name
+    final currentItemLower = details.serviceItemName.toLowerCase().trim();
+    for (final item in targetType.items) {
+      if (item.name.toLowerCase().trim() == currentItemLower) {
+        return item;
+      }
+    }
+
+    // Partial match
+    for (final item in targetType.items) {
+      final nameLower = item.name.toLowerCase().trim();
+      if (nameLower.contains(currentItemLower) || currentItemLower.contains(nameLower)) {
+        return item;
+      }
+    }
+
+    // Fallback to first item of this type
+    return targetType.items.first;
+  }
+
+  Future<void> _onServiceTypeSelected(
+    String selectedName,
+    ServiceDetailsEntity details,
+  ) async {
+    setState(() {
+      _selectedType = selectedName;
+    });
+
+    final targetItem = await _findItemForType(selectedName, details);
+    if (targetItem != null && mounted) {
+      setState(() {
+        _currentServiceItemId = targetItem.serviceItemId;
+        _overrideFeatures = targetItem.features;
+        _overridePrice = targetItem.effectivePrice;
+        _overrideName = targetItem.name;
+        _overrideImage = targetItem.imageUrl;
+        _overrideDescription = targetItem.description;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final detailsAsync = ref.watch(
-      serviceDetailsProvider(widget.serviceItemId),
+      serviceDetailsProvider(_currentServiceItemId),
     );
 
-    return detailsAsync.when(
-      data: (details) {
-        final selectableTypeNames = details.selectableTypes
-            .map((t) => t.name)
-            .toList();
+    final currentDetails = detailsAsync.asData?.value;
+    if (currentDetails != null && currentDetails.serviceItemId == _currentServiceItemId) {
+      _lastLoadedDetails = currentDetails;
+    }
 
-        return Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          body: SafeArea(
-            child: Column(
-              children: [
-                const AppTopBar(title: 'Service Details'),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+    final details = currentDetails ?? _lastLoadedDetails;
+    if (details != null) {
+      return _buildContent(context, details, isLoading: detailsAsync.isLoading);
+    }
+
+    return detailsAsync.when(
+      data: (d) {
+        _lastLoadedDetails = d;
+        return _buildContent(context, d);
+      },
+      loading: () => Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: const SafeArea(
+          child: Column(
+            children: [
+              AppTopBar(title: 'Service Details'),
+              Expanded(child: Center(child: CircularProgressIndicator())),
+            ],
+          ),
+        ),
+      ),
+      error: (err, stack) => Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: SafeArea(
+          child: Column(
+            children: [
+              const AppTopBar(title: 'Service Details'),
+              Expanded(
+                child: Center(
+                  child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    ServiceDetailsEntity details, {
+    bool isLoading = false,
+  }) {
+    final isNewItemLoaded = details.serviceItemId == _currentServiceItemId;
+    final displayName = isNewItemLoaded
+        ? details.serviceItemName
+        : (_overrideName ?? details.serviceItemName);
+    final displayDescription = isNewItemLoaded
+        ? details.serviceItemDescription
+        : (_overrideDescription ?? details.serviceItemDescription);
+    final displayImageUrl = isNewItemLoaded
+        ? details.serviceItemImageUrl
+        : (_overrideImage ?? details.serviceItemImageUrl);
+    final displayFeatures = isNewItemLoaded
+        ? details.whatsIncluded
+        : (_overrideFeatures ?? details.whatsIncluded);
+
+    final categories = ref.watch(serviceCategoriesProvider).asData?.value ?? [];
+    ServiceCategoryEntity? currentCategory;
+    if (details.serviceCategoryId != null && details.serviceCategoryId!.isNotEmpty) {
+      for (final cat in categories) {
+        if (cat.categoryId == details.serviceCategoryId) {
+          currentCategory = cat;
+          break;
+        }
+      }
+    }
+    if (currentCategory == null && details.serviceCategoryName != null && details.serviceCategoryName!.isNotEmpty) {
+      final catNameLower = details.serviceCategoryName!.toLowerCase().trim();
+      for (final cat in categories) {
+        if (cat.name.toLowerCase().trim() == catNameLower) {
+          currentCategory = cat;
+          break;
+        }
+      }
+    }
+
+    final validSelectableTypes = details.selectableTypes.where((t) {
+      if (!t.isActive) return false;
+      if (currentCategory == null) return true;
+
+      final typeLower = t.name.toLowerCase().trim();
+      CategoryTypeEntity? matchedType;
+      for (final type in currentCategory.serviceTypes) {
+        if (type.serviceTypeId == t.serviceTypeId ||
+            type.name.toLowerCase().trim() == typeLower) {
+          matchedType = type;
+          break;
+        }
+      }
+
+      if (matchedType != null) {
+        // Remove empty types
+        if (matchedType.items.isEmpty) return false;
+
+        // Keep current item's service type
+        if (matchedType.serviceTypeId == details.serviceTypeId) return true;
+
+        // For other service types, remove them unless they have a matching service variant
+        final currentNameLower = details.serviceItemName.toLowerCase().trim();
+        return matchedType.items.any((item) {
+          final itemNameLower = item.name.toLowerCase().trim();
+          return itemNameLower == currentNameLower ||
+              itemNameLower.contains(currentNameLower) ||
+              currentNameLower.contains(itemNameLower);
+        });
+      }
+      return true;
+    }).toList();
+
+    final selectableTypeNames = validSelectableTypes
+        .map((t) => t.name)
+        .toList();
+
+    SelectableTypeEntity? activeType;
+    for (final t in validSelectableTypes) {
+      if (t.serviceTypeId == details.serviceTypeId) {
+        activeType = t;
+        break;
+      }
+    }
+    final activeTypeName = _selectedType ??
+        (activeType != null && activeType.name.isNotEmpty
+            ? activeType.name
+            : (selectableTypeNames.isNotEmpty ? selectableTypeNames.first : ''));
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: SafeArea(
+        child: Column(
+          children: [
+            const AppTopBar(title: 'Service Details'),
+            if (isLoading)
+              const LinearProgressIndicator(
+                minHeight: 2,
+                backgroundColor: Colors.transparent,
+              ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      height: 240,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: ShapeDecoration(
+                        image: DecorationImage(
+                          image: displayImageUrl != null && displayImageUrl.isNotEmpty
+                              ? NetworkImage(displayImageUrl)
+                              : const AssetImage('assets/images/Container.png') as ImageProvider,
+                          fit: BoxFit.cover,
+                        ),
+                        gradient: LinearGradient(
+                          begin: const Alignment(0.50, -0.00),
+                          end: const Alignment(0.50, 1.00),
+                          colors: [
+                            Colors.black.withValues(alpha: 0.20),
+                            Colors.black,
+                          ],
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
                     ),
-                    child: Column(
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: double.infinity,
-                          height: 240,
-                          clipBehavior: Clip.antiAlias,
-                          decoration: ShapeDecoration(
-                            image: DecorationImage(
-                              image:
-                                  details.serviceItemImageUrl != null &&
-                                      details.serviceItemImageUrl!.isNotEmpty
-                                  ? NetworkImage(details.serviceItemImageUrl!)
-                                  : const AssetImage(
-                                          'assets/images/Container.png',
-                                        )
-                                        as ImageProvider,
-                              fit: BoxFit.cover,
-                            ),
-                            gradient: LinearGradient(
-                              begin: const Alignment(0.50, -0.00),
-                              end: const Alignment(0.50, 1.00),
-                              colors: [
-                                Colors.black.withValues(alpha: 0.20),
-                                Colors.black,
-                              ],
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
+                        Expanded(
+                          child: Text(
+                            displayName,
+                            style: AppTextStyles.h3.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              height: 1.40,
+                              letterSpacing: 0,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(width: 8),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
                           children: [
-                            Expanded(
-                              child: Text(
-                                details.serviceItemName,
-                                style: AppTextStyles.h3.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  height: 1.40,
-                                  letterSpacing: 0,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
                             Text(
-                              '₹${details.startingPrice}',
+                              '₹${_formatPrice(details)}',
                               style: AppTextStyles.h3.copyWith(
                                 color: AppColors.blue,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
+                            if (_hasCustomPriceDiscount(details)) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '₹${_formatOriginalBasePrice(details)}',
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: Theme.of(context).colorScheme.secondary,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            SvgPicture.asset('assets/images/star.svg'),
-                            const SizedBox(width: 6),
-                            Text(
-                              details.rating?.toStringAsFixed(1) ?? '0.0',
-                              style: AppTextStyles.labelMedium.copyWith(
-                                color: Theme.of(context).colorScheme.secondary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '· ${details.totalBookings} bookings · ${details.durationMinutes ?? 0} mins',
-                              style: AppTextStyles.labelMedium.copyWith(
-                                color: Theme.of(context).colorScheme.secondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        SvgPicture.asset('assets/images/star.svg'),
+                        const SizedBox(width: 6),
                         Text(
-                          details.serviceItemDescription ??
-                              'Professional service provided by our top-rated technicians.',
-                          style: AppTextStyles.captionMedium.copyWith(
+                          details.rating?.toStringAsFixed(1) ?? '0.0',
+                          style: AppTextStyles.labelMedium.copyWith(
                             color: Theme.of(context).colorScheme.secondary,
-                          ),
-                        ),
-                        if (selectableTypeNames.isNotEmpty) ...[
-                          const SizedBox(height: 20),
-                          Text(
-                            'Service Type',
-                            style: AppTextStyles.titleLight.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          AppFilterBar(
-                            items: selectableTypeNames,
-                            selectedItem:
-                                _selectedType ?? selectableTypeNames.first,
-                            onSelected: (item) {
-                              setState(() {
-                                _selectedType = item;
-                              });
-                            },
-                            padding: EdgeInsets.zero,
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                        Text(
-                          'What\'s Included',
-                          style: AppTextStyles.titleLight.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            height: 1.75,
-                            letterSpacing: 0,
-                          ),
-                        ),
-                        const SizedBox(height: 7),
-                        if (details.whatsIncluded.isNotEmpty)
-                          ...details.whatsIncluded.map(
-                            (feature) => _includedItem(text: feature),
-                          )
-                        else ...[
-                          _includedItem(text: 'Filter Cleaning'),
-                          _includedItem(text: 'Gas Pressure Check'),
-                          _includedItem(text: 'Cooling Test'),
-                          _includedItem(text: 'Performance Report'),
-                        ],
-
-                        const SizedBox(height: 20),
-                        Text(
-                          'Quantity',
-                          style: AppTextStyles.titleLight.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        _buildQuantitySelector(),
+                        const SizedBox(width: 6),
+                        Text(
+                          '· ${details.totalBookings} bookings · ${details.durationMinutes ?? 0} mins',
+                          style: AppTextStyles.labelMedium.copyWith(
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          bottomNavigationBar: SafeArea(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                border: Border(
-                  top: BorderSide(color: Theme.of(context).dividerColor),
+                    const SizedBox(height: 12),
+                    Text(
+                      displayDescription ??
+                          'Professional service provided by our top-rated technicians.',
+                      style: AppTextStyles.captionMedium.copyWith(
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                    if (selectableTypeNames.length > 1) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        'Service Type',
+                        style: AppTextStyles.titleLight.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      AppFilterBar(
+                        items: selectableTypeNames,
+                        selectedItem: activeTypeName,
+                        onSelected: (item) {
+                          if (item != activeTypeName) {
+                            _onServiceTypeSelected(item, details);
+                          }
+                        },
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    Text(
+                      'What\'s Included',
+                      style: AppTextStyles.titleLight.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        height: 1.75,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    if (displayFeatures.isNotEmpty)
+                      ...displayFeatures.map(
+                        (feature) => _includedItem(text: feature),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text(
+                          'Standard service inspection included',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Quantity',
+                      style: AppTextStyles.titleLight.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildQuantitySelector(),
+                  ],
                 ),
               ),
-              child: AppPrimaryButton(
-                text: 'Continue to select technician',
-                onTap: () {
-                  context.push(
-                    '/select_technician',
-                    extra: (widget.serviceItemId, _quantity),
-                  );
-                },
-              ),
             ),
-          ),
-        );
-      },
-      loading: () => Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        appBar: AppBar(
-          title: const Text('Service Details'),
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          foregroundColor: Theme.of(context).colorScheme.primary,
-          elevation: 0,
+          ],
         ),
-        body: const Center(child: CircularProgressIndicator()),
       ),
-      error: (err, stack) => Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        appBar: AppBar(
-          title: const Text('Service Details'),
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          foregroundColor: Theme.of(context).colorScheme.primary,
-          elevation: 0,
-        ),
-        body: Center(
-          child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(
+              top: BorderSide(color: Theme.of(context).dividerColor),
+            ),
+          ),
+          child: AppPrimaryButton(
+            text: 'Continue to select technician',
+            onTap: () {
+              context.push(
+                '/select_technician',
+                extra: (_currentServiceItemId, _quantity),
+              );
+            },
+          ),
         ),
       ),
     );

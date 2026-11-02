@@ -103,6 +103,7 @@ class SearchServiceItemModel extends SearchServiceItemEntity {
     super.serviceItemDescription,
     super.durationMinutes,
     required super.basePrice,
+    super.customPrice,
     super.serviceItemImageUrl,
     super.serviceTypeId,
     super.serviceTypeName,
@@ -116,18 +117,25 @@ class SearchServiceItemModel extends SearchServiceItemEntity {
   });
 
   factory SearchServiceItemModel.fromJson(Map<String, dynamic> json) {
+    final basePrice = json['basePrice']?.toString() ?? '0.00';
+    final rawStarting = json['startingPrice']?.toString();
+    final startNum = double.tryParse(rawStarting ?? '') ?? 0.0;
+    final startingPrice = startNum > 0 ? (rawStarting ?? basePrice) : basePrice;
+    final rawCustom = json['customPrice'] ?? json['custom_price'] ?? json['servicePrice'] ?? json['providerCustomPrice'] ?? json['price'];
+
     return SearchServiceItemModel(
       serviceItemId: json['serviceItemId'] ?? '',
       serviceItemName: json['serviceItemName'] ?? '',
       serviceItemDescription: json['serviceItemDescription'],
       durationMinutes: json['durationMinutes'],
-      basePrice: json['basePrice']?.toString() ?? '0.00',
+      basePrice: basePrice,
+      customPrice: rawCustom?.toString(),
       serviceItemImageUrl: json['serviceItemImageUrl'],
       serviceTypeId: json['serviceTypeId'],
       serviceTypeName: json['serviceTypeName'],
       serviceCategoryId: json['serviceCategoryId'],
       serviceCategoryName: json['serviceCategoryName'],
-      startingPrice: json['startingPrice']?.toString() ?? '0.00',
+      startingPrice: startingPrice,
       availableProvidersCount: json['availableProvidersCount'] ?? 0,
       nearestProviderDistanceKm: json['nearestProviderDistanceKm']?.toString() ?? '0.00',
       rating: (json['rating'] as num?)?.toDouble(),
@@ -193,6 +201,7 @@ class ServiceDetailsModel extends ServiceDetailsEntity {
     super.serviceItemDescription,
     super.durationMinutes,
     required super.basePrice,
+    super.customPrice,
     super.serviceItemImageUrl,
     super.serviceTypeId,
     super.serviceCategoryId,
@@ -208,12 +217,19 @@ class ServiceDetailsModel extends ServiceDetailsEntity {
 
   factory ServiceDetailsModel.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>;
+    final basePrice = data['basePrice']?.toString() ?? '0.00';
+    final rawStarting = data['startingPrice']?.toString();
+    final startNum = double.tryParse(rawStarting ?? '') ?? 0.0;
+    final startingPrice = startNum > 0 ? (rawStarting ?? basePrice) : basePrice;
+    final rawCustom = data['customPrice'] ?? data['custom_price'] ?? data['servicePrice'] ?? data['providerCustomPrice'] ?? data['price'];
+
     return ServiceDetailsModel(
       serviceItemId: data['serviceItemId'] ?? '',
       serviceItemName: data['serviceItemName'] ?? '',
       serviceItemDescription: data['serviceItemDescription'],
       durationMinutes: data['durationMinutes'],
-      basePrice: data['basePrice']?.toString() ?? '0.00',
+      basePrice: basePrice,
+      customPrice: rawCustom?.toString(),
       serviceItemImageUrl: data['serviceItemImageUrl'],
       serviceTypeId: data['serviceTypeId'],
       serviceCategoryId: data['serviceCategoryId'],
@@ -224,7 +240,7 @@ class ServiceDetailsModel extends ServiceDetailsEntity {
           [],
       rating: (data['rating'] as num?)?.toDouble(),
       totalBookings: data['totalBookings'] ?? 0,
-      startingPrice: data['startingPrice']?.toString() ?? '0.00',
+      startingPrice: startingPrice,
       nearestProviderDistanceKm: data['nearestProviderDistanceKm']?.toString() ?? '0.00',
       totalAvailableProviders: data['totalAvailableProviders'] ?? 0,
       selectableTypes: (data['selectableTypes'] as List<dynamic>?)
@@ -253,6 +269,14 @@ class SearchTechnicianModel extends SearchTechnicianEntity {
   });
 
   factory SearchTechnicianModel.fromJson(Map<String, dynamic> json) {
+    final customPrice = json['customPrice'] ?? json['servicePrice'] ?? json['price'];
+    final basePrice = json['basePrice'] ?? json['serviceBasePrice'] ?? json['startingPrice'];
+
+    final customNum = double.tryParse(customPrice?.toString() ?? '') ?? 0.0;
+    final baseNum = double.tryParse(basePrice?.toString() ?? '') ?? 0.0;
+
+    final effectivePrice = customNum > 0 ? customNum : (baseNum > 0 ? baseNum : 0.0);
+
     return SearchTechnicianModel(
       providerId: json['providerId'] ?? '',
       providerName: json['providerName'] ?? '',
@@ -263,7 +287,9 @@ class SearchTechnicianModel extends SearchTechnicianEntity {
           ? json['experienceYears'] as int
           : (double.tryParse(json['experienceYears']?.toString() ?? '')?.toInt() ?? 0),
       serviceCategoryName: json['serviceCategoryName'] ?? '',
-      servicePrice: json['servicePrice']?.toString() ?? '0.00',
+      servicePrice: effectivePrice > 0
+          ? effectivePrice.toStringAsFixed(2)
+          : (json['servicePrice']?.toString() ?? '0.00'),
       rating: (json['rating'] as num?)?.toDouble(),
       totalJobs: json['totalJobs'] is int
           ? json['totalJobs'] as int

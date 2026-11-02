@@ -129,6 +129,8 @@ abstract class AppLocalizations {
 
   String get booking_requested;
 
+  String get booking_scheduling;
+
   String get pay_after_service;
 
   String get upi_paid;
@@ -474,6 +476,18 @@ abstract class AppLocalizations {
   String get promo_flash_sale_title;
   String get promo_flash_sale_sub;
   String get regular_service_from;
+
+  // Help Center articles
+  String get helpful;
+  String get not_helpful;
+  String get hc_q1;
+  String get hc_a1;
+  String get hc_q2;
+  String get hc_a2;
+  String get hc_q3;
+  String get hc_a3;
+  String get hc_q4;
+  String get hc_a4;
 }
 
 class _AppLocalizationsDelegate

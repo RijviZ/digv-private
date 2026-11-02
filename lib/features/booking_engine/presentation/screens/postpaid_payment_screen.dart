@@ -103,7 +103,6 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
       if (widget.bookingDetails['isRemainingPayment'] == true) {
         // Real Postpaid remaining due payment flow!
         final serviceRequestId = widget.bookingDetails['serviceRequestId'] as String;
-        final amountValue = widget.bookingDetails['amount'] as int? ?? 500;
         
         String method = 'WALLET';
         if (_selectedTab == _PayTab.card) {
@@ -128,12 +127,15 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
           serviceRequestId: serviceRequestId,
           method: method,
           collectionType: 'POSTPAID',
-          amount: amountValue.toDouble().toStringAsFixed(2),
           gatewayReference: gatewayRef,
           note: 'Remaining postpaid payment',
         );
 
-        final paymentId = paymentRes['paymentId'] as String? ?? paymentRes['data']?['paymentId'] as String? ?? '';
+        final paymentId = paymentRes['paymentId'] as String? ??
+            paymentRes['data']?['paymentId'] as String? ??
+            paymentRes['id'] as String? ??
+            paymentRes['data']?['id'] as String? ??
+            '';
         if (paymentId.isEmpty) {
           throw Exception('Failed to get payment ID from server.');
         }
@@ -141,7 +143,6 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
         // Verify/Confirm the payment
         await ref.read(paymentsNotifierProvider.notifier).confirmPayment(
           paymentId: paymentId,
-          gatewayTransactionId: gatewayRef,
           gatewayResponse: const {
             'provider': 'MANUAL',
             'status': 'SUCCESS',
@@ -164,39 +165,22 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
         final timeParts = timeStr.split('|');
         final slotId = timeParts.length > 1 ? timeParts[1] : '11111111-1111-4111-8111-111111111111';
         
-        String gatewayRef = 'MANUAL-REF-001';
-        if (_selectedTab == _PayTab.card) {
-          gatewayRef = 'CARD-REF-001';
-        } else if (_selectedTab == _PayTab.netBanking) {
-          gatewayRef = 'BANK-REF-001';
-        } else if (_selectedTab == _PayTab.upi) {
-          gatewayRef = 'UPI-REF-${_upiCtrl.text.isEmpty ? "GUEST" : _upiCtrl.text.toUpperCase()}';
-        }
-
-        final baseAmount = widget.bookingDetails['amount'] as int? ?? 0;
         final quantity = widget.bookingDetails['quantity'] as int? ?? 1;
-        final realAmount = baseAmount * quantity;
+
+        if (address == null || address.userLocationId.isEmpty) {
+          throw Exception('Please select a valid address before proceeding.');
+        }
 
         final payload = {
           'providerId': technician?.providerId ?? '2f4a8f15-3c10-4d1a-9821-111111111111',
           'providerServiceId': technician?.providerServiceId ?? service?.serviceId ?? '7a8b9c10-1111-4d1a-9821-222222222222',
+          'userLocationId': address.userLocationId,
           'scheduledDate': scheduledDateStr,
           'availabilitySlotIds': [
             slotId
           ],
           'quantity': quantity,
           'description': 'Need service booking for ${service?.title ?? "Regular Service"}.',
-          'paymentMethod': widget.bookingDetails['paymentMethod'] as String? ?? 'CASH',
-          'collectionType': widget.bookingDetails['collectionType'] as String? ?? 'POSTPAID',
-          'gatewayReference': gatewayRef,
-          'paymentAmount': realAmount.toDouble().toStringAsFixed(2),
-          'addressLabel': address?.label ?? 'Home',
-          'addressLine': address?.addressLine ?? 'House 12, Road 5, Dhanmondi',
-          'city': address?.city ?? 'Dhaka',
-          'state': address?.state ?? 'Dhaka',
-          'postalCode': address?.postalCode ?? '1209',
-          'serviceLat': address?.lat ?? 23.7465,
-          'serviceLng': address?.lng ?? 90.376
         };
 
         // 2. Make the service request POST call
@@ -213,7 +197,12 @@ class _PostpaidPaymentScreenState extends ConsumerState<PostpaidPaymentScreen> {
         try {
           final dynamic errorData = (e as dynamic).response?.data;
           if (errorData is Map && errorData['message'] != null) {
-            errorMessage = errorData['message'].toString();
+            final msg = errorData['message'];
+            if (msg is List) {
+              errorMessage = msg.join('\n');
+            } else {
+              errorMessage = msg.toString();
+            }
           } else {
             errorMessage = e.toString();
           }

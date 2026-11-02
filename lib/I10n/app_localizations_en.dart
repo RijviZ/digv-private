@@ -149,6 +149,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get booking_requested => 'Booking Requested!';
 
   @override
+  String get booking_scheduling => 'Booking & Scheduling';
+
+  @override
   String get pay_after_service => 'Pay after service';
 
   @override
@@ -710,4 +713,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get promo_flash_sale_sub => 'Grab your discount today';
   @override
   String get regular_service_from => 'from';
+
+  @override
+  String get helpful => 'Helpful';
+  @override
+  String get not_helpful => 'Not helpful';
+  @override
+  String get hc_q1 => 'How do I book a service?';
+  @override
+  String get hc_a1 => 'Open the DIGV app, choose a service category, select a technician, pick a convenient time slot and confirm payment. Your booking will be confirmed instantly.';
+  @override
+  String get hc_q2 => 'Can I reschedule my booking?';
+  @override
+  String get hc_a2 => 'Yes, you can reschedule your booking from the Orders screen up to 2 hours before the scheduled time slot.';
+  @override
+  String get hc_q3 => 'What happens if I cancel?';
+  @override
+  String get hc_a3 => 'You can cancel your booking free of charge up to 2 hours before the service slot. Any refund will be credited back to your original payment method.';
+  @override
+  String get hc_q4 => 'How do I track my technician?';
+  @override
+  String get hc_a4 => 'Once your technician is on their way, open your active order from the Orders tab to view live status updates and contact information.';
 }

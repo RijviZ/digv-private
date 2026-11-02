@@ -72,10 +72,12 @@ class OrderTrackingActor {
 
 class OrderTrackingData {
   final String serviceRequestId;
+  final String? otp;
   final List<OrderTrackingLog> logs;
 
   const OrderTrackingData({
     required this.serviceRequestId,
+    this.otp,
     required this.logs,
   });
 
@@ -83,6 +85,11 @@ class OrderTrackingData {
     final logsList = json['logs'] as List? ?? [];
     return OrderTrackingData(
       serviceRequestId: json['serviceRequestId'] as String? ?? '',
+      otp: json['otp']?.toString() ??
+          json['completionOtp']?.toString() ??
+          json['deliveryOtp']?.toString() ??
+          json['verificationOtp']?.toString() ??
+          json['serviceRequest']?['otp']?.toString(),
       logs: logsList
           .map((log) => OrderTrackingLog.fromJson(log as Map<String, dynamic>))
           .toList(),

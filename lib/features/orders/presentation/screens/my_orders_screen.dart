@@ -1,10 +1,17 @@
 import 'package:digv/I10n/app_localizations.dart';
 import 'package:digv/core/theme/app_colors.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/features/disputes/domain/entities/dispute_entity.dart';
+import 'package:digv/features/disputes/presentation/providers/disputes_provider.dart';
+import 'package:digv/features/disputes/presentation/widgets/dispute_card.dart';
+import 'package:digv/features/disputes/presentation/widgets/dispute_order_details_bottom_sheet.dart';
+import 'package:digv/features/home_discovery/domain/entities/service_category_entity.dart';
+import 'package:digv/features/home_discovery/presentation/providers/service_categories_provider.dart';
 import 'package:digv/features/orders/domain/models/order_item.dart';
 import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
-import 'package:digv/features/orders/presentation/widgets/reschedule_bottom_sheet.dart';
 import 'package:digv/features/orders/presentation/widgets/cancel_bottom_sheet.dart';
+import 'package:digv/features/orders/presentation/widgets/reschedule_bottom_sheet.dart';
+import 'package:digv/features/search/data/repositories/search_repository_impl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +28,295 @@ class MyOrdersScreen extends ConsumerStatefulWidget {
 
 class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
   OrderTab _selectedTab = OrderTab.active;
+  String? _selectedDisputeStatus;
+  String? _rebookingOrderId;
+
+  Future<void> _handleRebook(OrderItem order) async {
+    if (_rebookingOrderId != null) return;
+    setState(() => _rebookingOrderId = order.id);
+
+    try {
+      final orderQty = order.quantity > 0 ? order.quantity : 1;
+
+      // 1. If order already has a valid serviceItemId, navigate immediately
+      if (order.serviceItemId != null && order.serviceItemId!.isNotEmpty) {
+        if (mounted) {
+          context.push('/service_details', extra: (order.serviceItemId!, orderQty));
+        }
+        return;
+      }
+
+      // 2. Fetch service request details from backend
+      Map<String, dynamic>? detail;
+      try {
+        final ordersRepo = ref.read(ordersRepositoryProvider);
+        detail = await ordersRepo.getServiceRequestById(id: order.id);
+      } catch (e) {
+        debugPrint('Could not fetch service request detail: $e');
+      }
+
+      if (detail != null) {
+        final resolvedItemId = detail['serviceItemId'] as String? ??
+            detail['serviceItem']?['serviceItemId'] as String? ??
+            detail['serviceItem']?['id'] as String? ??
+            detail['service']?['serviceItemId'] as String? ??
+            detail['service']?['id'] as String? ??
+            detail['providerService']?['serviceItemId'] as String? ??
+            detail['providerService']?['serviceId'] as String?;
+        if (resolvedItemId != null && resolvedItemId.isNotEmpty) {
+          if (mounted) {
+            context.push('/service_details', extra: (resolvedItemId, orderQty));
+          }
+          return;
+        }
+      }
+
+      final searchRepo = ref.read(searchRepositoryProvider);
+
+      // 3. Load all available categories and items
+      List<ServiceCategoryEntity> categories = [];
+      try {
+        categories = await ref.read(serviceCategoriesProvider.future);
+      } catch (e) {
+        debugPrint('Could not load categories: $e');
+      }
+
+      final allCategoryItems = <(ServiceCategoryEntity, CategoryItemEntity)>[];
+      for (final cat in categories) {
+        for (final item in cat.directItems) {
+          allCategoryItems.add((cat, item));
+        }
+        for (final type in cat.serviceTypes) {
+          for (final item in type.items) {
+            allCategoryItems.add((cat, item));
+          }
+        }
+      }
+
+      // 4. PRIORITY 1: Match by exact category name AND service item name
+      final targetCategoryName = order.categoryName ?? detail?['categoryName'] as String?;
+      final targetItemName = (order.serviceName.isNotEmpty && order.serviceName != 'Service Request')
+          ? order.serviceName
+          : (detail?['serviceItemName'] as String? ?? '');
+
+      if (targetItemName.isNotEmpty) {
+        final targetLower = targetItemName.toLowerCase().trim();
+
+        // 4a. Match category AND item name
+        if (targetCategoryName != null && targetCategoryName.isNotEmpty) {
+          final catLower = targetCategoryName.toLowerCase().trim();
+          for (final (cat, item) in allCategoryItems) {
+            if (cat.name.toLowerCase().trim() == catLower) {
+              final itemNameLower = item.name.toLowerCase().trim();
+              if (itemNameLower == targetLower ||
+                  itemNameLower.contains(targetLower) ||
+                  targetLower.contains(itemNameLower)) {
+                if (mounted) {
+                  context.push('/service_details', extra: (item.serviceItemId, orderQty));
+                  return;
+                }
+              }
+            }
+          }
+        }
+
+        // 4b. Match exact item name across any category
+        for (final (_, item) in allCategoryItems) {
+          final itemNameLower = item.name.toLowerCase().trim();
+          if (itemNameLower == targetLower) {
+            if (mounted) {
+              context.push('/service_details', extra: (item.serviceItemId, orderQty));
+              return;
+            }
+          }
+        }
+
+        // 4c. Match partial item name across any category
+        for (final (_, item) in allCategoryItems) {
+          final itemNameLower = item.name.toLowerCase().trim();
+          if (itemNameLower.contains(targetLower) || targetLower.contains(itemNameLower)) {
+            if (mounted) {
+              context.push('/service_details', extra: (item.serviceItemId, orderQty));
+              return;
+            }
+          }
+        }
+      }
+
+      // 5. Test if order.providerServiceId itself is a valid serviceItemId
+      final providerServiceId = order.providerServiceId ??
+          detail?['providerServiceId'] as String?;
+      if (providerServiceId != null && providerServiceId.isNotEmpty) {
+        for (final (_, item) in allCategoryItems) {
+          if (item.serviceItemId == providerServiceId) {
+            if (mounted) {
+              context.push('/service_details', extra: (item.serviceItemId, orderQty));
+              return;
+            }
+          }
+        }
+
+        try {
+          await searchRepo.getServiceDetails(providerServiceId);
+          if (mounted) {
+            context.push('/service_details', extra: (providerServiceId, orderQty));
+            return;
+          }
+        } catch (_) {}
+      }
+
+      // 6. Build list of candidate search keywords and phrases
+      final candidateTerms = <String>[];
+      if (order.serviceName.isNotEmpty && order.serviceName != 'Service Request') {
+        candidateTerms.add(order.serviceName);
+        for (final w in order.serviceName.split(' ')) {
+          if (w.trim().length >= 2 && !candidateTerms.contains(w.trim())) {
+            candidateTerms.add(w.trim());
+          }
+        }
+      }
+
+      final detailTitle = detail?['serviceTitle'] as String? ??
+          detail?['serviceName'] as String? ??
+          detail?['title'] as String? ??
+          detail?['name'] as String? ??
+          detail?['providerService']?['name'] as String? ??
+          detail?['providerService']?['serviceName'] as String? ??
+          detail?['providerService']?['serviceTitle'] as String?;
+      if (detailTitle != null && detailTitle.isNotEmpty && !candidateTerms.contains(detailTitle)) {
+        candidateTerms.add(detailTitle);
+        for (final w in detailTitle.split(' ')) {
+          if (w.trim().length >= 2 && !candidateTerms.contains(w.trim())) {
+            candidateTerms.add(w.trim());
+          }
+        }
+      }
+
+      final desc = order.description ?? detail?['description'] as String?;
+      if (desc != null && desc.isNotEmpty) {
+        final m1 = RegExp(r'Need service booking for (.*?)\.?', caseSensitive: false).firstMatch(desc);
+        if (m1 != null && m1.group(1)?.trim().isNotEmpty == true) {
+          candidateTerms.add(m1.group(1)!.trim());
+        }
+        final m2 = RegExp(r'Need (.*?) for (.*?)\.?', caseSensitive: false).firstMatch(desc);
+        if (m2 != null && m2.group(1)?.trim().isNotEmpty == true) {
+          candidateTerms.add(m2.group(1)!.trim());
+        }
+        final m3 = RegExp(r'Need (.*?)\.?', caseSensitive: false).firstMatch(desc);
+        if (m3 != null && m3.group(1)?.trim().isNotEmpty == true) {
+          candidateTerms.add(m3.group(1)!.trim());
+        }
+        // Extract significant words from description
+        for (final w in desc.replaceAll(RegExp(r'[^\w\s]'), '').split(' ')) {
+          final clean = w.trim();
+          if (clean.length >= 2 &&
+              !['need', 'for', 'the', 'and', 'with', 'service', 'servicing', 'booking'].contains(clean.toLowerCase()) &&
+              !candidateTerms.contains(clean)) {
+            candidateTerms.add(clean);
+          }
+        }
+      }
+
+      // 7. Try globalSearch with candidate terms
+      for (final term in candidateTerms) {
+        try {
+          final res = await searchRepo.globalSearch(q: term, limit: 5);
+          if (res.services.isNotEmpty) {
+            final matching = res.services.firstWhere(
+              (s) =>
+                  s.serviceItemName.toLowerCase().contains(term.toLowerCase()) ||
+                  term.toLowerCase().contains(s.serviceItemName.toLowerCase()),
+              orElse: () => res.services.first,
+            );
+            if (mounted) {
+              context.push('/service_details', extra: (matching.serviceItemId, orderQty));
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 8. Match by category name
+      for (final cat in categories) {
+        final catLower = cat.name.toLowerCase().trim();
+        for (final term in candidateTerms) {
+          final termLower = term.toLowerCase().trim();
+          if (catLower == termLower || catLower.contains(termLower) || termLower.contains(catLower)) {
+            final itemsForCat = allCategoryItems.where((pair) => pair.$1.categoryId == cat.categoryId).map((pair) => pair.$2).toList();
+            if (itemsForCat.isNotEmpty) {
+              final targetPrice = order.unitPrice ?? double.tryParse(order.price.replaceAll(RegExp(r'[^\d.]'), ''));
+              CategoryItemEntity selectedItem = itemsForCat.first;
+              if (targetPrice != null) {
+                final priceMatched = itemsForCat.where((i) {
+                  final p = double.tryParse(i.basePrice);
+                  return p != null && (p - targetPrice).abs() < 50;
+                }).toList();
+                if (priceMatched.isNotEmpty) {
+                  selectedItem = priceMatched.first;
+                }
+              }
+              if (mounted) {
+                context.push('/service_details', extra: (selectedItem.serviceItemId, orderQty));
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      // 9. Match by provider association
+      final providerId = order.providerId ?? detail?['providerId'] as String?;
+      if (providerId != null && providerId.isNotEmpty) {
+        for (final (_, item) in allCategoryItems) {
+          try {
+            final providers = await searchRepo.getServiceProviders(item.serviceItemId);
+            if (providers.any((p) => p.providerId == providerId || (providerServiceId != null && p.providerServiceId == providerServiceId))) {
+              if (mounted) {
+                context.push('/service_details', extra: (item.serviceItemId, orderQty));
+                return;
+              }
+            }
+          } catch (_) {}
+        }
+      }
+
+      // 10. Match by order unit price or total price against all category items
+      final targetPrice = order.unitPrice ?? double.tryParse(order.price.replaceAll(RegExp(r'[^\d.]'), ''));
+      if (targetPrice != null && allCategoryItems.isNotEmpty) {
+        final priceMatched = allCategoryItems.where((pair) {
+          final p = double.tryParse(pair.$2.basePrice);
+          return p != null && (p - targetPrice).abs() < 50;
+        }).toList();
+        if (priceMatched.isNotEmpty) {
+          if (mounted) {
+            context.push('/service_details', extra: (priceMatched.first.$2.serviceItemId, orderQty));
+            return;
+          }
+        }
+      }
+
+      // 11. Ultimate fallback
+      if (allCategoryItems.isNotEmpty) {
+        if (mounted) {
+          context.push('/service_details', extra: (allCategoryItems.first.$2.serviceItemId, orderQty));
+          return;
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to load service details. Please check your internet connection.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _rebookingOrderId = null);
+      }
+    }
+  }
 
   Future<void> _makeCall(String phoneNumber) async {
     final Uri launchUri = Uri.parse('tel:${phoneNumber.replaceAll(' ', '')}');
@@ -35,16 +331,17 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
   }
 
   String _tabLabel(OrderTab tab, BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     switch (tab) {
       case OrderTab.active:
-        return l10n.active;
-      case OrderTab.past:
-        return l10n.past;
-      case OrderTab.cancelled:
-        return l10n.cancelled;
+        return 'Active';
       case OrderTab.upcoming:
-        return l10n.upcoming;
+        return 'Upcoming';
+      case OrderTab.past:
+        return 'Completed';
+      case OrderTab.disputes:
+        return 'Disputes';
+      case OrderTab.cancelled:
+        return 'Cancelled';
     }
   }
 
@@ -63,7 +360,9 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
           SafeArea(bottom: false, child: _buildTopBar(context)),
           _buildTabBar(),
           Expanded(
-            child: _buildOrderList(),
+            child: _selectedTab == OrderTab.disputes
+                ? _buildDisputesView()
+                : _buildOrderList(),
           ),
         ],
       ),
@@ -96,22 +395,12 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
         return 'PAST';
       case OrderTab.cancelled:
         return 'CANCELLED';
+      case OrderTab.disputes:
+        return null;
     }
   }
 
   Widget _buildTabBar() {
-    final activeAsync = ref.watch(ordersProvider('ACTIVE'));
-    final upcomingAsync = ref.watch(ordersProvider('UPCOMING'));
-    final pastAsync = ref.watch(ordersProvider('PAST'));
-    final cancelledAsync = ref.watch(ordersProvider('CANCELLED'));
-
-    final counts = {
-      OrderTab.active: activeAsync.value?.length ?? 0,
-      OrderTab.upcoming: upcomingAsync.value?.length ?? 0,
-      OrderTab.past: pastAsync.value?.length ?? 0,
-      OrderTab.cancelled: cancelledAsync.value?.length ?? 0,
-    };
-
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -126,7 +415,6 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
         child: Row(
           children: OrderTab.values.map((tab) {
             final isSelected = tab == _selectedTab;
-            final count = counts[tab] ?? 0;
             return GestureDetector(
               onTap: () {
                 setState(() => _selectedTab = tab);
@@ -142,12 +430,12 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                       width: isSelected ? 2 : 1,
                       color: isSelected
                           ? (isDarkMode ? Colors.white : Theme.of(context).colorScheme.primary)
-                          : Theme.of(context).dividerColor,
+                          : Colors.transparent,
                     ),
                   ),
                 ),
                 child: Text(
-                  '${_tabLabel(tab, context)} ($count)',
+                  _tabLabel(tab, context),
                   style: AppTextStyles.bodyLarge.copyWith(
                     color: isSelected
                         ? (isDarkMode ? Colors.white : Theme.of(context).colorScheme.primary)
@@ -201,7 +489,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             itemCount: orders.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               return _buildOrderCard(orders[index]);
             },
@@ -242,6 +530,182 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
     );
   }
 
+  Widget _buildDisputesView() {
+    final disputesAsync =
+        ref.watch(myDisputesFilteredProvider(_selectedDisputeStatus));
+
+    return Column(
+      children: [
+        _buildDisputesFilterChips(),
+        Expanded(
+          child: disputesAsync.when(
+            data: (disputes) {
+              if (disputes.isEmpty) {
+                return RefreshIndicator(
+                  color: Theme.of(context).primaryColor,
+                  backgroundColor: Colors.white,
+                  onRefresh: () async {
+                    ref.invalidate(
+                        myDisputesFilteredProvider(_selectedDisputeStatus));
+                    ref.invalidate(myDisputesProvider);
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                      height: 380,
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.gavel_outlined,
+                            size: 54,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondary
+                                .withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No disputes found',
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              color: Theme.of(context).colorScheme.secondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'You don\'t have any disputes in this category',
+                            style: AppTextStyles.captionMedium.copyWith(
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return RefreshIndicator(
+                color: Theme.of(context).primaryColor,
+                backgroundColor: Colors.white,
+                onRefresh: () async {
+                  ref.invalidate(
+                      myDisputesFilteredProvider(_selectedDisputeStatus));
+                  ref.invalidate(myDisputesProvider);
+                },
+                child: ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  itemCount: disputes.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    return DisputeCard(dispute: disputes[index]);
+                  },
+                ),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, _) => RefreshIndicator(
+              color: Theme.of(context).primaryColor,
+              backgroundColor: Colors.white,
+              onRefresh: () async {
+                ref.invalidate(
+                    myDisputesFilteredProvider(_selectedDisputeStatus));
+                ref.invalidate(myDisputesProvider);
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: 380,
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Failed to load disputes: $err',
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.invalidate(
+                              myDisputesFilteredProvider(_selectedDisputeStatus));
+                          ref.invalidate(myDisputesProvider);
+                        },
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDisputesFilterChips() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const filterOptions = [
+      (null, 'All'),
+      ('OPENED', 'Opened'),
+      ('UNDER_REVIEW', 'Under Review'),
+      ('RESOLVED', 'Resolved'),
+      ('REJECTED', 'Rejected'),
+    ];
+
+    return Container(
+      height: 36,
+      margin: const EdgeInsets.only(top: 14, bottom: 8),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: filterOptions.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final item = filterOptions[index];
+          final isSelected = _selectedDisputeStatus == item.$1;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() => _selectedDisputeStatus = item.$1);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? (isDark ? Colors.white : Colors.black)
+                    : (isDark ? Colors.white10 : Colors.white),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? (isDark ? Colors.white : Colors.black)
+                      : (isDark ? Colors.white24 : Colors.grey.shade300),
+                  width: 1.0,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                item.$2,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected
+                      ? (isDark ? Colors.black : Colors.white)
+                      : (isDark ? Colors.white70 : Colors.black87),
+                  fontFamily: AppTextStyles.fontFamily,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildOrderCard(OrderItem order) {
     final OrderBadgeStatus badgeStatus;
     switch (_selectedTab) {
@@ -257,7 +721,13 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
       case OrderTab.cancelled:
         badgeStatus = OrderBadgeStatus.cancelled;
         break;
+      case OrderTab.disputes:
+        badgeStatus = OrderBadgeStatus.active;
+        break;
     }
+
+    final disputesMap = ref.watch(disputesMapProvider);
+    final dispute = disputesMap[order.id] ?? disputesMap[order.orderId];
 
     final orderWithTabStatus = OrderItem(
       id: order.id,
@@ -311,8 +781,56 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
             _buildStarRating(orderWithTabStatus.rating!),
             const SizedBox(height: 12),
           ],
-          _buildCardActions(orderWithTabStatus),
+          if (dispute != null) ...[
+            _buildDisputedOrderButton(dispute, orderWithTabStatus),
+          ] else ...[
+            _buildCardActions(orderWithTabStatus),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildDisputedOrderButton(DisputeEntity dispute, OrderItem order) {
+    const orangeColor = Color(0xFFD9531E);
+    return InkWell(
+      onTap: () {
+        DisputeOrderDetailsBottomSheet.show(
+          context,
+          dispute: dispute,
+          order: order,
+        );
+      },
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: double.infinity,
+        height: 44,
+        decoration: ShapeDecoration(
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(width: 1.5, color: orangeColor),
+            borderRadius: BorderRadius.circular(24),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.gavel_rounded,
+              color: orangeColor,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Disputed #${dispute.displayDisputeNo} (${dispute.status.label.toUpperCase()})',
+              style: const TextStyle(
+                color: orangeColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                fontFamily: AppTextStyles.fontFamily,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -585,7 +1103,8 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
         Expanded(
           child: _buildPrimaryButton(
             label: 'Repeat Order',
-            onTap: () {},
+            isLoading: _rebookingOrderId == order.id,
+            onTap: () => _handleRebook(order),
           ),
         ),
         const SizedBox(width: 8),
@@ -616,12 +1135,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
             ),
             const SizedBox(width: 4),
             Expanded(
-              child: Text(
-                'Reason: ${order.cancelReason ?? 'No reason provided'}',
-                style: AppTextStyles.labelMedium.copyWith(
-                  color: AppColors.error,
-                ),
-              ),
+              child: _CancelledReasonText(order: order),
             ),
           ],
         ),
@@ -630,7 +1144,8 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
           width: double.infinity,
           child: _buildPrimaryButton(
             label: 'Rebook Service',
-            onTap: () {},
+            isLoading: _rebookingOrderId == order.id,
+            onTap: () => _handleRebook(order),
           ),
         ),
       ],
@@ -640,9 +1155,10 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
   Widget _buildPrimaryButton({
     required String label,
     required VoidCallback? onTap,
+    bool isLoading = false,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         clipBehavior: Clip.antiAlias,
@@ -652,13 +1168,24 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
             borderRadius: BorderRadius.circular(999),
           ),
         ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.bodyLarge.copyWith(
-            color: AppColors.onDark,
-          ),
-        ),
+        child: isLoading
+            ? const Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.onDark),
+                  ),
+                ),
+              )
+            : Text(
+                label,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodyLarge.copyWith(
+                  color: AppColors.onDark,
+                ),
+              ),
       ),
     );
   }
@@ -746,5 +1273,64 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
       ),
     );
   }
-
 }
+
+class _CancelledReasonText extends ConsumerWidget {
+  final OrderItem order;
+
+  const _CancelledReasonText({required this.order});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reason = order.cancelReason?.trim();
+    if (reason != null && reason.isNotEmpty) {
+      return Text(
+        'Reason: $reason',
+        style: AppTextStyles.labelMedium.copyWith(
+          color: AppColors.error,
+        ),
+      );
+    }
+
+    // Fallback: look up in tracking logs if cancelReason was not in order item
+    final trackingAsync = ref.watch(orderTrackingProvider(order.id));
+
+    return trackingAsync.when(
+      data: (trackingData) {
+        String? foundReason;
+        for (final log in trackingData.logs.reversed) {
+          final action = log.action.toUpperCase();
+          final newStatus = log.newStatus?.toUpperCase() ?? '';
+          if ((action.contains('CANCEL') ||
+                  action.contains('REJECT') ||
+                  newStatus == 'CANCELLED' ||
+                  newStatus == 'REJECTED') &&
+              log.note.trim().isNotEmpty) {
+            foundReason = log.note.trim();
+            break;
+          }
+        }
+
+        return Text(
+          'Reason: ${foundReason ?? 'No reason provided'}',
+          style: AppTextStyles.labelMedium.copyWith(
+            color: AppColors.error,
+          ),
+        );
+      },
+      loading: () => Text(
+        'Reason: Loading...',
+        style: AppTextStyles.labelMedium.copyWith(
+          color: AppColors.error,
+        ),
+      ),
+      error: (_, _) => Text(
+        'Reason: No reason provided',
+        style: AppTextStyles.labelMedium.copyWith(
+          color: AppColors.error,
+        ),
+      ),
+    );
+  }
+}
+

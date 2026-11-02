@@ -31,7 +31,6 @@ class PaymentsNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>>> {
     required String serviceRequestId,
     required String method,
     required String collectionType,
-    required String amount,
     required String gatewayReference,
     String? note,
   }) async {
@@ -41,7 +40,6 @@ class PaymentsNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>>> {
         serviceRequestId: serviceRequestId,
         method: method,
         collectionType: collectionType,
-        amount: amount,
         gatewayReference: gatewayReference,
         note: note,
       );
@@ -55,15 +53,15 @@ class PaymentsNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>>> {
 
   Future<Map<String, dynamic>> confirmPayment({
     required String paymentId,
-    required String gatewayTransactionId,
     required Map<String, dynamic> gatewayResponse,
+    String? gatewayTransactionId,
   }) async {
     state = const AsyncValue.loading();
     try {
       final result = await _repository.confirmPayment(
         paymentId: paymentId,
-        gatewayTransactionId: gatewayTransactionId,
         gatewayResponse: gatewayResponse,
+        gatewayTransactionId: gatewayTransactionId,
       );
       state = AsyncValue.data(result);
       return result;

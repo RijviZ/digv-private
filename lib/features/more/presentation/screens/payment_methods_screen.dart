@@ -85,13 +85,19 @@ class PaymentMethodsScreen extends ConsumerWidget {
                         brandColor = const Color(0xFFEB001B);
                       }
                       
+                      final yearStr = method.expiryYear.toString();
+                      final formattedYear = yearStr.length >= 2
+                          ? yearStr.substring(yearStr.length - 2)
+                          : yearStr.padLeft(2, '0');
+                      final formattedMonth = method.expiryMonth.toString().padLeft(2, '0');
+
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: _CardTile(
                           brandColor: brandColor,
                           brandLabel: method.cardBrand.toUpperCase() == 'MASTERCARD' ? 'MASTER\nCARD' : method.cardBrand.toUpperCase(),
                           maskedNumber: '•••• •••• •••• ${method.cardLast4}',
-                          expiry: 'Expires ${method.expiryMonth.toString().padLeft(2, '0')}/${method.expiryYear.toString().substring(2)}',
+                          expiry: 'Expires $formattedMonth/$formattedYear',
                           isDefault: method.isDefault,
                           onDelete: () {
                             if (method.userPaymentMethodId != null) {
@@ -130,6 +136,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                     ),
@@ -183,6 +190,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                     ),
@@ -252,6 +260,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                     ),

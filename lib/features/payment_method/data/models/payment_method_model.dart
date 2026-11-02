@@ -15,17 +15,41 @@ class PaymentMethodModel extends PaymentMethod {
   });
 
   factory PaymentMethodModel.fromJson(Map<String, dynamic> json) {
+    final rawId = json['userPaymentMethodId'] ?? json['id'] ?? json['_id'];
+
+    int month = 1;
+    final rawMonth = json['expiryMonth'] ?? json['exp_month'] ?? json['expiry_month'] ?? json['month'];
+    if (rawMonth is int) {
+      month = rawMonth;
+    } else if (rawMonth != null) {
+      month = int.tryParse(rawMonth.toString()) ?? 1;
+    }
+
+    int year = DateTime.now().year;
+    final rawYear = json['expiryYear'] ?? json['exp_year'] ?? json['expiry_year'] ?? json['year'];
+    if (rawYear is int) {
+      year = rawYear < 100 ? 2000 + rawYear : rawYear;
+    } else if (rawYear != null) {
+      final parsed = int.tryParse(rawYear.toString()) ?? year;
+      year = parsed < 100 ? 2000 + parsed : parsed;
+    }
+
+    String last4 = (json['cardLast4'] ?? json['last4'] ?? json['card_last4'] ?? json['cardNumber'] ?? '').toString();
+    if (last4.length > 4) {
+      last4 = last4.substring(last4.length - 4);
+    }
+
     return PaymentMethodModel(
-      userPaymentMethodId: json['userPaymentMethodId'] as String?,
-      cardHolderName: json['cardHolderName'] as String,
-      cardBrand: json['cardBrand'] as String,
-      cardLast4: json['cardLast4'] as String,
-      expiryMonth: json['expiryMonth'] as int,
-      expiryYear: json['expiryYear'] as int,
-      isDefault: json['isDefault'] as bool? ?? false,
-      isActive: json['isActive'] as bool?,
-      createdAt: json['createdAt'] as String?,
-      updatedAt: json['updatedAt'] as String?,
+      userPaymentMethodId: rawId?.toString(),
+      cardHolderName: (json['cardHolderName'] ?? json['cardholderName'] ?? json['holderName'] ?? json['name'] ?? '').toString(),
+      cardBrand: (json['cardBrand'] ?? json['brand'] ?? json['card_brand'] ?? 'OTHER').toString(),
+      cardLast4: last4,
+      expiryMonth: month,
+      expiryYear: year,
+      isDefault: json['isDefault'] == true || json['is_default'] == true,
+      isActive: json['isActive'] as bool? ?? json['is_active'] as bool?,
+      createdAt: json['createdAt']?.toString() ?? json['created_at']?.toString(),
+      updatedAt: json['updatedAt']?.toString() ?? json['updated_at']?.toString(),
     );
   }
 

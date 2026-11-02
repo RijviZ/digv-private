@@ -8,16 +8,31 @@ final serviceCategoriesProvider = FutureProvider<List<ServiceCategoryEntity>>((
   ref,
 ) async {
   final dio = ref.watch(dioProvider);
-  final response = await dio.get('/service-categories');
+  final response = await dio.get(
+    '/service-categories',
+    queryParameters: {'limit': 100},
+  );
 
   if (response.statusCode == 200) {
-    final dataList = response.data['data']['dataList'] as List;
+    final dynamic rawData = response.data['data'];
+    final List dataList;
+    if (rawData is List) {
+      dataList = rawData;
+    } else if (rawData is Map && rawData['dataList'] is List) {
+      dataList = rawData['dataList'] as List;
+    } else {
+      dataList = [];
+    }
 
-    // Filter to only include categories where totalItemsCount >= 1
+    // Filter to only include active categories (and totalItemsCount >= 1 if provided)
     final filteredList = dataList.where((item) {
       final map = item as Map<String, dynamic>;
-      final totalItemsCount = map['totalItemsCount'] ?? 0;
-      return totalItemsCount >= 1;
+      final isActive = map['isActive'] ?? true;
+      if (!isActive) return false;
+      if (map.containsKey('totalItemsCount') && map['totalItemsCount'] != null) {
+        return (map['totalItemsCount'] as num) >= 1;
+      }
+      return true;
     }).toList();
 
     // Fetch detailed categories to get service types and items
@@ -35,8 +50,12 @@ final serviceCategoriesProvider = FutureProvider<List<ServiceCategoryEntity>>((
       return ServiceCategoryModel.fromJson(item);
     }).toList();
 
-    return await Future.wait(detailFutures);
+    final categories = await Future.wait(detailFutures);
+    final activeCategories = categories.where((cat) => cat.isActive).toList();
+    activeCategories.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    return activeCategories;
   } else {
     throw Exception('Failed to load service categories');
   }
 });
+

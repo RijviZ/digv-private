@@ -40,22 +40,41 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl({required this.dio});
 
   String _extractErrorMessage(dynamic data, String defaultMessage) {
-    if (data is Map<String, dynamic>) {
+    String? candidate;
+
+    if (data is Map) {
       if (data.containsKey('message')) {
         final msg = data['message'];
         if (msg is List && msg.isNotEmpty) {
-          return msg.first.toString();
-        } else if (msg is String) {
-          return msg;
+          candidate = msg.map((item) => item.toString()).join(', ');
+        } else if (msg is String && msg.trim().isNotEmpty) {
+          candidate = msg.trim();
         }
       }
-      if (data.containsKey('error') && data['error'] is Map<String, dynamic>) {
-        final errorObj = data['error'] as Map<String, dynamic>;
-        if (errorObj.containsKey('message')) {
-           return errorObj['message'].toString();
+      if ((candidate == null || candidate.length <= 1) && data.containsKey('error')) {
+        final err = data['error'];
+        if (err is String && err.trim().isNotEmpty) {
+          candidate = err.trim();
+        } else if (err is Map && err.containsKey('message')) {
+          candidate = err['message']?.toString();
         }
       }
+    } else if (data is String && data.trim().isNotEmpty) {
+      candidate = data.trim();
     }
+
+    if (candidate != null && candidate.isNotEmpty && candidate != 'E' && candidate.length > 1) {
+      final lower = candidate.toLowerCase();
+      if (lower.contains('duplicate') ||
+          lower.contains('already exists') ||
+          lower.contains('already in use') ||
+          lower.contains('already registered') ||
+          lower.contains('unique constraint')) {
+        return 'This email is already in use by another account. Please try a different email.';
+      }
+      return candidate;
+    }
+
     return defaultMessage;
   }
 
@@ -154,8 +173,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw ApiException(response.data['message'] ?? 'Failed to update profile');
       }
     } on DioException catch (e) {
+      if (e.response?.statusCode == 409) {
+        throw ApiException('This email is already in use by another account. Please try a different email.');
+      }
       if (e.response != null && e.response?.data != null) {
-         throw ApiException(_extractErrorMessage(e.response?.data, 'Failed to update profile'));
+        throw ApiException(_extractErrorMessage(e.response?.data, 'Failed to update profile'));
       }
       throw ApiException(e.message ?? 'An unknown error occurred');
     }

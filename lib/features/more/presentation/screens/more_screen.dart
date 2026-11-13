@@ -82,6 +82,11 @@ class MoreScreen extends ConsumerWidget {
                           onTap: () => context.push('/edit_profile'),
                         ),
                         MenuItem(
+                          svgAsset: 'assets/images/message.svg',
+                          label: l10n.chat_messages_title,
+                          onTap: () => context.push('/messages'),
+                        ),
+                        MenuItem(
                           svgAsset: 'assets/images/pin_g.svg',
                           label: l10n.manage_addresses,
                           onTap: () => context.push('/manage_addresses'),

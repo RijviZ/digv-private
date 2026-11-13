@@ -400,6 +400,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tab_orders => 'Orders';
 
   @override
+  String get tab_chat => 'Chat';
+
+  @override
   String get tab_more => 'More';
 
   @override
@@ -734,4 +737,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hc_q4 => 'How do I track my technician?';
   @override
   String get hc_a4 => 'Once your technician is on their way, open your active order from the Orders tab to view live status updates and contact information.';
+
+  @override
+  String get messages => 'Messages';
+  @override
+  String get search_conversations => 'Search conversations...';
+  @override
+  String get tap_to_view_conversation => 'Tap to view conversation';
+  @override
+  String get accepted => 'ACCEPTED';
+  @override
+  String get pinned_job_details => 'Pinned Job Details';
+  @override
+  String get pre_paid => 'Pre-paid';
+  @override
+  String get post_paid => 'Post-paid';
+  @override
+  String get km_away => 'km away';
+  @override
+  String get navigate => 'Navigate';
+  @override
+  String get continue_job => 'Continue Job';
+  @override
+  String get type_a_message_hint => 'Type a message...';
 }

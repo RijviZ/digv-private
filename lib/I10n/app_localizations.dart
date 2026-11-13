@@ -295,6 +295,8 @@ abstract class AppLocalizations {
 
   String get tab_orders;
 
+  String get tab_chat;
+
   String get tab_more;
 
   String get my_orders_title;
@@ -488,6 +490,19 @@ abstract class AppLocalizations {
   String get hc_a3;
   String get hc_q4;
   String get hc_a4;
+
+  // Chat & Messages
+  String get messages;
+  String get search_conversations;
+  String get tap_to_view_conversation;
+  String get accepted;
+  String get pinned_job_details;
+  String get pre_paid;
+  String get post_paid;
+  String get km_away;
+  String get navigate;
+  String get continue_job;
+  String get type_a_message_hint;
 }
 
 class _AppLocalizationsDelegate

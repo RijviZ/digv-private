@@ -35,6 +35,7 @@ import 'package:digv/features/profile_settings/presentation/screens/setup_person
 import 'package:digv/features/profile_settings/presentation/screens/setup_welcome_screen.dart';
 import 'package:digv/features/search/domain/entities/search_result.dart';
 import 'package:digv/features/shell/presentation/main_shell.dart';
+import 'package:digv/features/chat/presentation/screens/chat_detail_screen.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/booking_engine/presentation/screens/review_and_pay_screen.dart';
@@ -42,14 +43,8 @@ import '../../features/booking_engine/presentation/screens/review_and_pay_screen
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const SplashScreen(),
-    ),
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     // ── Shell routes — all three tabs live inside MainShell ──────────────
     GoRoute(
       path: '/home',
@@ -65,12 +60,50 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const MainShell(initialTab: kOrdersTab),
     ),
     GoRoute(
+      path: '/chat',
+      builder: (context, state) => const MainShell(initialTab: kChatTab),
+    ),
+    GoRoute(
+      path: '/messages',
+      builder: (context, state) => const MainShell(initialTab: kChatTab),
+    ),
+    GoRoute(
       path: '/more',
       builder: (context, state) => const MainShell(initialTab: kMoreTab),
     ),
     GoRoute(
       path: '/notifications',
       builder: (context, state) => const NotificationsScreen(),
+    ),
+    GoRoute(
+      path: '/chat_detail',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return ChatDetailScreen(
+          chatId: extra['chatId'] as String? ?? '',
+          peerUserId: extra['peerUserId'] as String? ?? '',
+          customerName: extra['customerName'] as String? ?? 'Technician',
+          customerAvatar: extra['customerAvatar'] as String?,
+          customerPhone: extra['customerPhone'] as String?,
+          activeJob: extra['activeJob'],
+        );
+      },
+    ),
+    GoRoute(
+      path: '/work_in_progress',
+      builder: (context, state) {
+        final extra = state.extra;
+        String? serviceRequestId;
+        if (extra is String) {
+          serviceRequestId = extra;
+        } else if (state.uri.queryParameters['serviceRequestId'] != null) {
+          serviceRequestId = state.uri.queryParameters['serviceRequestId'];
+        }
+        return OrderTrackingScreen(
+          paymentType: PaymentType.prepaid,
+          serviceRequestId: serviceRequestId,
+        );
+      },
     ),
     GoRoute(
       path: '/edit_profile',
@@ -99,9 +132,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/faqs',
       builder: (context, state) {
-        final query = state.uri.queryParameters['query'] ??
+        final query =
+            state.uri.queryParameters['query'] ??
             (state.extra as Map<String, dynamic>?)?['query'] as String?;
-        final category = state.uri.queryParameters['category'] ??
+        final category =
+            state.uri.queryParameters['category'] ??
             (state.extra as Map<String, dynamic>?)?['category'] as String?;
         return FaqsScreen(initialQuery: query, initialCategory: category);
       },
@@ -110,45 +145,66 @@ final GoRouter appRouter = GoRouter(
       path: '/contact_support',
       builder: (context, state) {
         final tabStr = state.uri.queryParameters['tab'];
-        final tab = tabStr != null ? int.tryParse(tabStr) ?? 0 : (state.extra as Map<String, dynamic>?)?['tab'] as int? ?? 0;
-        final subject = state.uri.queryParameters['subject'] ?? (state.extra as Map<String, dynamic>?)?['subject'] as String?;
-        return ContactSupportScreen(initialTabIndex: tab, initialSubject: subject);
+        final tab = tabStr != null
+            ? int.tryParse(tabStr) ?? 0
+            : (state.extra as Map<String, dynamic>?)?['tab'] as int? ?? 0;
+        final subject =
+            state.uri.queryParameters['subject'] ??
+            (state.extra as Map<String, dynamic>?)?['subject'] as String?;
+        return ContactSupportScreen(
+          initialTabIndex: tab,
+          initialSubject: subject,
+        );
       },
     ),
     GoRoute(
       path: '/support_ticket_detail',
       builder: (context, state) {
-        final ticketId = state.uri.queryParameters['ticketId'] ?? (state.extra is String ? state.extra as String : '');
+        final ticketId =
+            state.uri.queryParameters['ticketId'] ??
+            (state.extra is String ? state.extra as String : '');
         return SupportTicketDetailScreen(ticketId: ticketId);
       },
     ),
     GoRoute(
       path: '/support_ticket_details',
       builder: (context, state) {
-        final ticketId = state.uri.queryParameters['ticketId'] ?? (state.extra is String ? state.extra as String : '');
+        final ticketId =
+            state.uri.queryParameters['ticketId'] ??
+            (state.extra is String ? state.extra as String : '');
         return SupportTicketDetailScreen(ticketId: ticketId);
       },
     ),
     GoRoute(
       path: '/service_list',
       builder: (context, state) {
-        final categoryId = state.uri.queryParameters['categoryId'] ??
+        final categoryId =
+            state.uri.queryParameters['categoryId'] ??
             (state.extra as Map<String, dynamic>?)?['categoryId'] as String? ??
             (state.extra is String ? state.extra as String : null);
-        final query = state.uri.queryParameters['q'] ??
+        final query =
+            state.uri.queryParameters['q'] ??
             (state.extra as Map<String, dynamic>?)?['q'] as String?;
-        return ServicesListScreen(initialCategoryId: categoryId, initialQuery: query);
+        return ServicesListScreen(
+          initialCategoryId: categoryId,
+          initialQuery: query,
+        );
       },
     ),
     GoRoute(
       path: '/services',
       builder: (context, state) {
-        final categoryId = state.uri.queryParameters['categoryId'] ??
+        final categoryId =
+            state.uri.queryParameters['categoryId'] ??
             (state.extra as Map<String, dynamic>?)?['categoryId'] as String? ??
             (state.extra is String ? state.extra as String : null);
-        final query = state.uri.queryParameters['q'] ??
+        final query =
+            state.uri.queryParameters['q'] ??
             (state.extra as Map<String, dynamic>?)?['q'] as String?;
-        return ServicesListScreen(initialCategoryId: categoryId, initialQuery: query);
+        return ServicesListScreen(
+          initialCategoryId: categoryId,
+          initialQuery: query,
+        );
       },
     ),
     GoRoute(
@@ -175,25 +231,41 @@ final GoRouter appRouter = GoRouter(
       path: '/select_technician',
       builder: (context, state) {
         final (serviceItemId, quantity) = state.extra as (String, int);
-        return SelectTechnicianScreen(serviceItemId: serviceItemId, quantity: quantity);
+        return SelectTechnicianScreen(
+          serviceItemId: serviceItemId,
+          quantity: quantity,
+        );
       },
     ),
     GoRoute(
       path: '/select_date_and_time',
       builder: (context, state) {
         if (state.extra is (SearchServiceEntity, Technician, int)) {
-          final (service, technician, quantity) = state.extra as (SearchServiceEntity, Technician, int);
-          return SelectDateTimeScreen(service: service, technician: technician, quantity: quantity);
+          final (service, technician, quantity) =
+              state.extra as (SearchServiceEntity, Technician, int);
+          return SelectDateTimeScreen(
+            service: service,
+            technician: technician,
+            quantity: quantity,
+          );
         }
-        final (service, technician) = state.extra as (SearchServiceEntity, Technician);
-        return SelectDateTimeScreen(service: service, technician: technician, quantity: 1);
+        final (service, technician) =
+            state.extra as (SearchServiceEntity, Technician);
+        return SelectDateTimeScreen(
+          service: service,
+          technician: technician,
+          quantity: 1,
+        );
       },
     ),
     GoRoute(
       path: '/review_booking',
       builder: (context, state) {
-        if (state.extra is (SearchServiceEntity, Technician, DateItem, String, int)) {
-          final (service, technician, date, time, quantity) = state.extra as (SearchServiceEntity, Technician, DateItem, String, int);
+        if (state.extra
+            is (SearchServiceEntity, Technician, DateItem, String, int)) {
+          final (service, technician, date, time, quantity) =
+              state.extra
+                  as (SearchServiceEntity, Technician, DateItem, String, int);
           return ReviewBookingScreen(
             service: service,
             technician: technician,
@@ -202,7 +274,8 @@ final GoRouter appRouter = GoRouter(
             quantity: quantity,
           );
         }
-        final (service, technician, date, time) = state.extra as (SearchServiceEntity, Technician, DateItem, String);
+        final (service, technician, date, time) =
+            state.extra as (SearchServiceEntity, Technician, DateItem, String);
         return ReviewBookingScreen(
           service: service,
           technician: technician,
@@ -215,7 +288,16 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/review_and_pay',
       builder: (context, state) {
-        final (service, technician, date, time, quantity, address) = state.extra as (SearchServiceEntity, Technician, DateItem, String, int, Address);
+        final (service, technician, date, time, quantity, address) =
+            state.extra
+                as (
+                  SearchServiceEntity,
+                  Technician,
+                  DateItem,
+                  String,
+                  int,
+                  Address,
+                );
         return ReviewPayScreen(
           service: service,
           technician: technician,
@@ -282,9 +364,13 @@ final GoRouter appRouter = GoRouter(
           return OrderTrackingScreen(paymentType: extra);
         } else if (extra is OrderItem) {
           final order = extra;
-          final isPostpaid = order.price.toLowerCase().contains('postpaid') || order.status == OrderBadgeStatus.completed;
+          final isPostpaid =
+              order.price.toLowerCase().contains('postpaid') ||
+              order.status == OrderBadgeStatus.completed;
           return OrderTrackingScreen(
-            paymentType: isPostpaid ? PaymentType.postpaid : PaymentType.prepaid,
+            paymentType: isPostpaid
+                ? PaymentType.postpaid
+                : PaymentType.prepaid,
             order: order,
           );
         }
@@ -306,13 +392,15 @@ final GoRouter appRouter = GoRouter(
         if (extra is String) {
           serviceRequestId = extra;
         } else if (extra is Map<String, dynamic>) {
-          serviceRequestId = extra['serviceRequestId'] as String? ??
+          serviceRequestId =
+              extra['serviceRequestId'] as String? ??
               extra['serviceRequestNumber'] as String? ??
               extra['serviceNumber'] as String?;
         } else if (extra is OrderItem) {
           serviceRequestId = extra.id;
         }
-        serviceRequestId ??= state.uri.queryParameters['serviceRequestId'] ??
+        serviceRequestId ??=
+            state.uri.queryParameters['serviceRequestId'] ??
             state.uri.queryParameters['serviceNumber'] ??
             state.uri.queryParameters['serviceRequestNumber'] ??
             state.uri.queryParameters['service_number'] ??
@@ -320,7 +408,8 @@ final GoRouter appRouter = GoRouter(
             state.uri.queryParameters['id'];
 
         return PostpaidPaymentSuccessScreen(
-          serviceRequestId: serviceRequestId ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111',
+          serviceRequestId:
+              serviceRequestId ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111',
           initialOrder: extra is OrderItem ? extra : null,
         );
       },
@@ -333,13 +422,15 @@ final GoRouter appRouter = GoRouter(
         if (extra is String) {
           serviceRequestId = extra;
         } else if (extra is Map<String, dynamic>) {
-          serviceRequestId = extra['serviceRequestId'] as String? ??
+          serviceRequestId =
+              extra['serviceRequestId'] as String? ??
               extra['serviceRequestNumber'] as String? ??
               extra['serviceNumber'] as String?;
         } else if (extra is OrderItem) {
           serviceRequestId = extra.id;
         }
-        serviceRequestId ??= state.uri.queryParameters['serviceRequestId'] ??
+        serviceRequestId ??=
+            state.uri.queryParameters['serviceRequestId'] ??
             state.uri.queryParameters['serviceNumber'] ??
             state.uri.queryParameters['serviceRequestNumber'] ??
             state.uri.queryParameters['service_number'] ??
@@ -347,7 +438,8 @@ final GoRouter appRouter = GoRouter(
             state.uri.queryParameters['id'];
 
         return PostpaidPaymentSuccessScreen(
-          serviceRequestId: serviceRequestId ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111',
+          serviceRequestId:
+              serviceRequestId ?? 'f9c4a8d7-9e33-4b99-84ab-111111111111',
           initialOrder: extra is OrderItem ? extra : null,
         );
       },

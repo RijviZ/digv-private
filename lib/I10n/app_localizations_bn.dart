@@ -400,6 +400,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get tab_orders => 'অর্ডার';
 
   @override
+  String get tab_chat => 'চ্যাট';
+
+  @override
   String get tab_more => 'আরও';
 
   @override
@@ -734,4 +737,27 @@ class AppLocalizationsBn extends AppLocalizations {
   String get hc_q4 => 'আমি কীভাবে টেকনিশিয়ানকে ট্র্যাক করব?';
   @override
   String get hc_a4 => 'আপনার টেকনিশিয়ান রওনা দিলে, অর্ডার ট্যাব থেকে আপনার সক্রিয় অর্ডার খুলুন এবং লাইভ স্ট্যাটাস আপডেট ও যোগাযোগের তথ্য দেখুন।';
+
+  @override
+  String get messages => 'বার্তা';
+  @override
+  String get search_conversations => 'কথোপকথন খুঁজুন...';
+  @override
+  String get tap_to_view_conversation => 'কথোপকথন দেখতে ট্যাপ করুন';
+  @override
+  String get accepted => 'গৃহীত';
+  @override
+  String get pinned_job_details => 'পিন করা কাজের বিবরণ';
+  @override
+  String get pre_paid => 'প্রি-পেইড';
+  @override
+  String get post_paid => 'পোস্ট-পেইড';
+  @override
+  String get km_away => 'কিমি দূরে';
+  @override
+  String get navigate => 'নেভিগেট করুন';
+  @override
+  String get continue_job => 'কাজ চালিয়ে যান';
+  @override
+  String get type_a_message_hint => 'একটি বার্তা লিখুন...';
 }

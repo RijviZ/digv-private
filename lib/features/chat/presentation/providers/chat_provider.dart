@@ -1,15 +1,34 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/network/dio_provider.dart';
+import '../../../../core/network/failure.dart';
 import '../../../../core/storage/secure_storage_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../data/models/chat_model.dart';
+import '../../data/models/message_model.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../data/sources/chat_remote_data_source.dart';
 import '../../data/sources/chat_socket_service.dart';
 import '../../domain/models/chat.dart';
 import '../../domain/models/chat_message.dart';
 import '../../domain/repositories/chat_repository.dart';
+
+class ApiClient {
+  final Dio dio;
+  ApiClient(this.dio);
+}
+
+final apiClientProvider = Provider<ApiClient>((ref) {
+  return ApiClient(ref.watch(dioProvider));
+});
+
+extension SecureStorageTokenExt on FlutterSecureStorage {
+  Future<String?> getToken() => read(key: 'accessToken');
+}
 
 // Chat Data Source
 final chatRemoteDataSourceProvider = Provider<ChatRemoteDataSource>((ref) {
@@ -303,3 +322,226 @@ class ActiveChatNotifier extends StateNotifier<ActiveChatState> {
     super.dispose();
   }
 }
+
+final chatListProvider = FutureProvider<List<ChatModel>>((ref) async {
+  final profile = ref.watch(profileProvider).value;
+  String? userId = profile?.userId;
+
+  if (userId == null) {
+    final secureStorage = ref.read(secureStorageProvider);
+    final token = await secureStorage.getToken();
+    if (token != null) {
+      try {
+        final parts = token.split('.');
+        if (parts.length == 3) {
+          var payload = parts[1];
+          final remainder = payload.length % 4;
+          if (remainder > 0) {
+            payload += '=' * (4 - remainder);
+          }
+          final decoded = utf8.decode(base64Url.decode(payload));
+          final Map<String, dynamic> claims = jsonDecode(decoded);
+          userId = claims['sub'] as String? ??
+              claims['userId'] as String? ??
+              claims['id'] as String?;
+        }
+      } catch (_) {}
+    }
+  }
+
+  if (userId == null) {
+    throw Failure('User not logged in');
+  }
+
+  final apiClient = ref.watch(apiClientProvider);
+  try {
+    final response = await apiClient.dio.get(
+      '/messages/my',
+      queryParameters: {'userId': userId},
+    );
+
+    final list = response.data as List? ?? [];
+    return list
+        .map((item) => ChatModel.fromJson(item as Map<String, dynamic>))
+        .toList();
+  } on DioException catch (e) {
+    final message = e.response?.data?['error']?['message'] ??
+        e.response?.data?['message'] ??
+        e.message ??
+        'An error occurred while fetching chats';
+    throw Failure(message, statusCode: e.response?.statusCode ?? 500);
+  } catch (e) {
+    throw Failure(e.toString());
+  }
+});
+
+class ChatMessagesState {
+  final AsyncValue<List<MessageModel>> messages;
+  final String? userId;
+  final bool isSending;
+
+  ChatMessagesState({
+    required this.messages,
+    this.userId,
+    this.isSending = false,
+  });
+
+  ChatMessagesState copyWith({
+    AsyncValue<List<MessageModel>>? messages,
+    String? userId,
+    bool? isSending,
+  }) {
+    return ChatMessagesState(
+      messages: messages ?? this.messages,
+      userId: userId ?? this.userId,
+      isSending: isSending ?? this.isSending,
+    );
+  }
+}
+
+class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
+  final ApiClient apiClient;
+  final FlutterSecureStorage secureStorage;
+  final String chatId;
+  final String initialUserId;
+
+  ChatMessagesNotifier({
+    required this.apiClient,
+    required this.secureStorage,
+    required this.chatId,
+    required this.initialUserId,
+  }) : super(ChatMessagesState(messages: const AsyncValue.loading())) {
+    fetchMessages();
+  }
+
+  Future<String> _getUserId() async {
+    if (state.userId != null &&
+        state.userId != 'mock_user_id' &&
+        state.userId!.isNotEmpty) {
+      return state.userId!;
+    }
+    if (initialUserId != 'mock_user_id' && initialUserId.isNotEmpty) {
+      return initialUserId;
+    }
+
+    try {
+      final token = await secureStorage.getToken();
+      if (token != null) {
+        final parts = token.split('.');
+        if (parts.length == 3) {
+          var payload = parts[1];
+          final remainder = payload.length % 4;
+          if (remainder > 0) {
+            payload += '=' * (4 - remainder);
+          }
+          final decoded = utf8.decode(base64Url.decode(payload));
+          final Map<String, dynamic> claims = jsonDecode(decoded);
+          final resolved = claims['sub'] as String? ??
+              claims['userId'] as String? ??
+              claims['id'] as String?;
+          if (resolved != null && resolved.isNotEmpty) {
+            return resolved;
+          }
+        }
+      }
+    } catch (_) {}
+
+    return 'mock_user_id';
+  }
+
+  Future<void> fetchMessages() async {
+    try {
+      final resolvedUserId = await _getUserId();
+      state = state.copyWith(userId: resolvedUserId);
+
+      final response = await apiClient.dio.get(
+        '/messages/all',
+        queryParameters: {
+          'chatId': chatId,
+          'userId': resolvedUserId,
+          'limit': 50,
+        },
+      );
+      final list = response.data as List? ?? [];
+      final messagesList = list
+          .map((item) => MessageModel.fromJson(item as Map<String, dynamic>))
+          .toList();
+      state = state.copyWith(messages: AsyncValue.data(messagesList));
+    } catch (e, stack) {
+      state = state.copyWith(messages: AsyncValue.error(e, stack));
+    }
+  }
+
+  Future<bool> sendMessage(
+    String content, {
+    required String peerUserId,
+    String type = 'text',
+    List<String>? attachmentUrls,
+  }) async {
+    final resolvedUserId = await _getUserId();
+    state = state.copyWith(userId: resolvedUserId);
+
+    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+    final tempMessage = MessageModel(
+      messageId: tempId,
+      chatId: chatId,
+      senderId: resolvedUserId,
+      type: type,
+      content: content,
+      attachmentUrls: attachmentUrls,
+      createdAt: DateTime.now().toUtc().toIso8601String(),
+      updatedAt: DateTime.now().toUtc().toIso8601String(),
+    );
+
+    final currentList = state.messages.value ?? [];
+    state = state.copyWith(
+      messages: AsyncValue.data([...currentList, tempMessage]),
+    );
+
+    try {
+      final Map<String, dynamic> payload = {
+        'peerUserId': peerUserId,
+        'type': type,
+        'content': content,
+        'attachmentUrls': attachmentUrls ?? [],
+      };
+
+      final response = await apiClient.dio.post(
+        '/messages/send-message',
+        data: payload,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final resData = response.data;
+        final messageJson = resData is Map ? (resData['message'] ?? resData) : null;
+        if (messageJson != null && messageJson is Map<String, dynamic>) {
+          final actualMessage = MessageModel.fromJson(messageJson);
+          final updatedList = (state.messages.value ?? []).map((msg) {
+            return msg.messageId == tempId ? actualMessage : msg;
+          }).toList();
+          state = state.copyWith(messages: AsyncValue.data(updatedList));
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+}
+
+final chatMessagesProvider = StateNotifierProvider.family.autoDispose<
+    ChatMessagesNotifier, ChatMessagesState, String>((ref, chatId) {
+  final apiClient = ref.watch(apiClientProvider);
+  final secureStorage = ref.watch(secureStorageProvider);
+
+  final profile = ref.watch(profileProvider).value;
+  final userId = profile?.userId;
+
+  return ChatMessagesNotifier(
+    apiClient: apiClient,
+    secureStorage: secureStorage,
+    chatId: chatId,
+    initialUserId: userId ?? 'mock_user_id',
+  );
+});

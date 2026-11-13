@@ -401,6 +401,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get tab_orders => 'ऑर्डर';
 
   @override
+  String get tab_chat => 'चैट';
+
+  @override
   String get tab_more => 'अधिक';
 
   @override
@@ -735,4 +738,27 @@ class AppLocalizationsHi extends AppLocalizations {
   String get hc_q4 => 'मैं अपने तकनीशियन को कैसे ट्रैक करूं?';
   @override
   String get hc_a4 => 'जब आपका तकनीशियन रवाना होता है, ऑर्डर टैब से अपना सक्रिय ऑर्डर खोलें और लाइव स्टेटस अपडेट देखें।';
+
+  @override
+  String get messages => 'संदेश';
+  @override
+  String get search_conversations => 'बातचीत खोजें...';
+  @override
+  String get tap_to_view_conversation => 'बातचीत देखने के लिए टैप करें';
+  @override
+  String get accepted => 'स्वीकृत';
+  @override
+  String get pinned_job_details => 'पिन किया गया कार्य विवरण';
+  @override
+  String get pre_paid => 'प्री-पेड';
+  @override
+  String get post_paid => 'पोस्ट-पेड';
+  @override
+  String get km_away => 'किमी दूर';
+  @override
+  String get navigate => 'नेविगेट करें';
+  @override
+  String get continue_job => 'कार्य जारी रखें';
+  @override
+  String get type_a_message_hint => 'संदेश लिखें...';
 }

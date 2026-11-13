@@ -2,6 +2,8 @@ import 'package:digv/I10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:digv/features/orders/presentation/providers/orders_provider.dart';
 import 'package:digv/core/theme/app_text_styles.dart';
+import 'package:digv/features/chat/presentation/providers/chat_provider.dart';
+import 'package:digv/features/chat/presentation/screens/chat_placeholder_screen.dart';
 import 'package:digv/features/home_discovery/presentation/screens/home_screen.dart';
 import 'package:digv/features/more/presentation/screens/more_screen.dart';
 import 'package:digv/features/orders/presentation/screens/my_orders_screen.dart';
@@ -12,13 +14,14 @@ import 'package:flutter_svg/flutter_svg.dart';
 // ── Tab index constants (public so router can reference them) ──────────────
 const int kHomeTab = 0;
 const int kOrdersTab = 1;
-const int kMoreTab = 2;
+const int kChatTab = 2;
+const int kMoreTab = 3;
 
 /// ─────────────────────────────────────────────────────────────────────────
 /// [MainShell] — the root frame of the app after login.
 ///
 /// Owns the SINGLE bottom navigation bar and switches between
-/// [HomeScreen], [MyOrdersScreen] and [MoreScreen] using an [IndexedStack].
+/// [HomeScreen], [MyOrdersScreen], [ChatPlaceholderScreen] and [MoreScreen] using an [IndexedStack].
 /// No individual screen should define its own bottom nav bar.
 /// ─────────────────────────────────────────────────────────────────────────
 class MainShell extends ConsumerStatefulWidget {
@@ -46,6 +49,8 @@ class _MainShellState extends ConsumerState<MainShell> {
       ref.invalidate(ordersProvider('UPCOMING'));
       ref.invalidate(ordersProvider('PAST'));
       ref.invalidate(ordersProvider('CANCELLED'));
+    } else if (index == kChatTab) {
+      ref.invalidate(chatListProvider);
     }
     setState(() => _tab = index);
   }
@@ -56,13 +61,14 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      // ── Tab content — all three screens stay alive ─────────────────
+      // ── Tab content — all four screens stay alive ─────────────────
       body: IndexedStack(
         index: _tab,
         children: const [
-          HomeScreen(),      // Tab 0
-          MyOrdersScreen(),  // Tab 1
-          MoreScreen(),      // Tab 2
+          HomeScreen(),            // Tab 0
+          MyOrdersScreen(),        // Tab 1
+          ChatPlaceholderScreen(), // Tab 2
+          MoreScreen(),            // Tab 3
         ],
       ),
       // ── Single fixed bottom navigation bar ─────────────────────────
@@ -88,6 +94,7 @@ class _BottomNav extends StatelessWidget {
     final items = [
       _NavDef(label: l10n.tab_home, asset: 'assets/images/home', index: kHomeTab),
       _NavDef(label: l10n.tab_orders, asset: 'assets/images/order', index: kOrdersTab),
+      _NavDef(label: l10n.tab_chat, asset: 'assets/images/message', index: kChatTab),
       _NavDef(label: l10n.tab_more, asset: 'assets/images/more', index: kMoreTab),
     ];
 
@@ -98,8 +105,8 @@ class _BottomNav extends StatelessWidget {
       ),
       padding: EdgeInsets.only(
         top: 8,
-        left: 16,
-        right: 16,
+        left: 12,
+        right: 12,
         bottom: MediaQuery.of(context).padding.bottom + 8,
       ),
       child: Row(
@@ -147,7 +154,7 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

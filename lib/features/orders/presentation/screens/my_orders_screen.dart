@@ -12,6 +12,10 @@ import 'package:digv/features/orders/presentation/providers/orders_provider.dart
 import 'package:digv/features/orders/presentation/widgets/cancel_bottom_sheet.dart';
 import 'package:digv/features/orders/presentation/widgets/reschedule_bottom_sheet.dart';
 import 'package:digv/features/search/data/repositories/search_repository_impl.dart';
+import 'package:digv/features/auth/presentation/providers/auth_provider.dart';
+import 'package:digv/features/booking_engine/presentation/widgets/order_tracking/sheets/chat_sheet.dart';
+import 'package:digv/features/chat/presentation/providers/chat_provider.dart';
+import 'package:digv/features/chat/presentation/screens/chat_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,6 +34,99 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
   OrderTab _selectedTab = OrderTab.active;
   String? _selectedDisputeStatus;
   String? _rebookingOrderId;
+  String? _openingChatOrderId;
+
+  Future<void> _openChat(OrderItem order) async {
+    if (_openingChatOrderId != null) return;
+    setState(() => _openingChatOrderId = order.id);
+
+    try {
+      String? providerId = order.providerId;
+
+      if (providerId == null || providerId.isEmpty) {
+        try {
+          final ordersRepo = ref.read(ordersRepositoryProvider);
+          final detail = await ordersRepo.getServiceRequestById(id: order.id);
+          providerId = detail?['providerId'] as String? ??
+              detail?['technician']?['id'] as String? ??
+              detail?['technician']?['userId'] as String?;
+        } catch (_) {}
+      }
+
+      if (providerId == null || providerId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Technician has not been assigned yet.')),
+          );
+        }
+        return;
+      }
+
+      String? currentUserId = ref.read(profileProvider).value?.userId;
+      if (currentUserId == null || currentUserId.isEmpty) {
+        try {
+          final user = await ref.read(profileProvider.future);
+          currentUserId = user.userId;
+        } catch (_) {}
+      }
+
+      String? chatId;
+      if (currentUserId != null && currentUserId.isNotEmpty) {
+        try {
+          final chatRepo = ref.read(chatRepositoryProvider);
+          final chat = await chatRepo.createOrGetPersonalChat(
+            userId: currentUserId,
+            peerUserId: providerId,
+          );
+          chatId = chat.chatId;
+        } catch (e) {
+          debugPrint('Error creating/getting personal chat: $e');
+        }
+      }
+
+      if (mounted) {
+        if (chatId != null && chatId.isNotEmpty) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ChatDetailScreen(
+                chatId: chatId!,
+                peerUserId: providerId!,
+                customerName: order.technicianName.isNotEmpty
+                    ? order.technicianName
+                    : 'Technician',
+                customerAvatar: order.technicianImageUrl,
+                customerPhone: order.providerPhoneNumber,
+                activeJob: order,
+              ),
+            ),
+          );
+        } else {
+          showModalBottomSheet(
+            context: context,
+            backgroundColor: Colors.transparent,
+            isScrollControlled: true,
+            builder: (_) => ChatSheet(
+              peerUserId: providerId!,
+              peerName: order.technicianName.isNotEmpty
+                  ? order.technicianName
+                  : 'Technician',
+              peerAvatarUrl: order.technicianImageUrl,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to open chat: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _openingChatOrderId = null);
+      }
+    }
+  }
 
   Future<void> _handleRebook(OrderItem order) async {
     if (_rebookingOrderId != null) return;
@@ -1067,6 +1164,12 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
         ),
         const SizedBox(width: 8),
         _buildIconButton(
+          icon: 'assets/images/message.svg',
+          isLoading: _openingChatOrderId == order.id,
+          onTap: () => _openChat(order),
+        ),
+        const SizedBox(width: 8),
+        _buildIconButton(
           icon: 'assets/images/phone.svg',
           onTap: () {
             final phone = order.providerPhoneNumber ?? '+919876543216';
@@ -1246,9 +1349,10 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
   Widget _buildIconButton({
     required String icon,
     required VoidCallback? onTap,
+    bool isLoading = false,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       child: Container(
         width: 46,
         height: 44,
@@ -1260,15 +1364,24 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
           ),
         ),
         child: Center(
-          child: SvgPicture.asset(
-            icon,
-            width: 18,
-            height: 18,
-            colorFilter: const ColorFilter.mode(
-              AppColors.onLight,
-              BlendMode.srcIn,
-            ),
-          ),
+          child: isLoading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.onLight),
+                  ),
+                )
+              : SvgPicture.asset(
+                  icon,
+                  width: 18,
+                  height: 18,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.onLight,
+                    BlendMode.srcIn,
+                  ),
+                ),
         ),
       ),
     );
